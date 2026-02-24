@@ -154,3 +154,21 @@ button:hover {
     background: var(--amber);
     border-radius: 2px;
 }
+/* THE FIX: Force the canvas to occupy the full dashed area */
+#lattice-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    /* Ensure it doesn't shrink to 0 */
+    min-height: 200px; 
+}
+
+/* Update the visualizer panel so it doesn't "squeeze" its children to the center */
+.visualizer {
+    padding: 0 !important; /* Allow canvas to touch edges */
+    overflow: hidden;      /* Keep dots inside the border */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch !important; /* Force child to stretch width */
+    justify-content: stretch !important; /* Force child to stretch height */
+}

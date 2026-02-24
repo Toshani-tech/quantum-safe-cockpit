@@ -1,77 +1,68 @@
-let isUnderAttack = false;
+import { calculateAirspeed, updateDisplay } from './physics/aerodynamics.js';
+import { initHandshake, logTerminalMessage, drawLattice, triggerAttack } from './security/lattice-engine.js';
 
-export function triggerAttack(status) {
-    isUnderAttack = status;
-}
+let altitude = 0;
+let isBooted = false;
+let flightTimer;
+let attackLogged = false; 
 
-export function logTerminalMessage(message) {
-    const terminal = document.getElementById('terminal-box');
-    if (!terminal) return;
-    const newEntry = document.createElement('p');
-    newEntry.className = 'log-entry';
-    newEntry.innerText = `> ${message}`;
-    terminal.appendChild(newEntry);
-    terminal.scrollTop = terminal.scrollHeight;
-}
+window.onload = () => {
+    console.log(" cockpit: Online");
 
-export function initHandshake(callback) {
-    logTerminalMessage("Initializing ARINC 429 Data Bus...");
-    setTimeout(() => { logTerminalMessage("Establishing ML-KEM Lattice Handshake..."); }, 1000);
-    setTimeout(() => {
-        logTerminalMessage("Quantum Keys Verified. GPS Integrity Secured.");    
-        logTerminalMessage("Beginning Physics-Based Ascent...");
-        callback();
-    }, 2500);
-}
+    // Initialize the lattice - this version handles its own sizing
+    drawLattice('lattice-canvas');
 
-export function drawLattice(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    const ctx = canvas.getContext('2d');
-    
-    // FIX 1: Force high-resolution scaling to fit the CSS panel perfectly
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-
-    const dots = [];
-    
-    // FIX 2: High-Density Spacing (Changed from 25 to 15 for that "Elite" look)
-    const spacing = 15; 
-
-    for (let x = spacing; x < canvas.width; x += spacing) {
-        for (let y = spacing; y < canvas.height; y += spacing) {
-            dots.push({ x, y, originX: x });
-        }
+    const startBtn = document.getElementById('init-btn');
+    if (startBtn) {
+        startBtn.onclick = () => {
+            console.log("Button Clicked - Starting Boot...");
+            bootSystem();
+        };
+    } else {
+        console.error("Button 'init-btn' not found in HTML!");
     }
+};
 
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+function bootSystem() {
+    if (isBooted) return;
+    isBooted = true;
 
-        dots.forEach(dot => {
-            // The diagonal wave math
-            const pulse = Math.sin(Date.now() * 0.002 + (dot.x * 0.05) + (dot.y * 0.05)) * 0.4 + 0.6;
+    const securityTag = document.getElementById('security-tag');
+    if (securityTag) {
+        securityTag.innerText = "SYSTEM: PQC-ACTIVE";
+        securityTag.style.color = "#00FFFF"; 
+    }
+    
+    initHandshake(() => {
+        flightTimer = setInterval(updateFlightData, 100);
+    });
+}
 
-            if (isUnderAttack) {
-                // PHASE 4 BREACH: Red, aggressive jitter
-                dot.x = dot.originX + (Math.random() - 0.5) * 3.5; 
-                ctx.fillStyle = `rgba(255, 50, 50, ${pulse})`;
-                ctx.shadowColor = "red";
-                ctx.shadowBlur = 15;
-            } else {
-                // STABLE PQC STATE: Cyan, smooth wave
-                dot.x = dot.originX;
-                ctx.fillStyle = `rgba(0, 255, 255, ${pulse})`;
-                ctx.shadowColor = "cyan";
-                ctx.shadowBlur = 8;
+function updateFlightData() {
+    if (altitude < 35000) {
+        altitude += 250; 
+        const securityTag = document.getElementById('security-tag');
+
+        if (altitude >= 20000 && altitude <= 25000) {
+            triggerAttack(true); 
+            if (!attackLogged) {
+                logTerminalMessage("CRITICAL: Quantum Decoy Detected!");
+                if (securityTag) {
+                    securityTag.innerText = "SYSTEM: BREACH ATTEMPT";
+                    securityTag.style.color = "red";
+                }
+                attackLogged = true;
             }
-
-            // FIX 3: Increased dot size to 2px for better visibility
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0; // Reset for performance
-        });
-
-        requestAnimationFrame(animate);
+        } else {
+            triggerAttack(false);
+            if (altitude > 25000 && securityTag) {
+                securityTag.innerText = "SYSTEM: PQC-SECURE";
+                securityTag.style.color = "#00FFFF";
+            }
+        }
+        updateDisplay(altitude, calculateAirspeed(altitude));
+    } else {
+        clearInterval(flightTimer); 
+        logTerminalMessage("CRUISE ALTITUDE REACHED.");
     }
-    animate();
 }
