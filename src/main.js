@@ -1,24 +1,28 @@
-// src/main.js
 import { calculateAirspeed, updateDisplay } from './physics/aerodynamics.js';
-import { initHandshake, logTerminalMessage } from './security/lattice-engine.js';
+import { initHandshake, logTerminalMessage, drawLattice, triggerAttack } from './security/lattice-engine.js';
 
 let altitude = 0;
 let isBooted = false;
 let flightTimer;
+let attackLogged = false; 
 
-// Hook up the button directly in JS (The Professional Way)
 document.addEventListener('DOMContentLoaded', () => {
-    const startBtn = document.querySelector('button'); // Finds your "Initialize" button
-    startBtn.addEventListener('click', bootSystem);
+    const startBtn = document.getElementById('init-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', bootSystem);
+    }
+    // Start drawing the dots immediately so the screen isn't empty
+    drawLattice('lattice-canvas');
 });
 
 function bootSystem() {
     if (isBooted) return;
     isBooted = true;
 
-    document.getElementById('security-tag').innerText = "SYSTEM: PQC-ACTIVE";
+    const tag = document.getElementById('security-tag');
+    tag.innerText = "SYSTEM: PQC-ACTIVE";
+    tag.style.color = "#00FFFF"; 
     
-    // Call the handshake from the security module
     initHandshake(() => {
         flightTimer = setInterval(updateFlightData, 100);
     });
@@ -26,16 +30,30 @@ function bootSystem() {
 
 function updateFlightData() {
     if (altitude < 35000) {
-        altitude += 450; 
+        altitude += 250; // Ascent increment
         if (altitude > 35000) altitude = 35000;
 
-        // Use the physics module for the calculation
+        // --- PHASE 4 RED ALERT TRIGGER (20k - 25k) ---
+        if (altitude >= 20000 && altitude <= 25000) {
+            triggerAttack(true); 
+            if (!attackLogged) {
+                logTerminalMessage("CRITICAL: Quantum Decoy Detected in 20K-25K Range!");
+                document.getElementById('security-tag').innerText = "SYSTEM: BREACH ATTEMPT";
+                document.getElementById('security-tag').style.color = "red";
+                attackLogged = true;
+            }
+        } else {
+            triggerAttack(false);
+            if (altitude > 25000) {
+                document.getElementById('security-tag').innerText = "SYSTEM: PQC-SECURE";
+                document.getElementById('security-tag').style.color = "#00FFFF";
+            }
+        }
+
         let airspeed = calculateAirspeed(altitude);
-        
-        // Use the physics module to update the screen
         updateDisplay(altitude, airspeed);
         
-        document.getElementById('ai-msg').innerText = "AI: Ascent in progress. Monitoring encryption stability...";
+        document.getElementById('ai-msg').innerText = "AI: Monitoring encryption stability...";
     } else {
         clearInterval(flightTimer); 
         logTerminalMessage("CRUISE ALTITUDE REACHED. System Stabilized.");
