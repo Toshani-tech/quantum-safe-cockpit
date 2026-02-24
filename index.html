@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Q-Safe Cockpit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="cockpit-container">
+        <header>
+            <h2 id="security-tag" style="color: var(--amber);">SYSTEM: STANDBY</h2>
+        </header>
+
+        <main class="pfd-grid">
+            <section class="panel telemetry">
+                <h3>TELEMETRY</h3>
+                <p>ALTITUDE: <span id="alt">0</span> FT</p>
+                <p>AIRSPEED: <span id="spd">0</span> KTS</p>
+            </section>
+
+            <section class="panel visualizer">
+                <canvas id="lattice-canvas"></canvas>
+            </section>
+
+            <section class="panel terminal">
+                <h3>AI SECURITY LOG</h3>
+                <div id="terminal-box">
+                    <p class="log-entry">> Awaiting System Initialization...</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <button id="init-btn">Initialize System</button>
+            <p id="ai-msg">AI: Ready for Pre-Flight PQC Check.</p>
+        </footer>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

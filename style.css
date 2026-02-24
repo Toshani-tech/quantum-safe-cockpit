@@ -1,0 +1,156 @@
+/* Industrial Palette Variables */
+:root {
+    --bg-color: #121212;      
+    --panel-bg: #1a1a1a;      
+    --cyan: #00FFFF;         
+    --amber: #FFBF00;        
+    --red: #FF0000;          
+    --border-glow: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+/* Global Styles - No scroll, full immersion */
+body {
+    background-color: var(--bg-color);
+    color: var(--cyan);
+    font-family: 'Courier New', Courier, monospace; 
+    margin: 0;
+    padding: 0; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; 
+    height: 100vh;           
+    overflow: hidden;        
+}
+
+/* The Main Cockpit Frame - Adaptive Width */
+#cockpit-container {
+    border: var(--border-glow);
+    background-color: var(--panel-bg);
+    padding: 1.5% 2%;       
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+    width: 95%;             
+    max-width: 1200px;
+    height: 90vh;            
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Header */
+header {
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    margin-bottom: 10px;
+}
+
+header h2 {
+    margin: 5px 0;
+    font-size: clamp(1rem, 2vh, 1.5rem); /* Dynamic font size */
+}
+
+/* The 3-Column PFD Layout - Taking up the middle space */
+.pfd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr; 
+    gap: 20px;
+    flex-grow: 1;           
+    margin-bottom: 10px;
+    max-height: 500px; /* This stops the panels from stretching TOO much on tall screens */
+}
+
+/* Individual Panel Styling */
+.panel {
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel h3 {
+    margin-top: 0;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    padding-bottom: 5px;
+}
+
+/* Center Visualizer Styling */
+.visualizer {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border: 1px dashed var(--cyan);
+    background: radial-gradient(circle, rgba(0,255,255,0.05) 0%, rgba(0,0,0,0) 70%);
+}
+
+.lattice-placeholder {
+    font-weight: bold;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    animation: pulse 2.5s infinite ease-in-out;
+}
+
+/* AI Terminal / Security Log Styling */
+#terminal-box {
+    font-size: 0.8rem;       /* Keeps text readable */
+    color: var(--amber);
+    flex-grow: 1;            /* Fills the panel height */
+    overflow-y: auto; 
+    text-align: left;
+}
+
+.log-entry {
+    margin: 5px 0;
+    border-left: 2px solid var(--amber);
+    padding-left: 10px;
+    line-height: 1.2;
+}
+
+/* Bottom Controls */
+footer {
+    border-top: 1px solid rgba(0, 255, 255, 0.1);
+    padding-top: 10px;
+    text-align: center;
+}
+
+button {
+    background: transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    padding: 12px 30px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: var(--amber);
+    color: black;
+    box-shadow: 0 0 15px var(--amber);
+}
+
+#ai-msg {
+    margin: 8px 0 0 0;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+/* Animations & Scrollbar */
+@keyframes pulse {
+    0% { opacity: 0.3; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0.3; transform: scale(0.98); }
+}
+
+#terminal-box::-webkit-scrollbar {
+    width: 4px;
+}
+
+#terminal-box::-webkit-scrollbar-thumb {
+    background: var(--amber);
+    border-radius: 2px;
+}
