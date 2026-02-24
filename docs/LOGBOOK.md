@@ -29,3 +29,5 @@ Task: Migrated to a Modular Architecture and implemented a Dynamic Quantum Stres
 Tech: ES6 Modules (import/export) for scalable code management; HTML5 Canvas API for real-time mathematical lattice rendering; Git/GitHub for professional version control and CI/CD foundations.
 
 Note: Refactored the monolithic script into a modular engine, separating physics telemetry from security visualization. Engineered a PQC (Post-Quantum Cryptography) Lattice Visualizer that simulates "Quantum Decoherence." Integrated an automated stress test that triggers a high-visibility "Red Alert" state (color shift and coordinate jitter) between 20,000 and 25,000 feet, simulating a successful detection and mitigation of a lattice-based attack.
+
+P.S: The Bug(Took over 2 hours to find): Project files were "hidden" in a sub-folder (/quantum-safe-cockpit-main/), and Git didn't know who I was (very tiny email mismatch). I flattened the repo (moved files to root), verified identity (git config --global user.email) and synced the world (git reset --hard).
