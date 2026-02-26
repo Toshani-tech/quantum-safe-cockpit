@@ -1,88 +1,143 @@
-/* Update your :root with more specific Avionics Colors */
+/* style.css - Stealth Cockpit Tactical UI */
 :root {
-    --cockpit-bg: #0c0d0e;       /* Deeper black for high contrast */
-    --panel-grey: #1c1e20;      /* Airbus 'Thales' Grey */
-    --avionics-green: #00ff41;   /* Status: OK */
-    --avionics-amber: #ffb000;   /* Caution */
-    --avionics-cyan: #00ffff;    /* Telemetry */
-    --avionics-red: #ff3b3b;     /* Breach/Warning */
-    --crt-glow: 0 0 8px rgba(0, 255, 65, 0.2);
-    --font-main: 'Courier New', monospace;
+    --bg: #05070a;
+    --panel-bg: #05070a; /* STEP 3: Pure solid background */
+    --cyan: #00e5ff;
+    --tactical-red: #ff3b3b;
+    --font-main: 'Share Tech Mono', monospace;
+    --border-glow: rgba(0, 229, 255, 0.25);
 }
 
-/* 1. THE HARDWARE EFFECT: Scanline Overlay */
-/* This makes the screen look like a real cockpit monitor */
-body::before {
-    content: " ";
-    display: block;
-    position: fixed;
-    top: 0; left: 0; bottom: 0; right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 118, 0.02));
-    background-size: 100% 3px, 3px 100%; /* Tiny horizontal lines */
-    z-index: 9999;
-    pointer-events: none; /* User can click through it */
+* { 
+    box-sizing: border-box; 
 }
 
 body {
-    background-color: var(--cockpit-bg);
-    color: var(--avionics-green);
+    background: var(--bg);
+    color: #fff;
     font-family: var(--font-main);
     margin: 0;
-    padding: 10px;
-    overflow: hidden; /* Avionics are always fullscreen */
-}
-
-/* 2. THE MAIN CONTAINER: "Glass Cockpit" look */
-#cockpit-container {
-    background-color: var(--panel-grey);
-    border: 2px solid #333;
-    border-radius: 4px; /* Real hardware has slight rounding */
-    box-shadow: inset 0 0 50px #000; /* Depth effect */
+    height: 100vh;
+    width: 100vw;
     display: flex;
     flex-direction: column;
-    height: 96vh;
-    padding: 10px;
+    overflow: hidden; 
 }
 
-/* 3. THE PFD GRID: Clean 3-Column Split */
+/* THE "FILM LOOK" SCANLINES */
+body::after {
+    content: " ";
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+    background-size: 100% 4px;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+#cockpit-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 30px;
+    z-index: 10;
+}
+
+header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#security-tag {
+    display: inline-block;
+    padding: 5px 20px;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-size: 0.9rem;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px var(--cyan);
+}
+
+/* THE GRID SYSTEM - Hard Locked */
 .pfd-grid {
     display: grid;
-    grid-template-columns: 220px 1fr 220px; /* Fixed sides, fluid center */
-    gap: 15px;
+    grid-template-columns: 350px 1fr 350px; 
+    gap: 25px;
     flex-grow: 1;
+    min-height: 0; 
 }
 
-/* 4. THE PANELS: Give them the "Screen" look */
 .panel {
-    background: #000; /* The actual glass is black */
-    border: 1px solid #444;
-    box-shadow: var(--crt-glow);
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
     position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0; /* Let canvas fill the edges */
     overflow: hidden;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
-.panel h3 {
-    background: #222; /* Header bar for each gauge */
-    color: #fff;
-    padding: 5px;
-    font-size: 0.7rem;
-    text-align: center;
-    border-bottom: 1px solid #444;
+/* STEP 1 FIX: Removed the .telemetry class entirely to kill ghosting */
+
+/* CANVAS SIZING - Locked for Aspect Ratio */
+#lattice-canvas, #flight-display {
+    width: 100% !important;
+    height: 100% !important;
+    background: #000;
+    /* This makes the canvas look like a screen inside the panel */
+    object-fit: fill; 
 }
 
-/* 5. THE BUTTON: Standard Flight Deck Switch */
-button {
-    background: #222;
-    border: 2px solid #555;
-    color: var(--avionics-cyan);
-    padding: 10px 20px;
-    font-weight: bold;
+/* HUD Labels - High-End Aesthetic */
+.label {
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    color: var(--cyan);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    z-index: 5;
+    background: var(--bg);
+    padding: 2px 8px;
+    border: 1px solid var(--border-glow);
+}
+
+/* TERMINAL / LOGS - Ivy League Level Formatting */
+#terminal-box {
+    flex-grow: 1;
+    overflow-y: auto;
+    font-family: var(--font-main);
+    font-size: 13px;
+    color: var(--cyan);
+    background: #020406;
+    padding: 40px 15px 15px 15px; /* Top padding to avoid label overlap */
+    scrollbar-width: none;
+}
+
+/* FOOTER & BUTTON */
+footer {
+    display: flex;
+    justify-content: center;
+    padding-top: 30px;
+}
+
+#init-btn {
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 18px 100px;
+    font-size: 1rem;
+    font-family: var(--font-main);
+    letter-spacing: 5px;
     cursor: pointer;
-    box-shadow: 2px 2px 0px #000; /* Mechanical look */
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-button:active {
-    transform: translate(1px, 1px);
-    box-shadow: none;
+#init-btn:hover {
+    background: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
+    letter-spacing: 8px;
 }
