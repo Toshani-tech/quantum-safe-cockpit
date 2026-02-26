@@ -31,3 +31,13 @@ Tech: ES6 Modules (import/export) for scalable code management; HTML5 Canvas API
 Note: Refactored the monolithic script into a modular engine, separating physics telemetry from security visualization. Engineered a PQC (Post-Quantum Cryptography) Lattice Visualizer that simulates "Quantum Decoherence." Integrated an automated stress test that triggers a high-visibility "Red Alert" state (color shift and coordinate jitter) between 20,000 and 25,000 feet, simulating a successful detection and mitigation of a lattice-based attack.
 
 P.S: The Bug(Took over 2 hours to find): Project files were "hidden" in a sub-folder (/quantum-safe-cockpit-main/), hence Github wasn't reflecting my VS code progress. Because Git didn't know who I was (very tiny email mismatch). I flattened the repo (moved files to root), verified identity (git config --global user.email) and synced the world (git reset --hard).
+
+Day 5: Feb 25, 2026
+
+Task: Implemented Multithreaded System Initialization (POST) and Binary Flight Data Recording (Black Box).
+
+Tech: Web Workers API (Thread Concurrency); ArrayBuffer & DataView for low-level memory mapping; CSS ::before overlays for CRT/Hardware scanline emulation; OffscreenCanvas for non-blocking 60FPS rendering.
+
+Note: Executed a "Professional Pivot" to kill the "kid-coded" aesthetic. Engineered a Power-On Self-Test (POST) sequence that simulates hardware register checks and memory allocation before flight ops commence. Migrated core telemetry and rendering to a Physics Worker thread, decoupling the math from the UI to ensure 0ms input lag. Implemented a Binary Circular Buffer (Black Box) using a 10KB raw ArrayBuffer. Instead of high-level arrays, the system now performs pointer arithmetic to store altitude and velocity as Float32 bits, mirroring real-world FDR (Flight Data Recorder) logic used in Airbus/Boeing avionics.
+
+P.S: The Bug: Spent time debugging a "Race Condition" where the Main Thread tried to draw to the Canvas after I had already transferred control to the Worker via transferControlToOffscreen(). The Fix: Created a "System State" handshake where the Main Thread strictly handles UI (tags/terminal) and the Worker owns the Canvas context exclusively. Once ownership is transferred, the Main Thread is "locked out" of the pixels—true hardware-level separation.
