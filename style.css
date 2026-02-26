@@ -1,174 +1,88 @@
-/* Industrial Palette Variables */
+/* Update your :root with more specific Avionics Colors */
 :root {
-    --bg-color: #121212;      
-    --panel-bg: #1a1a1a;      
-    --cyan: #00FFFF;         
-    --amber: #FFBF00;        
-    --red: #FF0000;          
-    --border-glow: 1px solid rgba(0, 255, 255, 0.3);
+    --cockpit-bg: #0c0d0e;       /* Deeper black for high contrast */
+    --panel-grey: #1c1e20;      /* Airbus 'Thales' Grey */
+    --avionics-green: #00ff41;   /* Status: OK */
+    --avionics-amber: #ffb000;   /* Caution */
+    --avionics-cyan: #00ffff;    /* Telemetry */
+    --avionics-red: #ff3b3b;     /* Breach/Warning */
+    --crt-glow: 0 0 8px rgba(0, 255, 65, 0.2);
+    --font-main: 'Courier New', monospace;
 }
 
-/* Global Styles - No scroll, full immersion */
+/* 1. THE HARDWARE EFFECT: Scanline Overlay */
+/* This makes the screen look like a real cockpit monitor */
+body::before {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 118, 0.02));
+    background-size: 100% 3px, 3px 100%; /* Tiny horizontal lines */
+    z-index: 9999;
+    pointer-events: none; /* User can click through it */
+}
+
 body {
-    background-color: var(--bg-color);
-    color: var(--cyan);
-    font-family: 'Courier New', Courier, monospace; 
+    background-color: var(--cockpit-bg);
+    color: var(--avionics-green);
+    font-family: var(--font-main);
     margin: 0;
-    padding: 0; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center; 
-    height: 100vh;           
-    overflow: hidden;        
+    padding: 10px;
+    overflow: hidden; /* Avionics are always fullscreen */
 }
 
-/* The Main Cockpit Frame - Adaptive Width */
+/* 2. THE MAIN CONTAINER: "Glass Cockpit" look */
 #cockpit-container {
-    border: var(--border-glow);
-    background-color: var(--panel-bg);
-    padding: 1.5% 2%;       
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
-    width: 95%;             
-    max-width: 1200px;
-    height: 90vh;            
+    background-color: var(--panel-grey);
+    border: 2px solid #333;
+    border-radius: 4px; /* Real hardware has slight rounding */
+    box-shadow: inset 0 0 50px #000; /* Depth effect */
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    height: 96vh;
+    padding: 10px;
 }
 
-/* Header */
-header {
-    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-    margin-bottom: 10px;
-}
-
-header h2 {
-    margin: 5px 0;
-    font-size: clamp(1rem, 2vh, 1.5rem); /* Dynamic font size */
-}
-
-/* The 3-Column PFD Layout - Taking up the middle space */
+/* 3. THE PFD GRID: Clean 3-Column Split */
 .pfd-grid {
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr; 
-    gap: 20px;
-    flex-grow: 1;           
-    margin-bottom: 10px;
-    max-height: 500px; /* This stops the panels from stretching TOO much on tall screens */
+    grid-template-columns: 220px 1fr 220px; /* Fixed sides, fluid center */
+    gap: 15px;
+    flex-grow: 1;
 }
 
-/* Individual Panel Styling */
+/* 4. THE PANELS: Give them the "Screen" look */
 .panel {
-    border: 1px solid rgba(0, 255, 255, 0.2);
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
+    background: #000; /* The actual glass is black */
+    border: 1px solid #444;
+    box-shadow: var(--crt-glow);
+    position: relative;
+    overflow: hidden;
 }
 
 .panel h3 {
-    margin-top: 0;
-    font-size: 0.8rem;
-    letter-spacing: 1px;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-    padding-bottom: 5px;
-}
-
-/* Center Visualizer Styling */
-.visualizer {
-    justify-content: center;
-    align-items: center;
+    background: #222; /* Header bar for each gauge */
+    color: #fff;
+    padding: 5px;
+    font-size: 0.7rem;
     text-align: center;
-    border: 1px dashed var(--cyan);
-    background: radial-gradient(circle, rgba(0,255,255,0.05) 0%, rgba(0,0,0,0) 70%);
+    border-bottom: 1px solid #444;
 }
 
-.lattice-placeholder {
-    font-weight: bold;
-    font-size: 1rem;
-    letter-spacing: 2px;
-    animation: pulse 2.5s infinite ease-in-out;
-}
-
-/* AI Terminal / Security Log Styling */
-#terminal-box {
-    font-size: 0.8rem;       /* Keeps text readable */
-    color: var(--amber);
-    flex-grow: 1;            /* Fills the panel height */
-    overflow-y: auto; 
-    text-align: left;
-}
-
-.log-entry {
-    margin: 5px 0;
-    border-left: 2px solid var(--amber);
-    padding-left: 10px;
-    line-height: 1.2;
-}
-
-/* Bottom Controls */
-footer {
-    border-top: 1px solid rgba(0, 255, 255, 0.1);
-    padding-top: 10px;
-    text-align: center;
-}
-
+/* 5. THE BUTTON: Standard Flight Deck Switch */
 button {
-    background: transparent;
-    border: 1px solid var(--amber);
-    color: var(--amber);
-    padding: 12px 30px;
-    cursor: pointer;
-    font-family: inherit;
+    background: #222;
+    border: 2px solid #555;
+    color: var(--avionics-cyan);
+    padding: 10px 20px;
     font-weight: bold;
-    text-transform: uppercase;
-    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px #000; /* Mechanical look */
 }
 
-button:hover {
-    background: var(--amber);
-    color: black;
-    box-shadow: 0 0 15px var(--amber);
-}
-
-#ai-msg {
-    margin: 8px 0 0 0;
-    font-style: italic;
-    font-size: 0.85rem;
-}
-
-/* Animations & Scrollbar */
-@keyframes pulse {
-    0% { opacity: 0.3; transform: scale(0.98); }
-    50% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0.3; transform: scale(0.98); }
-}
-
-#terminal-box::-webkit-scrollbar {
-    width: 4px;
-}
-
-#terminal-box::-webkit-scrollbar-thumb {
-    background: var(--amber);
-    border-radius: 2px;
-}
-/* THE FIX: Force the canvas to occupy the full dashed area */
-#lattice-canvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-    /* Ensure it doesn't shrink to 0 */
-    min-height: 200px; 
-}
-
-/* Update the visualizer panel so it doesn't "squeeze" its children to the center */
-.visualizer {
-    padding: 0 !important; /* Allow canvas to touch edges */
-    overflow: hidden;      /* Keep dots inside the border */
-    display: flex;
-    flex-direction: column;
-    align-items: stretch !important; /* Force child to stretch width */
-    justify-content: stretch !important; /* Force child to stretch height */
+button:active {
+    transform: translate(1px, 1px);
+    box-shadow: none;
 }
