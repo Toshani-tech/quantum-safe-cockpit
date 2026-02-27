@@ -4,23 +4,21 @@ import { initHandshake, logTerminalMessage, drawLattice, triggerAttack } from '.
 const state = {
     isBooted: false,
     attackLogged: false,
+    missionComplete: false,
     physicsWorker: null,
     fdrView: null,
     writeIndex: 0,
-    latency: 4.2
+    latency: 4.2,
+    latencyHistory: new Array(60).fill(4.2), 
+    missionPhase: 'PRE_FLIGHT'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // STEP 2: CANVAS COUPLING & INITIAL RESOLUTION SNAP
     const latticeCanvas = document.getElementById('lattice-canvas');
     if (latticeCanvas) {
         latticeCanvas.width = latticeCanvas.clientWidth;
         latticeCanvas.height = latticeCanvas.clientHeight;
-        try {
-            drawLattice('lattice-canvas');
-        } catch (e) {
-            console.error("SYS_ERR: LATTICE_INIT_FAILED", e);
-        }
+        drawLattice('lattice-canvas');
     }
 
     const startBtn = document.getElementById('init-btn');
@@ -29,12 +27,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!state.isBooted) runPOST();
         });
     }
+
+    setInterval(() => {
+        const hbUi = document.getElementById('hb-ui');
+        if(hbUi) {
+            hbUi.style.opacity = "1";
+            setTimeout(() => hbUi.style.opacity = "0.2", 50);
+        }
+    }, 1000); 
 });
 
-// INDUSTRIAL LOGGING: Type-Safe Data Serialization (ARINC 429 Mockup)
+/**
+ * INDUSTRIAL LOGGING: CRC-8 Integrity Serialization
+ */
 function updateTelemetryStream(alt, vel) {
     const log = document.getElementById('terminal-box');
     if (!log) return;
+
+    // Simulate CRC-8 Checksum (Industrial Standard)
+    const crc8 = (Math.floor(alt) + Math.floor(vel)) % 256;
+    const hexCrc = crc8.toString(16).toUpperCase().padStart(2, '0');
+    
+    // Inject Faults during Attack Phase to show "Safety Consequence"
+    const isCorrupted = (state.missionPhase === 'ENGAGEMENT' && Math.random() > 0.85);
+    const statusColor = isCorrupted ? "#FF3B3B" : "var(--av-green)";
+    const statusText = isCorrupted ? "CRC_ERR" : "CRC_OK";
 
     const hexAlt = Math.abs(Math.floor(alt)).toString(16).toUpperCase().padStart(4, '0');
     const hexVel = Math.abs(Math.floor(vel)).toString(16).toUpperCase().padStart(4, '0');
@@ -43,21 +60,18 @@ function updateTelemetryStream(alt, vel) {
     const p = document.createElement('p');
     p.style.margin = "0";
     p.style.fontSize = "11px";
-    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> BUS_01 >> ALT:0x${hexAlt} | VEL:0x${hexVel} | <span style="color: var(--av-green);">CRC_OK</span>`;
+    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> 0x${hexAlt}|0x${hexVel} <span style="color: ${statusColor};">${statusText}[${hexCrc}]</span>`;
     
     log.appendChild(p);
     log.scrollTop = log.scrollHeight;
-
-    if (log.childNodes.length > 25) log.removeChild(log.firstChild);
+    if (log.childNodes.length > 20) log.removeChild(log.firstChild);
 }
 
 async function runPOST() {
     const log = document.getElementById('terminal-box');
     const addLog = (msg, col = "var(--av-green)") => {
-        if (!log) return;
         const p = document.createElement('p');
-        p.style.color = col;
-        p.style.margin = "2px 0";
+        p.style.color = col; p.style.margin = "2px 0";
         p.textContent = `> ${msg}`;
         log.appendChild(p);
     };
@@ -75,76 +89,106 @@ async function runPOST() {
         state.physicsWorker = new Worker('./src/physics/physics-worker.js');
 
         state.physicsWorker.onmessage = (e) => {
-            const { altitude, velocity, type } = e.data;
+            const { altitude, velocity, type, phase } = e.data;
+            
+            const hbWorker = document.getElementById('hb-worker');
+            if(hbWorker) {
+                hbWorker.style.opacity = "1";
+                setTimeout(() => hbWorker.style.opacity = "0.2", 40);
+            }
+
             if (type === 'TELEMETRY') {
-                handleSecurityLogic(altitude);
+                state.missionPhase = phase;
+                document.getElementById('current-phase').textContent = phase;
+                
+                handleSecurityLogic(altitude, velocity);
                 recordToBlackBox(altitude, velocity);
                 updateTelemetryStream(altitude, velocity);
+                drawOscilloscope();
+
+                if (phase === 'COMPLETE' && !state.missionComplete) {
+                    runMissionAudit();
+                    state.missionComplete = true;
+                }
             }
         };
 
         const canvas = document.getElementById('flight-display');
-        if (canvas) {
-            const offscreen = canvas.transferControlToOffscreen();
-            state.physicsWorker.postMessage({ 
-                type: 'INIT', 
-                canvas: offscreen,
-                width: canvas.clientWidth,
-                height: canvas.clientHeight 
-            }, [offscreen]);
-            addLog("AVIONICS_BUS: CANVAS_LINKED [OK]");
-        }
+        const offscreen = canvas.transferControlToOffscreen();
+        state.physicsWorker.postMessage({ type: 'INIT', canvas: offscreen }, [offscreen]);
 
-        addLog("ALL SYSTEMS OPERATIONAL. FLIGHT DECK ACTIVE.");
+        addLog("AVIONICS_BUS: READY.");
         state.isBooted = true;
-        
-        setTimeout(() => {
-            state.physicsWorker.postMessage({ type: 'START_FLIGHT' });
-        }, 100);
+        setTimeout(() => state.physicsWorker.postMessage({ type: 'START_FLIGHT' }), 500);
 
     } catch (e) {
-        addLog("CRITICAL FAILURE: WORKER_INIT_FAULT", "var(--tactical-red)");
+        addLog("CRITICAL FAILURE", "#FF3B3B");
     }
 }
 
-/**
- * STEP 3: PERFORMANCE PROFILING & LATENCY BENCHMARKING
- * Visualizing the Safety Consequence of PQC overhead.
- */
-function handleSecurityLogic(alt) {
+function handleSecurityLogic(alt, vel) {
     const latencyEl = document.getElementById('handshake-ms');
+    const safetyEl = document.getElementById('safety-calc');
     
-    if (alt > 20000 && alt < 25000) {
+    if (state.missionPhase === 'ENGAGEMENT') {
         if (!state.attackLogged) {
             triggerAttack(true); 
             logTerminalMessage("!! WARNING: SIGNAL_NOISE_THRESHOLD_EXCEEDED");
-            logTerminalMessage("!! ACTION: SHIFTING TO ML-KEM-1024 (HIGH-OVERHEAD)");
             state.attackLogged = true;
         }
-        // REAL-TIME JITTER: Mimics live hardware performance profiling
-        state.latency = (18.2 + Math.random() * 4.5).toFixed(1); 
+        state.latency = 18.2 + Math.random() * 8.5; 
     } else {
         if (state.attackLogged) {
             triggerAttack(false); 
-            logTerminalMessage(">> ATTACK_SUBSIDED. RE-STABILIZING LATTICE.");
-            logTerminalMessage(">> STATUS: INTEGRITY_VERIFIED [CRC_MATCH]");
+            logTerminalMessage(">> ATTACK_SUBSIDED. RE-STABILIZING.");
             state.attackLogged = false;
         }
-        // Baseline NIST-Standardized Latency
-        state.latency = (4.1 + Math.random() * 0.3).toFixed(2);
+        state.latency = 4.1 + Math.random() * 0.4;
     }
     
-    if (latencyEl) latencyEl.textContent = state.latency;
+    state.latencyHistory.push(state.latency);
+    state.latencyHistory.shift();
+    if (latencyEl) latencyEl.textContent = state.latency.toFixed(1);
+
+    const speedMS = vel * 0.5144;
+    const altLoss = speedMS * (state.latency / 1000);
+    if (safetyEl) safetyEl.textContent = `EST. ALT_LOSS: ${altLoss.toFixed(4)}m`;
 }
 
 function recordToBlackBox(alt, vel) {
     if (!state.fdrView) return;
-    try {
-        let offset = state.writeIndex * 8;
-        if (offset + 8 <= state.fdrView.byteLength) {
-            state.fdrView.setFloat32(offset, alt, true);
-            state.fdrView.setFloat32(offset + 4, vel, true);
-            state.writeIndex = (state.writeIndex + 1) % 1250;
-        }
-    } catch (e) {}
+    let offset = state.writeIndex * 8;
+    if (offset + 8 <= state.fdrView.byteLength) {
+        state.fdrView.setFloat32(offset, alt, true);
+        state.fdrView.setFloat32(offset + 4, vel, true);
+        state.writeIndex = (state.writeIndex + 1) % 1250;
+    }
+
+    // FDR Hex Visualization
+    if (state.writeIndex % 5 === 0) {
+        let hex = "";
+        for(let i=0; i<12; i++) hex += state.fdrView.getUint8(i).toString(16).padStart(2, '0') + " ";
+        document.getElementById('fdr-hex-display').textContent = hex.toUpperCase() + "...";
+    }
+}
+
+function runMissionAudit() {
+    logTerminalMessage("--- MISSION_AUDIT_REPORT ---");
+    logTerminalMessage(`PEAK_OVERHEAD: ${Math.max(...state.latencyHistory).toFixed(2)}ms`);
+    logTerminalMessage("INTEGRITY: 100% SECURED [ML-KEM]");
+}
+
+function drawOscilloscope() {
+    const canvas = document.getElementById('osc-canvas');
+    if (!canvas) return;
+    const octx = canvas.getContext('2d');
+    octx.clearRect(0, 0, canvas.width, canvas.height);
+    octx.strokeStyle = (state.latency > 15) ? "#FF3B3B" : "#00FF41";
+    octx.beginPath();
+    for(let i = 0; i < state.latencyHistory.length; i++) {
+        const x = (i / state.latencyHistory.length) * canvas.width;
+        const y = canvas.height - (state.latencyHistory[i] / 30) * canvas.height;
+        if(i === 0) octx.moveTo(x, y); else octx.lineTo(x, y);
+    }
+    octx.stroke();
 }
