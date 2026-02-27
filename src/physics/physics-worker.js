@@ -1,22 +1,24 @@
 // physics-worker.js - PRO-SIM ENGINE (AVIONICS GRADE)
 let ctx;
 let lastTime = 0;
+let missionStart = 0;
 
 let state = {
     altitude: 0,
-    velocity: 150,
+    velocity: 0,
     vSpeed: 0,
+    phase: 'PRE_FLIGHT', // PRE_FLIGHT | CLIMB | ENGAGEMENT | CRUISE
     isEngineRunning: true
 };
 
 self.onmessage = function(e) {
     if (e.data.type === 'INIT') {
         ctx = e.data.canvas.getContext('2d');
-        // LOCK RESOLUTION: Sharp pixel density for data readability
         ctx.canvas.width = 400; 
         ctx.canvas.height = 600;
     }
     if (e.data.type === 'START_FLIGHT') {
+        missionStart = performance.now();
         lastTime = performance.now();
         renderLoop(performance.now());
     }
@@ -26,53 +28,80 @@ function renderLoop(currentTime) {
     if (!state.isEngineRunning) return;
 
     const dt = lastTime ? (currentTime - lastTime) / 1000 : 0.016;
+    const elapsed = (currentTime - missionStart) / 1000;
     lastTime = currentTime;
 
-    if (state.altitude < 35000) {
-        state.velocity += 22 * dt; 
-        const rho = Math.max(0.3, 1.225 * Math.exp(-state.altitude / 30000));
-        const lift = (state.velocity * 16.5) * (5 / 10) * rho; 
-        const gravity = 9.8;
-        
-        state.vSpeed += (lift - gravity) * dt;
-        state.altitude += state.vSpeed * dt; 
-
-        drawPFD(state.altitude, state.velocity, state.vSpeed);
-
-        self.postMessage({ 
-            type: 'TELEMETRY', 
-            altitude: state.altitude, 
-            velocity: state.velocity 
-        });
-
-        requestAnimationFrame(renderLoop);
-    } else {
-        state.altitude = 35000;
+    // --- PHASE LOGIC (STRETCHING TO 90s) ---
+    
+    if (elapsed < 10) {
+        // PHASE 1: PRE-FLIGHT (0-10s) - System Warmup
+        state.phase = 'PRE_FLIGHT';
+        state.altitude = 0;
+        state.velocity = 0;
         state.vSpeed = 0;
-        drawPFD(state.altitude, state.velocity, 0);
+    } 
+    else if (elapsed < 40) {
+        // PHASE 2: STEADY CLIMB (10-40s)
+        state.phase = 'CLIMB';
+        state.velocity = Math.min(250, state.velocity + 15 * dt);
+        state.vSpeed = 80; // Controlled ascent
+        state.altitude += state.vSpeed * dt;
     }
+    else if (elapsed < 70) {
+        // PHASE 3: ENGAGEMENT / LOITER (40-70s) - THE ATTACK ZONE
+        state.phase = 'ENGAGEMENT';
+        state.velocity = 240 + (Math.random() * 4); // Simulated turbulence
+        state.vSpeed = (state.altitude > 25000) ? -10 : 10; // "Hover" around 25k ft
+        state.altitude += state.vSpeed * dt;
+    }
+    else if (elapsed < 90) {
+        // PHASE 4: FINAL CRUISE (70-90s)
+        state.phase = 'CRUISE';
+        state.velocity = 450;
+        state.vSpeed = 20;
+        state.altitude += state.vSpeed * dt;
+    } else {
+        // MISSION COMPLETE
+        state.phase = 'COMPLETE';
+    }
+
+    // DRAW & SYNC
+    drawPFD(state.altitude, state.velocity, state.vSpeed, state.phase);
+
+    self.postMessage({ 
+        type: 'TELEMETRY', 
+        altitude: state.altitude, 
+        velocity: state.velocity,
+        phase: state.phase,
+        timestamp: currentTime // For Latency Calc
+    });
+
+    requestAnimationFrame(renderLoop);
 }
 
-function drawPFD(alt, spd, vs) {
+function drawPFD(alt, spd, vs, phase) {
     if (!ctx) return;
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
 
-    // 1. INDUSTRIAL BLACKOUT
     ctx.fillStyle = "#030303"; 
     ctx.fillRect(0, 0, w, h);
 
-    // 2. DRAW VERTICAL TAPES (AIRSPEED & ALTITUDE)
-    drawVerticalTape(ctx, spd, 0, 80, h, "SPD", 10);      // Left Tape: Speed
-    drawVerticalTape(ctx, alt, w - 80, 80, h, "ALT", 100); // Right Tape: Altitude
+    drawVerticalTape(ctx, spd, 0, 80, h, "SPD", 10);
+    drawVerticalTape(ctx, alt, w - 80, 80, h, "ALT", 100);
 
-    // 3. CENTER DATA (VERTICAL SPEED & HEADING INDICATOR)
-    ctx.fillStyle = "#00FF41"; // Aviation Green
-    ctx.font = "bold 14px 'Share Tech Mono'";
+    // MISSION PHASE INDICATOR (New)
+    ctx.fillStyle = (phase === 'ENGAGEMENT') ? "#FF3B3B" : "#00FF41";
+    ctx.font = "bold 16px 'Share Tech Mono'";
     ctx.textAlign = "center";
+    ctx.fillText(`PHASE: ${phase}`, w/2, 40);
+
+    // V/S INDICATOR
+    ctx.fillStyle = "#00FF41";
+    ctx.font = "bold 14px 'Share Tech Mono'";
     ctx.fillText(`V/S: ${Math.round(vs * 60)} FPM`, w/2, h/2 - 50);
 
-    // Artificial Horizon Line (Minimalist Industrial)
+    // Artificial Horizon
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -81,53 +110,4 @@ function drawPFD(alt, spd, vs) {
     ctx.stroke();
 }
 
-/**
- * INDUSTRIAL TAPE FUNCTION
- * Mimics Boeing/Airbus PFD Tape Logic
- */
-function drawVerticalTape(ctx, value, x, width, height, label, step) {
-    const centerY = height / 2;
-    const pixelsPerUnit = 0.5;
-
-    // Tape Background
-    ctx.fillStyle = "rgba(15, 15, 15, 0.9)";
-    ctx.fillRect(x, 0, width, height);
-    ctx.strokeStyle = "#333";
-    ctx.strokeRect(x, 0, width, height);
-
-    // Tick Marks
-    ctx.strokeStyle = "#00FF41";
-    ctx.fillStyle = "#00FF41";
-    ctx.font = "12px 'Share Tech Mono'";
-    ctx.textAlign = (label === "ALT") ? "left" : "right";
-
-    const startValue = Math.floor((value - 500) / step) * step;
-    const endValue = Math.ceil((value + 500) / step) * step;
-
-    for (let i = startValue; i <= endValue; i += step) {
-        const y = centerY - (i - value) * pixelsPerUnit;
-        if (y < 0 || y > height) continue;
-
-        ctx.beginPath();
-        ctx.moveTo(x + (label === "ALT" ? 0 : width), y);
-        ctx.lineTo(x + (label === "ALT" ? 20 : width - 20), y);
-        ctx.stroke();
-
-        if (i % (step * 5) === 0) {
-            const textX = (label === "ALT") ? x + 25 : x + width - 25;
-            ctx.fillText(i.toString(), textX, y + 4);
-        }
-    }
-
-    // CURRENT VALUE BOX (THE "POINTER")
-    ctx.fillStyle = "#000";
-    ctx.strokeStyle = "#00FF41";
-    ctx.lineWidth = 2;
-    ctx.fillRect(x - 5, centerY - 15, width + 10, 30);
-    ctx.strokeRect(x - 5, centerY - 15, width + 10, 30);
-
-    ctx.fillStyle = "#FFF";
-    ctx.font = "bold 18px 'Share Tech Mono'";
-    ctx.textAlign = "center";
-    ctx.fillText(Math.round(value).toString(), x + width/2, centerY + 7);
-}
+// ... (Keep your drawVerticalTape function exactly as is)
