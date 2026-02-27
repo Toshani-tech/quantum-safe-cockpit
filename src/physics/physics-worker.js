@@ -1,4 +1,4 @@
-// physics-worker.js - PRO-SIM ENGINE
+// physics-worker.js - PRO-SIM ENGINE (AVIONICS GRADE)
 let ctx;
 let lastTime = 0;
 
@@ -12,7 +12,7 @@ let state = {
 self.onmessage = function(e) {
     if (e.data.type === 'INIT') {
         ctx = e.data.canvas.getContext('2d');
-        // LOCK RESOLUTION: Ensures text size is consistent regardless of CSS stretching
+        // LOCK RESOLUTION: Sharp pixel density for data readability
         ctx.canvas.width = 400; 
         ctx.canvas.height = 600;
     }
@@ -28,16 +28,8 @@ function renderLoop(currentTime) {
     const dt = lastTime ? (currentTime - lastTime) / 1000 : 0.016;
     lastTime = currentTime;
 
-    // SIMULATION BOUNDS: Stop at exactly 35,000 ft
     if (state.altitude < 35000) {
-        
-        // DYNAMIC SPEED: Accelerating through the climb
         state.velocity += 22 * dt; 
-
-        /** * STEP 2: PHYSICS OVERCLOCK 
-         * Adding 'Air Density' (Rho) makes it look like a real simulation.
-         * As you go higher, the air gets thinner, slowing the climb naturally.
-         */
         const rho = Math.max(0.3, 1.225 * Math.exp(-state.altitude / 30000));
         const lift = (state.velocity * 16.5) * (5 / 10) * rho; 
         const gravity = 9.8;
@@ -45,10 +37,8 @@ function renderLoop(currentTime) {
         state.vSpeed += (lift - gravity) * dt;
         state.altitude += state.vSpeed * dt; 
 
-        // RENDER: Solid Shield + Data
         drawPFD(state.altitude, state.velocity, state.vSpeed);
 
-        // DATA HANDOVER: Return to main thread
         self.postMessage({ 
             type: 'TELEMETRY', 
             altitude: state.altitude, 
@@ -57,7 +47,6 @@ function renderLoop(currentTime) {
 
         requestAnimationFrame(renderLoop);
     } else {
-        // LEVEL OFF: Cleanly snap to 35,000 for that "Auto-Pilot" feel
         state.altitude = 35000;
         state.vSpeed = 0;
         drawPFD(state.altitude, state.velocity, 0);
@@ -69,34 +58,76 @@ function drawPFD(alt, spd, vs) {
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
 
-    // STEP 3: OPAQUE SHIELD (Hallucination Killer)
-    ctx.fillStyle = "#05070a"; 
+    // 1. INDUSTRIAL BLACKOUT
+    ctx.fillStyle = "#030303"; 
     ctx.fillRect(0, 0, w, h);
 
-    // TACTICAL UI DECORATION
-    ctx.strokeStyle = "rgba(0, 229, 255, 0.15)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(10, 10, w-20, h-20); // Border
+    // 2. DRAW VERTICAL TAPES (AIRSPEED & ALTITUDE)
+    drawVerticalTape(ctx, spd, 0, 80, h, "SPD", 10);      // Left Tape: Speed
+    drawVerticalTape(ctx, alt, w - 80, 80, h, "ALT", 100); // Right Tape: Altitude
 
-    // DATA RENDERING
-    ctx.fillStyle = "#00e5ff";
-    ctx.font = "bold 44px 'Share Tech Mono', monospace";
-    
-    // Aligned Text with Shadows for "Film Look"
-    ctx.shadowColor = "rgba(0, 229, 255, 0.5)";
-    ctx.shadowBlur = 8;
-    ctx.fillText(`ALT: ${Math.round(alt).toString().padStart(5, '0')}`, 30, 120);
-    ctx.fillText(`SPD: ${Math.round(spd)} KTS`, 30, 200);
-    
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = vs >= 0 ? "#00ff41" : "#ff3b3b";
-    ctx.font = "bold 24px 'Share Tech Mono', monospace";
-    ctx.fillText(`V/S: ${Math.round(vs * 60)} FPM`, 30, 260);
+    // 3. CENTER DATA (VERTICAL SPEED & HEADING INDICATOR)
+    ctx.fillStyle = "#00FF41"; // Aviation Green
+    ctx.font = "bold 14px 'Share Tech Mono'";
+    ctx.textAlign = "center";
+    ctx.fillText(`V/S: ${Math.round(vs * 60)} FPM`, w/2, h/2 - 50);
 
-    // BOX DECORATION (The "invisible 4 columns" fix)
-    ctx.strokeStyle = "#00e5ff";
+    // Artificial Horizon Line (Minimalist Industrial)
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(30, 280);
-    ctx.lineTo(w - 30, 280);
+    ctx.moveTo(w/2 - 50, h/2);
+    ctx.lineTo(w/2 + 50, h/2);
     ctx.stroke();
+}
+
+/**
+ * INDUSTRIAL TAPE FUNCTION
+ * Mimics Boeing/Airbus PFD Tape Logic
+ */
+function drawVerticalTape(ctx, value, x, width, height, label, step) {
+    const centerY = height / 2;
+    const pixelsPerUnit = 0.5;
+
+    // Tape Background
+    ctx.fillStyle = "rgba(15, 15, 15, 0.9)";
+    ctx.fillRect(x, 0, width, height);
+    ctx.strokeStyle = "#333";
+    ctx.strokeRect(x, 0, width, height);
+
+    // Tick Marks
+    ctx.strokeStyle = "#00FF41";
+    ctx.fillStyle = "#00FF41";
+    ctx.font = "12px 'Share Tech Mono'";
+    ctx.textAlign = (label === "ALT") ? "left" : "right";
+
+    const startValue = Math.floor((value - 500) / step) * step;
+    const endValue = Math.ceil((value + 500) / step) * step;
+
+    for (let i = startValue; i <= endValue; i += step) {
+        const y = centerY - (i - value) * pixelsPerUnit;
+        if (y < 0 || y > height) continue;
+
+        ctx.beginPath();
+        ctx.moveTo(x + (label === "ALT" ? 0 : width), y);
+        ctx.lineTo(x + (label === "ALT" ? 20 : width - 20), y);
+        ctx.stroke();
+
+        if (i % (step * 5) === 0) {
+            const textX = (label === "ALT") ? x + 25 : x + width - 25;
+            ctx.fillText(i.toString(), textX, y + 4);
+        }
+    }
+
+    // CURRENT VALUE BOX (THE "POINTER")
+    ctx.fillStyle = "#000";
+    ctx.strokeStyle = "#00FF41";
+    ctx.lineWidth = 2;
+    ctx.fillRect(x - 5, centerY - 15, width + 10, 30);
+    ctx.strokeRect(x - 5, centerY - 15, width + 10, 30);
+
+    ctx.fillStyle = "#FFF";
+    ctx.font = "bold 18px 'Share Tech Mono'";
+    ctx.textAlign = "center";
+    ctx.fillText(Math.round(value).toString(), x + width/2, centerY + 7);
 }
