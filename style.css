@@ -1,20 +1,22 @@
-/* style.css - Stealth Cockpit Tactical UI */
+/* style.css - Industrial Avionics Flight Deck */
 :root {
-    --bg: #05070a;
-    --panel-bg: #05070a; /* STEP 3: Pure solid background */
-    --cyan: #00e5ff;
-    --tactical-red: #ff3b3b;
+    --bg: #030303;           /* Deeper black for high contrast */
+    --panel-bg: #050505;
+    --av-green: #00FF41;     /* Aviation Green (NTSC Standard) */
+    --av-amber: #FFBF00;     /* Warning/Diagnostic Amber */
+    --tactical-red: #FF3B3B;
     --font-main: 'Share Tech Mono', monospace;
-    --border-glow: rgba(0, 229, 255, 0.25);
+    --industrial-border: #222; /* Sharp, non-glowy borders */
 }
 
 * { 
     box-sizing: border-box; 
+    cursor: crosshair; /* Industrial feel */
 }
 
 body {
     background: var(--bg);
-    color: #fff;
+    color: var(--av-green);
     font-family: var(--font-main);
     margin: 0;
     height: 100vh;
@@ -22,122 +24,137 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden; 
+    text-transform: uppercase; /* Standard for Avionics */
 }
 
-/* THE "FILM LOOK" SCANLINES */
+/* Sharp Data Grid Overlay */
 body::after {
     content: " ";
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
-    background-size: 100% 4px;
+    background-image: radial-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 0);
+    background-size: 40px 40px; 
     z-index: 100;
     pointer-events: none;
-    opacity: 0.4;
 }
 
 #cockpit-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: 30px;
+    padding: 20px;
     z-index: 10;
 }
 
-header {
-    margin-bottom: 20px;
-    text-align: center;
+/* TOP STATUS BAR */
+#status-bar {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--industrial-border);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 12px;
+    flex-shrink: 0; /* Prevents status bar from squishing */
 }
 
-#security-tag {
-    display: inline-block;
-    padding: 5px 20px;
-    border: 1px solid var(--cyan);
-    color: var(--cyan);
-    font-size: 0.9rem;
-    letter-spacing: 3px;
-    text-shadow: 0 0 10px var(--cyan);
+.latency-monitor { color: var(--av-amber); }
+.worker-status { display: flex; align-items: center; gap: 8px; }
+.status-light {
+    width: 8px; height: 8px;
+    background: var(--av-green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
 }
 
-/* THE GRID SYSTEM - Hard Locked */
+/* THE GRID SYSTEM - HARD LOCKED */
 .pfd-grid {
     display: grid;
-    grid-template-columns: 350px 1fr 350px; 
-    gap: 25px;
+    grid-template-columns: 300px 1fr 300px; 
+    gap: 15px;
     flex-grow: 1;
-    min-height: 0; 
+    min-height: 0; /* CRITICAL: Stops grid from expanding with content */
+    overflow: hidden; /* Keeps the 'Bouncing' effect contained */
 }
 
 .panel {
     background: var(--panel-bg);
-    border: 1px solid var(--border-glow);
+    border: 1px solid var(--industrial-border);
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: 0; /* Let canvas fill the edges */
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    overflow: hidden; /* Prevents internal elements from pushing borders */
 }
 
-/* STEP 1 FIX: Removed the .telemetry class entirely to kill ghosting */
-
-/* CANVAS SIZING - Locked for Aspect Ratio */
-#lattice-canvas, #flight-display {
-    width: 100% !important;
-    height: 100% !important;
-    background: #000;
-    /* This makes the canvas look like a screen inside the panel */
-    object-fit: fill; 
-}
-
-/* HUD Labels - High-End Aesthetic */
-.label {
-    position: absolute;
-    top: 10px;
-    left: 15px;
-    color: var(--cyan);
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    z-index: 5;
-    background: var(--bg);
-    padding: 2px 8px;
-    border: 1px solid var(--border-glow);
-}
-
-/* TERMINAL / LOGS - Ivy League Level Formatting */
+/* TERMINAL / HEX STREAM - FIXED DEPTH */
 #terminal-box {
     flex-grow: 1;
-    overflow-y: auto;
-    font-family: var(--font-main);
-    font-size: 13px;
-    color: var(--cyan);
-    background: #020406;
-    padding: 40px 15px 15px 15px; /* Top padding to avoid label overlap */
-    scrollbar-width: none;
+    overflow-y: auto; /* Internal scroll only */
+    font-size: 11px;
+    color: var(--av-green);
+    background: #000;
+    padding: 35px 10px 10px 10px;
+    line-height: 1.2;
+    scrollbar-width: thin;
+    scrollbar-color: var(--industrial-border) #000;
 }
 
-/* FOOTER & BUTTON */
+/* HUD Labels */
+.label {
+    position: absolute;
+    top: 0; left: 0;
+    color: #000;
+    background: var(--av-green);
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 10px;
+    z-index: 5;
+}
+
+/* CANVAS SIZING - RIGID MAPPING */
+#flight-display, #lattice-canvas {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: block; /* Removes baseline spacing */
+}
+
+/* FOOTER BEZEL */
 footer {
     display: flex;
-    justify-content: center;
-    padding-top: 30px;
+    justify-content: center; 
+    align-items: center;
+    background: #0a0a0a;
+    border-top: 2px solid #222;
+    padding: 15px 0;
+    margin-top: 15px;
+    flex-shrink: 0; /* Keeps footer fixed at bottom */
 }
 
 #init-btn {
-    background: transparent;
-    color: var(--cyan);
-    border: 1px solid var(--cyan);
-    padding: 18px 100px;
-    font-size: 1rem;
+    background: #050505;
+    color: var(--av-green);
+    border: 1px solid #444;
+    padding: 12px 60px;
     font-family: var(--font-main);
-    letter-spacing: 5px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: all 0.1s ease;
 }
 
 #init-btn:hover {
-    background: rgba(0, 229, 255, 0.1);
-    box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
-    letter-spacing: 8px;
+    background: #111;
+    border-color: var(--av-green);
+}
+
+#init-btn:active {
+    background: var(--av-green);
+    color: #000;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
 }
