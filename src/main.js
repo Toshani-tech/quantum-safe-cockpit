@@ -1,5 +1,4 @@
-// main.js - Flight Deck Controller
-// import { updateDisplay } from './physics/aerodynamics.js'; // REMOVED to prevent "Missing Element" errors
+// main.js - Industrial Flight Deck Controller
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack } from './security/lattice-engine.js';
 
 const state = {
@@ -7,43 +6,63 @@ const state = {
     attackLogged: false,
     physicsWorker: null,
     fdrView: null,
-    writeIndex: 0
+    writeIndex: 0,
+    latency: 4.2
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Cockpit DOM Ready");
-    
-    try {
-        drawLattice('lattice-canvas');
-    } catch (e) {
-        console.error("Lattice Error:", e);
+    // STEP 2: CANVAS COUPLING & INITIAL RESOLUTION SNAP
+    const latticeCanvas = document.getElementById('lattice-canvas');
+    if (latticeCanvas) {
+        latticeCanvas.width = latticeCanvas.clientWidth;
+        latticeCanvas.height = latticeCanvas.clientHeight;
+        try {
+            drawLattice('lattice-canvas');
+        } catch (e) {
+            console.error("SYS_ERR: LATTICE_INIT_FAILED", e);
+        }
     }
 
     const startBtn = document.getElementById('init-btn');
     if (startBtn) {
         startBtn.addEventListener('click', () => {
-            if (!state.isBooted) {
-                console.log("Master Start Triggered");
-                runPOST();
-            }
+            if (!state.isBooted) runPOST();
         });
     }
 });
 
+// INDUSTRIAL LOGGING: Type-Safe Data Serialization (ARINC 429 Mockup)
+function updateTelemetryStream(alt, vel) {
+    const log = document.getElementById('terminal-box');
+    if (!log) return;
+
+    const hexAlt = Math.abs(Math.floor(alt)).toString(16).toUpperCase().padStart(4, '0');
+    const hexVel = Math.abs(Math.floor(vel)).toString(16).toUpperCase().padStart(4, '0');
+    const timestamp = new Date().getMilliseconds();
+
+    const p = document.createElement('p');
+    p.style.margin = "0";
+    p.style.fontSize = "11px";
+    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> BUS_01 >> ALT:0x${hexAlt} | VEL:0x${hexVel} | <span style="color: var(--av-green);">CRC_OK</span>`;
+    
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+
+    if (log.childNodes.length > 25) log.removeChild(log.firstChild);
+}
+
 async function runPOST() {
-    const log = document.getElementById('terminal-box'); // Simplified target
-    const addLog = (msg, col = "cyan") => {
+    const log = document.getElementById('terminal-box');
+    const addLog = (msg, col = "var(--av-green)") => {
         if (!log) return;
         const p = document.createElement('p');
         p.style.color = col;
         p.style.margin = "2px 0";
-        p.style.fontFamily = "'Share Tech Mono', monospace";
-        p.textContent = `[${new Date().toISOString().split('T')[1].slice(0,-1)}] ${msg}`;
+        p.textContent = `> ${msg}`;
         log.appendChild(p);
-        log.scrollTop = log.scrollHeight;
     };
 
-    addLog("POWER-ON SELF-TEST INITIALIZED...");
+    addLog("POWER-ON SELF-TEST: INITIALIZING...");
     
     const buffer = new ArrayBuffer(10240);
     state.fdrView = new DataView(buffer);
@@ -53,16 +72,14 @@ async function runPOST() {
     await initHandshake(); 
 
     try {
-        // Path alignment check
         state.physicsWorker = new Worker('./src/physics/physics-worker.js');
 
         state.physicsWorker.onmessage = (e) => {
             const { altitude, velocity, type } = e.data;
             if (type === 'TELEMETRY') {
-                // We no longer call updateDisplay() because we killed the HTML "ghost" text.
-                // The Worker handles all drawing now!
                 handleSecurityLogic(altitude);
                 recordToBlackBox(altitude, velocity);
+                updateTelemetryStream(altitude, velocity);
             }
         };
 
@@ -78,34 +95,46 @@ async function runPOST() {
             addLog("AVIONICS_BUS: CANVAS_LINKED [OK]");
         }
 
-        addLog("ALL SYSTEMS GREEN. STARTING ENGINE.");
+        addLog("ALL SYSTEMS OPERATIONAL. FLIGHT DECK ACTIVE.");
         state.isBooted = true;
         
-        // Final Handover
         setTimeout(() => {
             state.physicsWorker.postMessage({ type: 'START_FLIGHT' });
         }, 100);
 
     } catch (e) {
-        addLog("CRITICAL SYSTEM FAILURE: WORKER_INIT", "red");
-        console.error("Worker Path Error:", e);
+        addLog("CRITICAL FAILURE: WORKER_INIT_FAULT", "var(--tactical-red)");
     }
 }
 
+/**
+ * STEP 3: PERFORMANCE PROFILING & LATENCY BENCHMARKING
+ * Visualizing the Safety Consequence of PQC overhead.
+ */
 function handleSecurityLogic(alt) {
+    const latencyEl = document.getElementById('handshake-ms');
+    
     if (alt > 20000 && alt < 25000) {
         if (!state.attackLogged) {
             triggerAttack(true); 
-            logTerminalMessage("CRITICAL: PQC_LATTICE_BREACH_DETECTED");
+            logTerminalMessage("!! WARNING: SIGNAL_NOISE_THRESHOLD_EXCEEDED");
+            logTerminalMessage("!! ACTION: SHIFTING TO ML-KEM-1024 (HIGH-OVERHEAD)");
             state.attackLogged = true;
         }
+        // REAL-TIME JITTER: Mimics live hardware performance profiling
+        state.latency = (18.2 + Math.random() * 4.5).toFixed(1); 
     } else {
         if (state.attackLogged) {
             triggerAttack(false); 
-            logTerminalMessage("SYSTEM_RECOVERY: LATTICE_RE_STABILIZED");
+            logTerminalMessage(">> ATTACK_SUBSIDED. RE-STABILIZING LATTICE.");
+            logTerminalMessage(">> STATUS: INTEGRITY_VERIFIED [CRC_MATCH]");
             state.attackLogged = false;
         }
+        // Baseline NIST-Standardized Latency
+        state.latency = (4.1 + Math.random() * 0.3).toFixed(2);
     }
+    
+    if (latencyEl) latencyEl.textContent = state.latency;
 }
 
 function recordToBlackBox(alt, vel) {
