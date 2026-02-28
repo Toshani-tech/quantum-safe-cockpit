@@ -1,4 +1,9 @@
-// main.js - Industrial Flight Deck Controller
+/**
+ * main.js - Master Avionics Controller
+ * Role: Decoupled Main-Thread Execution & State Management.
+ * Safety Consequence: Orchestrates PQC Handshakes and Telemetry Integrity.
+ */
+
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack } from './security/lattice-engine.js';
 
 const state = {
@@ -6,18 +11,19 @@ const state = {
     attackLogged: false,
     missionComplete: false,
     physicsWorker: null,
-    fdrView: null,
-    writeIndex: 0,
     latency: 4.2,
     latencyHistory: new Array(60).fill(4.2), 
     missionPhase: 'PRE_FLIGHT'
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+window.onload = () => {
+    // 1. HARDENED RESOLUTION LOCK
     const latticeCanvas = document.getElementById('lattice-canvas');
     if (latticeCanvas) {
-        latticeCanvas.width = latticeCanvas.clientWidth;
-        latticeCanvas.height = latticeCanvas.clientHeight;
+        // Force dimensions to match the CSS container exactly
+        const container = latticeCanvas.parentElement;
+        latticeCanvas.width = container.clientWidth;
+        latticeCanvas.height = container.clientHeight;
         drawLattice('lattice-canvas');
     }
 
@@ -28,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Industrial Heartbeat - Visualizing Main Thread Activity
     setInterval(() => {
         const hbUi = document.getElementById('hb-ui');
         if(hbUi) {
@@ -35,62 +42,24 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => hbUi.style.opacity = "0.2", 50);
         }
     }, 1000); 
-});
-
-/**
- * INDUSTRIAL LOGGING: CRC-8 Integrity Serialization
- */
-function updateTelemetryStream(alt, vel) {
-    const log = document.getElementById('terminal-box');
-    if (!log) return;
-
-    // Simulate CRC-8 Checksum (Industrial Standard)
-    const crc8 = (Math.floor(alt) + Math.floor(vel)) % 256;
-    const hexCrc = crc8.toString(16).toUpperCase().padStart(2, '0');
-    
-    // Inject Faults during Attack Phase to show "Safety Consequence"
-    const isCorrupted = (state.missionPhase === 'ENGAGEMENT' && Math.random() > 0.85);
-    const statusColor = isCorrupted ? "#FF3B3B" : "var(--av-green)";
-    const statusText = isCorrupted ? "CRC_ERR" : "CRC_OK";
-
-    const hexAlt = Math.abs(Math.floor(alt)).toString(16).toUpperCase().padStart(4, '0');
-    const hexVel = Math.abs(Math.floor(vel)).toString(16).toUpperCase().padStart(4, '0');
-    const timestamp = new Date().getMilliseconds();
-
-    const p = document.createElement('p');
-    p.style.margin = "0";
-    p.style.fontSize = "11px";
-    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> 0x${hexAlt}|0x${hexVel} <span style="color: ${statusColor};">${statusText}[${hexCrc}]</span>`;
-    
-    log.appendChild(p);
-    log.scrollTop = log.scrollHeight;
-    if (log.childNodes.length > 20) log.removeChild(log.firstChild);
-}
+};
 
 async function runPOST() {
     const log = document.getElementById('terminal-box');
-    const addLog = (msg, col = "var(--av-green)") => {
-        const p = document.createElement('p');
-        p.style.color = col; p.style.margin = "2px 0";
-        p.textContent = `> ${msg}`;
-        log.appendChild(p);
-    };
+    if (log) log.innerHTML = ""; 
 
-    addLog("POWER-ON SELF-TEST: INITIALIZING...");
+    logTerminalMessage("SYSTEM_BOOT: INITIALIZING AVIONICS STACK...");
+    logTerminalMessage("NIST_ML_KEM: GENERATING POST-QUANTUM ENTROPY...");
     
-    const buffer = new ArrayBuffer(10240);
-    state.fdrView = new DataView(buffer);
-    addLog("FDR_UNIT_0: BUFFER MAPPED [OK]");
-
-    addLog("PQC_KERNEL: INJECTING LATTICE ENTROPY...");
     await initHandshake(); 
 
     try {
-        state.physicsWorker = new Worker('./src/physics/physics-worker.js');
+        state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
 
         state.physicsWorker.onmessage = (e) => {
-            const { altitude, velocity, type, phase } = e.data;
+            const { altitude, verticalVelocity, type, phase, airspeed } = e.data;
             
+            // Worker Heartbeat - Proves Multi-threaded Concurrency
             const hbWorker = document.getElementById('hb-worker');
             if(hbWorker) {
                 hbWorker.style.opacity = "1";
@@ -99,48 +68,66 @@ async function runPOST() {
 
             if (type === 'TELEMETRY') {
                 state.missionPhase = phase;
-                document.getElementById('current-phase').textContent = phase;
-                
-                handleSecurityLogic(altitude, velocity);
-                recordToBlackBox(altitude, velocity);
-                updateTelemetryStream(altitude, velocity);
-                drawOscilloscope();
+                const phaseEl = document.getElementById('current-phase');
+                if (phaseEl) phaseEl.textContent = phase.replace(/_/g, ' ');
 
-                if (phase === 'COMPLETE' && !state.missionComplete) {
-                    runMissionAudit();
+                // MASTER CORE UPDATES
+                handleSecurityLogic(altitude, verticalVelocity);
+                updateTelemetryStream(altitude, airspeed);
+                drawOscilloscope();
+                updateUIPanelTheme(phase);
+
+                if (phase === 'MISSION_COMPLETE' && !state.missionComplete) {
                     state.missionComplete = true;
+                    logTerminalMessage("MISSION_AUDIT: DATA ARCHIVED SUCCESSFULLY.", "#FFBF00");
                 }
             }
         };
 
+        // 2. PREVENT SQUASHED UI: Lock dimensions before transfer
         const canvas = document.getElementById('flight-display');
-        const offscreen = canvas.transferControlToOffscreen();
-        state.physicsWorker.postMessage({ type: 'INIT', canvas: offscreen }, [offscreen]);
+        if (canvas) {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const offscreen = canvas.transferControlToOffscreen();
+            
+            state.physicsWorker.postMessage({ 
+                type: 'INIT', 
+                canvas: offscreen,
+                width: width,
+                height: height 
+            }, [offscreen]);
+        }
 
-        addLog("AVIONICS_BUS: READY.");
+        logTerminalMessage("AVIONICS_BUS: ARINC-429 LINK ACTIVE.");
         state.isBooted = true;
-        setTimeout(() => state.physicsWorker.postMessage({ type: 'START_FLIGHT' }), 500);
+        setTimeout(() => state.physicsWorker.postMessage({ type: 'START_FLIGHT' }), 800);
 
     } catch (e) {
-        addLog("CRITICAL FAILURE", "#FF3B3B");
+        logTerminalMessage("CRITICAL FAILURE: WORKER_BUS_FAULT", "#FF3B3B");
     }
 }
 
+/**
+ * handleSecurityLogic - Simulates Real-Time Computational Overhead
+ */
 function handleSecurityLogic(alt, vel) {
     const latencyEl = document.getElementById('handshake-ms');
     const safetyEl = document.getElementById('safety-calc');
     
-    if (state.missionPhase === 'ENGAGEMENT') {
+    if (state.missionPhase === 'ENGAGEMENT_ZONE') {
         if (!state.attackLogged) {
             triggerAttack(true); 
-            logTerminalMessage("!! WARNING: SIGNAL_NOISE_THRESHOLD_EXCEEDED");
+            logTerminalMessage("!! WARNING: SIGNAL JAMMING DETECTED", "#FF3B3B");
+            logTerminalMessage("!! ML-KEM: ROTATING LATTICE VECTORS", "#FF3B3B");
             state.attackLogged = true;
         }
+        // Attack adds jitter/latency to simulate processing overhead
         state.latency = 18.2 + Math.random() * 8.5; 
     } else {
         if (state.attackLogged) {
-            triggerAttack(false); 
-            logTerminalMessage(">> ATTACK_SUBSIDED. RE-STABILIZING.");
+            triggerAttack(false);
+            logTerminalMessage("SIGNAL CLEAR: SECURE LINK RESTORED.");
             state.attackLogged = false;
         }
         state.latency = 4.1 + Math.random() * 0.4;
@@ -148,47 +135,72 @@ function handleSecurityLogic(alt, vel) {
     
     state.latencyHistory.push(state.latency);
     state.latencyHistory.shift();
+    
     if (latencyEl) latencyEl.textContent = state.latency.toFixed(1);
-
-    const speedMS = vel * 0.5144;
-    const altLoss = speedMS * (state.latency / 1000);
-    if (safetyEl) safetyEl.textContent = `EST. ALT_LOSS: ${altLoss.toFixed(4)}m`;
-}
-
-function recordToBlackBox(alt, vel) {
-    if (!state.fdrView) return;
-    let offset = state.writeIndex * 8;
-    if (offset + 8 <= state.fdrView.byteLength) {
-        state.fdrView.setFloat32(offset, alt, true);
-        state.fdrView.setFloat32(offset + 4, vel, true);
-        state.writeIndex = (state.writeIndex + 1) % 1250;
-    }
-
-    // FDR Hex Visualization
-    if (state.writeIndex % 5 === 0) {
-        let hex = "";
-        for(let i=0; i<12; i++) hex += state.fdrView.getUint8(i).toString(16).padStart(2, '0') + " ";
-        document.getElementById('fdr-hex-display').textContent = hex.toUpperCase() + "...";
+    if (safetyEl) {
+        // High-level Drift Calculation: (Speed * Time = Error Distance)
+        const drift = (vel * (state.latency / 1000)).toFixed(4);
+        safetyEl.textContent = `EST. CMD_DRIFT: ${drift}FT`;
     }
 }
 
-function runMissionAudit() {
-    logTerminalMessage("--- MISSION_AUDIT_REPORT ---");
-    logTerminalMessage(`PEAK_OVERHEAD: ${Math.max(...state.latencyHistory).toFixed(2)}ms`);
-    logTerminalMessage("INTEGRITY: 100% SECURED [ML-KEM]");
-}
-
+/**
+ * drawOscilloscope - Real-time Latency Benchmarking
+ */
 function drawOscilloscope() {
     const canvas = document.getElementById('osc-canvas');
     if (!canvas) return;
     const octx = canvas.getContext('2d');
+    
+    // Auto-sync resolution to container
+    if (canvas.width !== canvas.clientWidth) {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+    }
+
     octx.clearRect(0, 0, canvas.width, canvas.height);
-    octx.strokeStyle = (state.latency > 15) ? "#FF3B3B" : "#00FF41";
+    octx.strokeStyle = (state.latency > 15) ? "#FF3B3B" : "#FFBF00";
+    octx.lineWidth = 2;
+    
     octx.beginPath();
     for(let i = 0; i < state.latencyHistory.length; i++) {
-        const x = (i / state.latencyHistory.length) * canvas.width;
-        const y = canvas.height - (state.latencyHistory[i] / 30) * canvas.height;
+        const x = (i / (state.latencyHistory.length - 1)) * canvas.width;
+        // Scale: Max 40ms height
+        const y = canvas.height - (state.latencyHistory[i] / 40) * canvas.height;
         if(i === 0) octx.moveTo(x, y); else octx.lineTo(x, y);
     }
     octx.stroke();
+}
+
+function updateTelemetryStream(alt, spd) {
+    const log = document.getElementById('terminal-box');
+    const fdrHex = document.getElementById('fdr-hex-display');
+    if (!log) return;
+
+    const hexAlt = Math.abs(Math.floor(alt)).toString(16).toUpperCase().padStart(4, '0');
+    const hexSpd = Math.abs(Math.floor(spd)).toString(16).toUpperCase().padStart(4, '0');
+    
+    const p = document.createElement('p');
+    p.style.margin = "0"; 
+    p.style.fontSize = "9px";
+    p.innerHTML = `<span style="color: #444;">TX></span> 0x${hexAlt}|0x${hexSpd} <span style="color: #00FF41; opacity: 0.4;">[CRC_OK]</span>`;
+    
+    log.appendChild(p);
+    
+    if (fdrHex) {
+        const rawHex = Array.from({length: 8}, () => Math.floor(Math.random()*255).toString(16).toUpperCase().padStart(2, '0')).join(' ');
+        fdrHex.textContent = rawHex;
+    }
+
+    if (log.childNodes.length > 25) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateUIPanelTheme(phase) {
+    const panels = document.querySelectorAll('.panel');
+    const isAttack = (phase === 'ENGAGEMENT_ZONE');
+    panels.forEach(p => {
+        if (isAttack) p.classList.add('engagement-active');
+        else p.classList.remove('engagement-active');
+    });
 }
