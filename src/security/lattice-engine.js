@@ -1,104 +1,110 @@
-// security/lattice-engine.js
+/**
+ * lattice-engine.js - Post-Quantum Cryptographic Visualization
+ * Role: Simulating NIST ML-KEM (Lattice-Based) entropy.
+ */
+
 let isUnderAttack = false;
-let animationId = null;
+let animationRunning = false; 
 
-export function triggerAttack(status) { isUnderAttack = status; }
-
-export async function initHandshake() {
-    logTerminalMessage("INITIALIZING ARINC 429 BUS...");
-    await new Promise(r => setTimeout(r, 800));
-    
-    logTerminalMessage("ML-KEM HANDSHAKE: GENERATING LATTICE VECTORS...");
-    await new Promise(r => setTimeout(r, 1200));
-    
-    logTerminalMessage("QUANTUM KEYS VERIFIED [OK].");
-    logTerminalMessage("PQC SHIELD ACTIVE.");
+export function triggerAttack(status) { 
+    isUnderAttack = status; 
 }
 
-export function logTerminalMessage(message) {
-    const terminal = document.getElementById('terminal-box');
-    if (!terminal) return;
+export async function initHandshake() {
+    logTerminalMessage("NIST_ML_KEM_768: INJECTING ENTROPY...");
+    await new Promise(r => setTimeout(r, 800));
+    logTerminalMessage("CRYPTO_ENGINE: LATTICE VECTORS VERIFIED.");
+}
+
+export function logTerminalMessage(msg, color = "#00FF41") {
+    const term = document.getElementById('terminal-box');
+    if (!term) return;
     
-    const newEntry = document.createElement('p');
-    newEntry.className = 'log-entry';
-    newEntry.style.margin = "2px 0";
-    newEntry.style.fontFamily = "'Share Tech Mono', monospace";
+    const p = document.createElement('p');
+    p.style.margin = "2px 0";
+    p.style.color = (msg.includes("!!") || msg.includes("WARNING")) ? "#FF3B3B" : color;
+    p.style.fontSize = "10px";
+    p.style.fontFamily = "'Share Tech Mono', monospace";
+    p.innerText = `> ${msg}`;
     
-    if (message.includes("CRITICAL") || message.includes("BREACH")) {
-        newEntry.style.color = "#ff3b3b";
-        newEntry.style.fontWeight = "bold";
-        newEntry.style.textShadow = "0 0 5px #ff3b3b";
-    } else {
-        newEntry.style.color = "#00e5ff";
-    }
-    
-    newEntry.innerText = `> ${message}`;
-    terminal.appendChild(newEntry);
-    terminal.scrollTop = terminal.scrollHeight;
+    term.appendChild(p);
+    if (term.childNodes.length > 50) term.removeChild(term.firstChild);
+    term.scrollTop = term.scrollHeight;
 }
 
 export function drawLattice(canvasId) {
+    if (animationRunning) return; 
+    animationRunning = true;
+
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    let dots = [];
-    const spacing = 22; // Slightly wider for better performance
+    // INDUSTRIAL FIX: Force precise dimensions based on Parent container
+    const resize = () => {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    };
+    window.addEventListener('resize', resize);
+    resize();
 
-    function buildGrid() {
-        const dpr = window.devicePixelRatio || 1;
-        // FIX: Force layout recalculation to prevent "weird large" stretching
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
-        
-        dots = [];
-        // Calculate based on actual CSS pixels to keep the grid tight
-        for (let x = spacing; x < rect.width; x += spacing) {
-            for (let y = spacing; y < rect.height; y += spacing) {
-                dots.push({ x, y, originX: x, originY: y, phase: Math.random() * Math.PI * 2 });
-            }
-        }
+    const nodes = [];
+    // MIT RESEARCHER DETAIL: Sparsity = Intelligence.
+    const nodeCount = 28; 
+
+    // INITIALIZE NODES: We use canvas dimensions after the first resize()
+    for(let i = 0; i < nodeCount; i++) {
+        nodes.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4
+        });
     }
-
-    window.addEventListener('resize', buildGrid);
-    buildGrid();
 
     function animate() {
-        // STEP 3: SOLID OPAQUE CLEAR
-        // This ensures the "Quantum Lattice" doesn't have ghost text behind it
-        ctx.fillStyle = "#05070a"; 
+        // High-end trailing effect
+        ctx.fillStyle = "rgba(3, 3, 3, 0.4)"; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const themeColor = isUnderAttack ? "255, 59, 59" : "0, 255, 65";
+        
+        nodes.forEach((node, i) => {
+            const multiplier = isUnderAttack ? 6 : 1;
+            node.x += node.vx * multiplier;
+            node.y += node.vy * multiplier;
 
-        const time = Date.now() * 0.003;
+            // Bounce logic with slight padding to prevent edge-clustering
+            if (node.x < 5 || node.x > canvas.width - 5) node.vx *= -1;
+            if (node.y < 5 || node.y > canvas.height - 5) node.vy *= -1;
 
-        for (let i = 0; i < dots.length; i++) {
-            const dot = dots[i];
-            
-            if (isUnderAttack) {
-                // VIOLENT SHOCKWAVE: High amplitude vibration
-                dot.x = dot.originX + Math.sin(time * 5 + i) * 6;
-                dot.y = dot.originY + Math.cos(time * 5 + i) * 6;
-                ctx.fillStyle = "#ff3b3b";
-            } else {
-                // CALM DRIFT: Gentle breathing effect
-                const drift = Math.sin(time + dot.phase) * 2;
-                dot.x = dot.originX + drift;
-                dot.y = dot.originY + drift;
-                
-                const pulse = Math.sin(time + (dot.originX * 0.02)) * 0.4 + 0.6;
-                ctx.fillStyle = `rgba(0, 229, 255, ${pulse})`;
-            }
-
+            // DRAW DOTS (Entropy Seeds)
             ctx.beginPath();
-            // Larger dots (1.5) to look more "tactical" and less like noise
-            ctx.arc(dot.x, dot.y, 1.5, 0, Math.PI * 2);
+            ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgb(${themeColor})`;
             ctx.fill();
-        }
-        animationId = requestAnimationFrame(animate);
-    }
 
-    if (animationId) cancelAnimationFrame(animationId);
+            // DRAW STRUCTURED LATTICE
+            for (let j = i + 1; j < nodes.length; j++) {
+                const dx = node.x - nodes[j].x;
+                const dy = node.y - nodes[j].y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                // Tighten the connection limit to 55 for absolute clarity
+                if (dist < 55) {
+                    ctx.beginPath();
+                    const opacity = (1 - dist / 55) * 0.25;
+                    ctx.strokeStyle = `rgba(${themeColor}, ${opacity})`;
+                    ctx.lineWidth = 0.8;
+                    ctx.moveTo(node.x, node.y);
+                    ctx.lineTo(nodes[j].x, nodes[j].y);
+                    ctx.stroke();
+                }
+            }
+        });
+
+        requestAnimationFrame(animate);
+    }
     animate();
 }
