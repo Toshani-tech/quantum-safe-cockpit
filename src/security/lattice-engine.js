@@ -1,6 +1,7 @@
 /**
- * lattice-engine.js - Post-Quantum Cryptographic Visualization
- * Role: Simulating NIST ML-KEM (Lattice-Based) entropy.
+ * lattice-engine.js - NIST ML-KEM (Lattice-Based) Security Engine
+ * Pitch: Visualizing Shortest Vector Problem (SVP) entropy via point-cloud matrix.
+ * Strategy: Basis-Vector Mesh rendering with Stochastic Jitter.
  */
 
 let isUnderAttack = false;
@@ -11,24 +12,21 @@ export function triggerAttack(status) {
 }
 
 export async function initHandshake() {
-    logTerminalMessage("NIST_ML_KEM_768: INJECTING ENTROPY...");
+    logTerminalMessage("NIST_ML_KEM_1024: INJECTING ENTROPY...");
     await new Promise(r => setTimeout(r, 800));
-    logTerminalMessage("CRYPTO_ENGINE: LATTICE VECTORS VERIFIED.");
+    logTerminalMessage("LATTICE_ENGINE: VECTORS STABILIZED.");
 }
 
 export function logTerminalMessage(msg, color = "#00FF41") {
     const term = document.getElementById('terminal-box');
     if (!term) return;
-    
     const p = document.createElement('p');
     p.style.margin = "2px 0";
-    p.style.color = (msg.includes("!!") || msg.includes("WARNING")) ? "#FF3B3B" : color;
+    p.style.color = msg.includes("!!") || msg.includes("WARNING") ? "#FF3B3B" : color;
     p.style.fontSize = "10px";
-    p.style.fontFamily = "'Share Tech Mono', monospace";
-    p.innerText = `> ${msg}`;
-    
+    p.style.fontFamily = "monospace";
+    p.textContent = `> ${msg}`;
     term.appendChild(p);
-    if (term.childNodes.length > 50) term.removeChild(term.firstChild);
     term.scrollTop = term.scrollHeight;
 }
 
@@ -36,74 +34,102 @@ export function drawLattice(canvasId) {
     if (animationRunning) return; 
     animationRunning = true;
 
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const mainCanvas = document.getElementById(canvasId);
+    if (!mainCanvas) return;
+    const mainCtx = mainCanvas.getContext('2d', { alpha: false, desynchronized: true });
+
+    const offCanvas = document.createElement('canvas');
+    const offCtx = offCanvas.getContext('2d', { alpha: false });
     
-    // INDUSTRIAL FIX: Force precise dimensions based on Parent container
-    const resize = () => {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+    let nodes = [];
+    const rows = 20; // Reduced density for cleaner "Vector" look
+    const cols = 20;
+
+    const setupNodes = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = mainCanvas.parentElement.getBoundingClientRect();
+        const w = Math.floor(rect.width);
+        const h = Math.floor(rect.height);
+
+        mainCanvas.width = offCanvas.width = w * dpr;
+        mainCanvas.height = offCanvas.height = h * dpr;
+        mainCanvas.style.width = w + 'px';
+        mainCanvas.style.height = h + 'px';
+
+        offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        nodes = [];
+        const spacingX = w / cols;
+        const spacingY = h / rows;
+
+        for(let r = 0; r < rows; r++) {
+            for(let c = 0; c < cols; c++) {
+                nodes.push({
+                    x: c * spacingX + spacingX / 2,
+                    y: r * spacingY + spacingY / 2,
+                    originX: c * spacingX + spacingX / 2,
+                    originY: r * spacingY + spacingY / 2,
+                    p: Math.random() * Math.PI * 2,
+                    s: 2 + Math.random() * 2, // Slower, more "Industrial" oscillation
+                    row: r,
+                    col: c
+                });
+            }
+        }
     };
-    window.addEventListener('resize', resize);
-    resize();
 
-    const nodes = [];
-    // MIT RESEARCHER DETAIL: Sparsity = Intelligence.
-    const nodeCount = 28; 
-
-    // INITIALIZE NODES: We use canvas dimensions after the first resize()
-    for(let i = 0; i < nodeCount; i++) {
-        nodes.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 0.4,
-            vy: (Math.random() - 0.5) * 0.4
-        });
-    }
+    setupNodes();
+    window.addEventListener('resize', setupNodes);
 
     function animate() {
-        // High-end trailing effect
-        ctx.fillStyle = "rgba(3, 3, 3, 0.4)"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        const themeColor = isUnderAttack ? "255, 59, 59" : "0, 255, 65";
-        
-        nodes.forEach((node, i) => {
-            const multiplier = isUnderAttack ? 6 : 1;
-            node.x += node.vx * multiplier;
-            node.y += node.vy * multiplier;
+        const time = Date.now() * 0.001;
 
-            // Bounce logic with slight padding to prevent edge-clustering
-            if (node.x < 5 || node.x > canvas.width - 5) node.vx *= -1;
-            if (node.y < 5 || node.y > canvas.height - 5) node.vy *= -1;
+        offCtx.fillStyle = "#000000";
+        offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
 
-            // DRAW DOTS (Entropy Seeds)
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, 1.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${themeColor})`;
-            ctx.fill();
+        // RESEARCHER DETAIL: The Basis Vector Mesh
+        // Draws faint lines between dots to represent the Lattice Geometry
+        offCtx.lineWidth = 0.5;
+        offCtx.beginPath();
 
-            // DRAW STRUCTURED LATTICE
-            for (let j = i + 1; j < nodes.length; j++) {
-                const dx = node.x - nodes[j].x;
-                const dy = node.y - nodes[j].y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            
+            // Core oscillation logic
+            let curX = n.x + Math.sin(time * n.s + n.p) * 1.5;
+            let curY = n.y + Math.cos(time * n.s + n.p) * 1.5;
 
-                // Tighten the connection limit to 55 for absolute clarity
-                if (dist < 55) {
-                    ctx.beginPath();
-                    const opacity = (1 - dist / 55) * 0.25;
-                    ctx.strokeStyle = `rgba(${themeColor}, ${opacity})`;
-                    ctx.lineWidth = 0.8;
-                    ctx.moveTo(node.x, node.y);
-                    ctx.lineTo(nodes[j].x, nodes[j].y);
-                    ctx.stroke();
-                }
+            if (isUnderAttack) {
+                // High-Frequency Seismic Jitter
+                curX += (Math.random() - 0.5) * 6;
+                curY += (Math.random() - 0.5) * 6;
+                offCtx.fillStyle = "#FF3B3B";
+                offCtx.strokeStyle = "rgba(255, 59, 59, 0.15)";
+            } else {
+                offCtx.fillStyle = "#00FF41";
+                offCtx.strokeStyle = "rgba(0, 255, 65, 0.08)";
             }
-        });
 
+            // Draw connections to the right and bottom neighbors
+            if (n.col < cols - 1) {
+                const right = nodes[i + 1];
+                offCtx.moveTo(curX, curY);
+                offCtx.lineTo(right.x, right.y);
+            }
+            if (n.row < rows - 1) {
+                const bottom = nodes[i + cols];
+                offCtx.moveTo(curX, curY);
+                offCtx.lineTo(bottom.x, bottom.y);
+            }
+
+            // Snap and Draw Node
+            const dx = (curX + 0.5) | 0;
+            const dy = (curY + 0.5) | 0;
+            offCtx.fillRect(dx - 1, dy - 1, 2, 2);
+        }
+        offCtx.stroke(); // Batch draw connections for performance
+
+        // DRAW BUFFER TO MAIN
+        mainCtx.drawImage(offCanvas, 0, 0);
         requestAnimationFrame(animate);
     }
     animate();
