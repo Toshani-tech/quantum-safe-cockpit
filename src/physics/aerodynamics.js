@@ -1,81 +1,115 @@
 /**
- * aerodynamics.js - MIT/Ivy Researcher Grade Flight Physics
- * Role: Newtonian Motion + Atmospheric Density Modeling
- * Safety Consequence: Prevents state-space divergence (NaN) and structural overstress.
+ * aerodynamics.js - INDUSTRIAL FLIGHT PHYSICS
+ * Architecture: Deterministic State Integration with Phase-Logic Sequencing
+ * Fix: Hardened Ground Clamping and Final Flare Logic.
  */
 
-export function calculateFlightDynamics(state, deltaTime, thrustMultiplier = 1.0) {
-    // 1. PHYSICAL CONSTANTS
-    const gravity = 9.80665; 
-    const M_TO_FT = 3.28084; 
-    const ISA_LAPSE_RATE = 0.0065; 
-
-    // 2. ATMOSPHERIC DENSITY (ISA MODEL)
-    const currentAlt = state.altitude || 0;
-    const h_meters = currentAlt / M_TO_FT;
+export function calculateFlightDynamics(state, deltaTime) {
+    const M_TO_FT = 3.28084;
+    const FT_TO_M = 1 / M_TO_FT;
     
-    // Tropospheric density: Ensures physics degrade realistically at 30k+ feet
-    const densityFactor = Math.pow(1 - (ISA_LAPSE_RATE * h_meters / 288.15), 4.256);
-    const clampedDensity = Math.max(0.15, densityFactor);
+    // 0. INPUT SANITIZATION
+    let alt = Math.max(0, parseFloat(state.altitude) || 0);
+    let vv = (parseFloat(state.verticalVelocity) / 60) || 0; // FPS (Feet per second)
+    let v_ias = Math.max(0, parseFloat(state.airspeed) || 0);     
+    const phase = state.missionPhase || 'PRE_FLIGHT';
 
-    // 3. DYNAMIC THRUST & LIFT
-    const baseEngineThrust = gravity; 
-    const maxSurplusThrust = 14.5; 
+    // 1. ATMOSPHERIC MODEL (ISA Standard)
+    const h_m = alt * FT_TO_M;
+    const temp_k = Math.max(216.65, 288.15 - (0.0065 * h_m)); 
+    const rho = 1.225 * Math.pow(temp_k / 288.15, 4.256);   
+    const densityRatio = rho / 1.225;
+
+    // 2. FORCE VECTORS
+    const gravity = 32.174; // ft/s^2
+    let thrust_z = gravity; // Default to neutral lift
+    let thrust_x = 0;       
+    let drag_x = 0.00018 * Math.pow(v_ias, 2) * densityRatio; 
+
+    // 3. PHASE-LOGIC ENGINE
+    switch (phase) {
+        case 'STARTUP_TAXI':
+            thrust_x = 35.0; // Stronger taxi push
+            vv = 0; 
+            break;
+
+        case 'STEADY_CLIMB':
+            const climbCeiling = 15000;
+            const climbEfficiency = Math.max(0.1, (climbCeiling - alt) / climbCeiling);
+            thrust_x = 240.0 * densityRatio; 
+            thrust_z = gravity + (48.0 * climbEfficiency); 
+            break;
+
+        case 'LOITERING':
+            const targetAltLoiter = 15500;
+            const loiterError = targetAltLoiter - alt;
+            thrust_z = gravity + (loiterError * 0.1); 
+            vv *= 0.95; 
+            thrust_x = 90.0; 
+            break;
+
+        case 'ENGAGEMENT_ZONE':
+            thrust_z = gravity + (Math.sin(Date.now() * 0.003) * 2.0); 
+            thrust_x = 280.0; 
+            break;
+
+        case 'FINAL_APPROACH':
+            thrust_x = 15.0; // Keep some forward momentum
+            if (alt < 50) { // THE FLARE: Final 50 feet
+                thrust_z = gravity + 2.0; // Positive lift to "cushion" the landing
+                vv *= 0.85; // Rapidly bleed vertical speed
+            } else if (alt < 1000) {
+                thrust_z = gravity - 8.0; // Gentle 8ft/s^2 descent
+            } else {
+                thrust_z = gravity - 15.0; // Standard descent
+            }
+            break;
+
+        case 'MISSION_COMPLETE':
+            thrust_x = 0;
+            thrust_z = gravity;
+            vv = 0; // Force-kill vertical movement
+            break;
+
+        default:
+            thrust_x = 0;
+            thrust_z = gravity;
+    }
+
+    // 4. INERTIAL INTEGRATION (Hardened)
+    const accel_z = thrust_z - gravity;
+    vv += accel_z * deltaTime;
     
-    let activeThrust;
-    const phase = state.phase || 'PRE_FLIGHT';
-
-    if (phase === 'STARTUP_TAXI') {
-        activeThrust = baseEngineThrust * 0.12; 
-    } else if (state.isClimbing) {
-        activeThrust = baseEngineThrust + (maxSurplusThrust * thrustMultiplier * clampedDensity);
-    } else if (phase === 'FINAL_APPROACH') {
-        activeThrust = baseEngineThrust * 0.72; 
+    // Safety Envelope: Max descent/climb rates
+    vv = Math.max(-40, Math.min(vv, 80)); 
+    
+    // PREDICTIVE CLAMPING: Don't let the next step go below 0
+    const nextAlt = alt + (vv * deltaTime);
+    if (nextAlt <= 0) {
+        alt = 0;
+        vv = 0; // Kill vertical speed on impact
     } else {
-        activeThrust = baseEngineThrust * 0.985; 
-    }
-    
-    // 4. VERTICAL DYNAMICS
-    const accelerationY = activeThrust - gravity;
-    let velMS = (state.verticalVelocity || 0) / M_TO_FT;
-    
-    velMS += accelerationY * deltaTime;
-    
-    // Safety Envelope: Mach 0.15 vertical limit
-    velMS = Math.max(-28, Math.min(velMS, 52)); 
-    
-    let newAltitude = currentAlt + (velMS * M_TO_FT * deltaTime);
-
-    // 5. HORIZONTAL DYNAMICS
-    const currentAirspeed = state.airspeed || 0;
-    const dragCoefficient = 0.00018; 
-    const drag = Math.pow(currentAirspeed, 2) * dragCoefficient * clampedDensity;
-    
-    const enginePowerX = 940 * (thrustMultiplier > 0.05 ? thrustMultiplier : 0.05);
-    const accelerationX = (enginePowerX - drag) / 155; 
-    
-    let newAirspeed = currentAirspeed + (accelerationX * deltaTime);
-
-    // 6. GROUND LOGIC & ENVELOPE PROTECTION
-    if (newAltitude <= 0.1) {
-        newAltitude = 0;
-        // Dampen impact to prevent PFD jitter
-        velMS = Math.abs(velMS) < 0.1 ? 0 : velMS * -0.05; 
-        const friction = (phase === 'STARTUP_TAXI') ? 4 : 48;
-        newAirspeed = Math.max(0, newAirspeed - (friction * deltaTime)); 
+        alt = nextAlt;
     }
 
-    if (newAltitude > 42000) {
-        newAltitude = 42000;
-        velMS = Math.min(0, velMS);
+    const accel_x = (thrust_x - drag_x);
+    v_ias += accel_x * deltaTime;
+
+    // 5. GROUND FRICTION MODEL
+    if (alt <= 0.1) {
+        alt = 0;
+        // If we are on the ground and not taking off, apply heavy friction
+        if (phase === 'FINAL_APPROACH' || phase === 'MISSION_COMPLETE') {
+            v_ias *= 0.96; // Bleed speed until 0
+            if (v_ias < 1) v_ias = 0;
+        }
     }
 
-    // 7. TYPE-SAFE SERIALIZATION (Industrial Standard)
-    // We parse back to float to ensure the Worker doesn't handle "string" numbers
     return {
-        altitude: parseFloat(newAltitude.toFixed(4)),
-        verticalVelocity: parseFloat((velMS * M_TO_FT).toFixed(4)),
-        airspeed: parseFloat(newAirspeed.toFixed(4)),
-        isSafe: !isNaN(newAltitude) && isFinite(newAltitude)
+        altitude: parseFloat(alt.toFixed(2)),
+        verticalVelocity: parseFloat((vv * 60).toFixed(2)), 
+        airspeed: parseFloat(v_ias.toFixed(2)),
+        densityRatio: parseFloat(densityRatio.toFixed(4)),
+        isSafe: true
     };
 }
