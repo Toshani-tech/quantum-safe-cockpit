@@ -59,4 +59,14 @@ Tech: Web Workers (Concurrency); transferControlToOffscreen() (Worker-Side Rende
 
 Note: Migrated the Primary Flight Display (PFD) and Aerodynamics Engine to a dedicated Web Worker to ensure "Safety-Critical" performance. By offloading complex Newtonian calculations and canvas rendering to a background thread, I’ve prevented the UI Event Loop from "blocking" during high-entropy Lattice generation. This architecture mirrors real-world avionics where the Display Processor is physically isolated from the Flight Control Computer. Added a Worker-Side Heartbeat (Thread_002) to visualize this concurrency—providing a real-time "Health Status" of the decoupled process.
 
-P.S: The Bug (Fixed): Resolved the "Constellation Cluster" anomaly where lattice nodes initialized in a default 300x150 coordinate space before the CSS Grid had settled. The Fix: Implemented a Resolution Guard that captures parent-container dimensions via getBoundingClientRect() before transferring canvas control, ensuring the mathematical lattice scales to the physical hardware resolution upon boot.
+P.S: The Bug (Fixed under 1 hr): Resolved the "Constellation Cluster" anomaly where lattice nodes initialized in a default 300x150 coordinate space before the CSS Grid had settled. The Fix: Implemented a Resolution Guard that captures parent-container dimensions via getBoundingClientRect() before transferring canvas control, ensuring the mathematical lattice scales to the physical hardware resolution upon boot.
+
+Day 8: Feb 28, 2026 
+
+Task: Hardened Aerodynamics Core & Temporal Synchronization.
+
+Tech: Thrust Spooling Logic (Linear Interpolation); Y-Axis Coordinate Inversion (Cartesian-to-Screen Mapping); Deterministic Frame-Rate Clamping; Predictive Ground-Contact Guards.
+
+Note: Refactored the Physics Engine to move beyond "Game Logic" into "Simulation Grade" territory. Implemented Thrust Spooling to simulate jet engine spool-up times, successfully resolving a 4800 FPM vertical velocity spike caused by instantaneous force application. Further hardened the PFD by correcting a Y-coordinate inversion bug; the instrumentation now utilizes a true Cartesian-to-Screen mapping where altitude increases represent a decrease in pixel-Y, mirroring actual glass cockpit behavior.
+
+P.S: The Bug ( Took over 3 hours to resolve) During the "Steady Climb" phase, the altitude and airspeed tapes appeared to "vibrate" or stutter, despite the physics worker reporting smooth data.This was a Temporal Aliasing issue. The Main Thread (UI) and the Physics Worker (Logic) were running at slightly different frequencies. When the UI requested a frame, it was sometimes grabbing a physics state from 2ms ago and sometimes from 10ms ago, causing a "micro-teleportation" effect on the vertical bars. The Fix: Implemented Linear Interpolation (LERP) & Sub-Pixel Translation. Instead of rounding the altitude to the nearest pixel, I refactored the drawVerticalTape function to use floating-point offsets for the $Y$ coordinates. By calculating the exact pixel remainder ( y = centerY - (i - value)* ppu), the tapes now slide with "Retina-grade" smoothness, regardless of the worker's internal tick rate.
