@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q-Safe Stealth Cockpit | Avionics v1.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QUANTUM-SAFE AVIONICS | NIST ML-KEM v1.0</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,72 +16,69 @@
     <div id="vfx-layer"></div>
 
     <div id="cockpit-container">
-        <header class="avionics-header">
-            <div id="security-tag">SYSTEM: STANDBY [NIST-ML-KEM ACTIVE]</div>
-            <div id="mission-annunciator">
-                PHASE: <span id="current-phase">PRE_FLIGHT</span>
-            </div>
-        </header>
-
-        <div id="status-bar">
+        
+        <header id="status-bar">
             <div class="status-matrix">
                 <div class="monitor-unit">
-                    <div class="unit-label">DECOUPLED_MAIN_BUS</div>
-                    <div class="unit-data">
-                        <div id="hb-ui" class="status-light"></div>
-                        <span class="pulse-text">THREAD_001</span>
-                    </div>
+                    <div class="status-light" id="hb-ui" style="background: #00FF41; box-shadow: 0 0 8px #00FF41;"></div>
+                    <span>BUS_MAIN: ACTIVE</span>
                 </div>
                 <div class="monitor-unit">
-                    <div class="unit-label">PHYS_PROC_WORKER</div>
-                    <div class="unit-data">
-                        <div id="hb-worker" class="status-light"></div>
-                        <span class="pulse-text">THREAD_002</span>
-                    </div>
+                    <div class="status-light" id="hb-worker"></div>
+                    <span style="color: #888;">FCC_THREAD: STANDBY</span>
+                </div>
+                <div class="monitor-unit" style="border-left: 1px solid #333; padding-left: 15px;">
+                    <span id="security-tag">STATE: NIST-ML-KEM-1024</span>
                 </div>
             </div>
             
             <div class="latency-monitor">
-                <div class="unit-label">HANDSHAKE_LATENCY</div>
-                <div class="latency-value"><span id="handshake-ms">0.0</span>ms</div>
+                <span id="handshake-ms">LATENCY: 0.00ms</span>
             </div>
-        </div>
+        </header>
 
         <main class="pfd-grid">
+            
             <section class="panel" id="air-data-panel">
-                <div class="panel-header">PRIMARY FLIGHT DATA</div>
+                <div class="panel-header">
+                    <span>PRIMARY FLIGHT DATA (PFD)</span>
+                    <span id="current-phase" style="color: #FFB000;">PRE_FLIGHT</span>
+                </div>
                 <div class="canvas-wrapper">
                     <canvas id="flight-display"></canvas>
                 </div>
             </section>
 
-            <section class="panel center-panel" id="lattice-panel">
-                <div class="panel-header">QUANTUM LATTICE CORE</div>
+            <section class="panel" id="lattice-panel">
+                <div class="panel-header">QUANTUM LATTICE ENTROPY (ML-KEM)</div>
                 <div class="canvas-wrapper">
                     <canvas id="lattice-canvas"></canvas>
                 </div>
             </section>
 
             <section class="panel" id="security-panel">
-                <div class="panel-header">ENCRYPTED TELEMETRY LOG</div>
+                <div class="panel-header">ENCRYPTED BUS TELEMETRY (ARINC-429)</div>
                 
-                <div id="terminal-box"></div>
+                <div id="terminal-box">
+                    <p>> SYSTEM READY...</p>
+                    <p>> WAITING FOR PILOT INIT...</p>
+                </div>
                 
                 <div class="diagnostic-cluster">
-                    <div class="unit-label secondary">SEC-BUS LATENCY OSCILLOSCOPE</div>
-                    <div class="osc-wrapper">
-                        <canvas id="osc-canvas"></canvas>
-                    </div>
+                    <div class="unit-label">FDR_HEX_DUMP (RAW_SERIAL)</div>
+                    <div id="fdr-hex-display">0x0000 0000 0000 0000</div>
                     
-                    <div id="safety-calc">EST. CMD_DRIFT: 0.0000FT</div>
-
-                    <div class="unit-label tertiary">FDR_HEX_DUMP (RAW_SERIAL)</div>
-                    <div id="fdr-hex-display">00 00 00 00 00 00 00 00</div>
+                    <div class="unit-label" style="margin-top: 15px;">MISSION_TIMER</div>
+                    <div id="mission-timer" style="color: #FFF; font-size: 18px; font-weight: bold;">T+ 0.0S</div>
+                    
+                    <div id="safety-calc">
+                        CMD_DRIFT_THRESHOLD: 0.00042% | INTEGRITY: NOMINAL
+                    </div>
                 </div>
             </section>
         </main>
 
-        <footer class="controls-footer">
+        <footer>
             <button id="init-btn">INITIALIZE FLIGHT DECK</button>
         </footer>
     </div>
