@@ -1,113 +1,156 @@
-// physics-worker.js - PRO-SIM ENGINE (AVIONICS GRADE)
-let ctx;
-let lastTime = 0;
-let missionStart = 0;
+/**
+ * physics-worker.js - Decoupled Main-Thread Execution
+ * Role: High-fidelity physics integration + Offscreen Canvas PFD Rendering.
+ */
 
-let state = {
-    altitude: 0,
-    velocity: 0,
-    vSpeed: 0,
-    phase: 'PRE_FLIGHT', // PRE_FLIGHT | CLIMB | ENGAGEMENT | CRUISE
-    isEngineRunning: true
+import { calculateFlightDynamics } from './aerodynamics.js';
+
+let ctx, lastTime = 0, missionStart = 0;
+const CEILING = 32000; 
+const TIMELINE = { TAXI: 10, CLIMB: 50, LOITER: 80, FINAL: 90 };
+
+let state = { 
+    altitude: 0, 
+    verticalVelocity: 0, 
+    airspeed: 0, 
+    phase: 'PRE_FLIGHT', 
+    isClimbing: false, 
+    isEngineRunning: true, 
+    thrustMultiplier: 0 
 };
 
 self.onmessage = function(e) {
     if (e.data.type === 'INIT') {
-        ctx = e.data.canvas.getContext('2d');
-        ctx.canvas.width = 400; 
-        ctx.canvas.height = 600;
+        ctx = e.data.canvas.getContext('2d', { alpha: false }); 
+        // Force internal resolution to match physical display
+        ctx.canvas.width = e.data.width; 
+        ctx.canvas.height = e.data.height;
     }
     if (e.data.type === 'START_FLIGHT') {
         missionStart = performance.now();
         lastTime = performance.now();
-        renderLoop(performance.now());
+        requestAnimationFrame(tick);
     }
 };
 
-function renderLoop(currentTime) {
-    if (!state.isEngineRunning) return;
-
-    const dt = lastTime ? (currentTime - lastTime) / 1000 : 0.016;
-    const elapsed = (currentTime - missionStart) / 1000;
-    lastTime = currentTime;
-
-    // --- PHASE LOGIC (STRETCHING TO 90s) ---
+function tick(t) {
+    if (!state.isEngineRunning || !ctx) return;
     
-    if (elapsed < 10) {
-        // PHASE 1: PRE-FLIGHT (0-10s) - System Warmup
-        state.phase = 'PRE_FLIGHT';
-        state.altitude = 0;
-        state.velocity = 0;
-        state.vSpeed = 0;
-    } 
-    else if (elapsed < 40) {
-        // PHASE 2: STEADY CLIMB (10-40s)
-        state.phase = 'CLIMB';
-        state.velocity = Math.min(250, state.velocity + 15 * dt);
-        state.vSpeed = 80; // Controlled ascent
-        state.altitude += state.vSpeed * dt;
-    }
-    else if (elapsed < 70) {
-        // PHASE 3: ENGAGEMENT / LOITER (40-70s) - THE ATTACK ZONE
-        state.phase = 'ENGAGEMENT';
-        state.velocity = 240 + (Math.random() * 4); // Simulated turbulence
-        state.vSpeed = (state.altitude > 25000) ? -10 : 10; // "Hover" around 25k ft
-        state.altitude += state.vSpeed * dt;
-    }
-    else if (elapsed < 90) {
-        // PHASE 4: FINAL CRUISE (70-90s)
-        state.phase = 'CRUISE';
-        state.velocity = 450;
-        state.vSpeed = 20;
-        state.altitude += state.vSpeed * dt;
-    } else {
-        // MISSION COMPLETE
-        state.phase = 'COMPLETE';
-    }
+    const dt = Math.min((t - lastTime) / 1000, 0.1);
+    const elapsed = (t - missionStart) / 1000;
+    lastTime = t;
 
-    // DRAW & SYNC
-    drawPFD(state.altitude, state.velocity, state.vSpeed, state.phase);
+    updatePhases(elapsed);
+    
+    const updated = calculateFlightDynamics(state, dt, state.thrustMultiplier);
+    Object.assign(state, updated);
 
-    self.postMessage({ 
-        type: 'TELEMETRY', 
-        altitude: state.altitude, 
-        velocity: state.velocity,
-        phase: state.phase,
-        timestamp: currentTime // For Latency Calc
-    });
+    // INDUSTRIAL RENDER
+    drawPFD(state.altitude, state.airspeed, state.verticalVelocity, state.phase);
+    
+    // Type-Safe Telemetry Stream
+    self.postMessage({ type: 'TELEMETRY', ...state });
+    
+    requestAnimationFrame(tick);
+}
 
-    requestAnimationFrame(renderLoop);
+function updatePhases(elapsed) {
+    if (elapsed < TIMELINE.TAXI) { 
+        state.phase = 'STARTUP_TAXI'; 
+        state.thrustMultiplier = 0.15; 
+    } else if (elapsed < TIMELINE.CLIMB) { 
+        state.phase = 'THROTTLED_ASCENT'; 
+        state.thrustMultiplier = 1.9; 
+        state.isClimbing = state.altitude < CEILING; 
+    } else if (elapsed < TIMELINE.LOITER) { 
+        state.phase = 'ENGAGEMENT_ZONE'; 
+        state.thrustMultiplier = 1.0; 
+        state.isClimbing = false;
+    } else if (elapsed < TIMELINE.FINAL) { 
+        state.phase = 'FINAL_APPROACH'; 
+        state.thrustMultiplier = 0.4; 
+        state.isClimbing = false; 
+    } else { 
+        state.phase = 'MISSION_COMPLETE'; 
+        state.isEngineRunning = false; 
+    }
 }
 
 function drawPFD(alt, spd, vs, phase) {
-    if (!ctx) return;
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
+    const centerY = h / 2;
 
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#030303"; 
     ctx.fillRect(0, 0, w, h);
 
-    drawVerticalTape(ctx, spd, 0, 80, h, "SPD", 10);
-    drawVerticalTape(ctx, alt, w - 80, 80, h, "ALT", 100);
+    const themeColor = (phase === 'ENGAGEMENT_ZONE') ? "#FF3B3B" : "#00FF41";
+    ctx.strokeStyle = themeColor;
+    ctx.fillStyle = themeColor;
+    ctx.font = "11px 'Share Tech Mono'"; 
 
-    // MISSION PHASE INDICATOR (New)
-    ctx.fillStyle = (phase === 'ENGAGEMENT') ? "#FF3B3B" : "#00FF41";
-    ctx.font = "bold 16px 'Share Tech Mono'";
-    ctx.textAlign = "center";
-    ctx.fillText(`PHASE: ${phase}`, w/2, 40);
-
-    // V/S INDICATOR
-    ctx.fillStyle = "#00FF41";
-    ctx.font = "bold 14px 'Share Tech Mono'";
-    ctx.fillText(`V/S: ${Math.round(vs * 60)} FPM`, w/2, h/2 - 50);
-
-    // Artificial Horizon
-    ctx.strokeStyle = "#444";
-    ctx.lineWidth = 1;
+    // 1. HORIZON LINE (Pitch: Moves opposite to Vertical Velocity)
+    const pitchShift = Math.max(-h/3, Math.min(vs / 4, h/3));
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(w/2 - 50, h/2);
-    ctx.lineTo(w/2 + 50, h/2);
+    ctx.moveTo(w * 0.2, centerY + pitchShift); 
+    ctx.lineTo(w * 0.8, centerY + pitchShift);
     ctx.stroke();
+
+    // 2. TAPES
+    drawVerticalTape(ctx, w - 55, centerY, alt, "ALT", themeColor, false);
+    drawVerticalTape(ctx, 15, centerY, spd, "SPD", themeColor, true);
+
+    // 3. READOUT
+    ctx.textAlign = "center";
+    ctx.font = "bold 22px 'Share Tech Mono'";
+    ctx.fillText(Math.round(alt), w/2, centerY - 5);
+    ctx.font = "9px 'Share Tech Mono'";
+    ctx.fillStyle = "#444";
+    ctx.fillText("FT MSL", w/2, centerY + 10);
 }
 
-// ... (Keep your drawVerticalTape function exactly as is)
+function drawVerticalTape(ctx, x, centerY, value, label, color, isLeft) {
+    const tapeW = 40;
+    const tapeH = ctx.canvas.height * 0.7;
+    const startY = (ctx.canvas.height - tapeH) / 2;
+
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, startY, tapeW, tapeH);
+    
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.fillText(label, x + tapeW/2, startY - 10);
+
+    // INDUSTRIAL PRECISION: Fixed scrolling logic
+    const gap = 50; // Pixels between each 100-unit increment
+    const offset = (value % 100) * (gap / 100);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, startY, tapeW, tapeH);
+    ctx.clip();
+
+    for (let i = -4; i <= 4; i++) {
+        const roundedVal = Math.floor(value / 100) * 100;
+        const displayNum = roundedVal + (i * 100);
+        if (displayNum < 0) continue;
+
+        // Numbers move DOWN as value increases
+        const yPos = centerY + offset - (i * gap);
+        
+        ctx.globalAlpha = Math.max(0, 1 - Math.abs(yPos - centerY) / (tapeH/2));
+        ctx.font = "12px 'Share Tech Mono'";
+        ctx.fillText(displayNum, x + tapeW/2, yPos);
+        
+        // Add tick marks
+        ctx.beginPath();
+        ctx.moveTo(isLeft ? x + tapeW : x, yPos);
+        ctx.lineTo(isLeft ? x + tapeW - 8 : x + 8, yPos);
+        ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1.0;
+}
