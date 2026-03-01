@@ -1,7 +1,7 @@
 /**
- * main.js - INDUSTRIAL FLIGHT DECK CONTROLLER
- * Architecture: Decoupled Main-Thread Execution
- * Strategy: Mission-Phase Sequencing & ARINC-429 Telemetry Simulation.
+ * main.js - INDUSTRIAL FLIGHT DECK CONTROLLER (V5.2)
+ * Architecture: Decoupled Main-Thread Execution / NIST ML-KEM Shield
+ * PATH CONFIG: Assumes main.js is in /src/
  */
 
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack } from './security/lattice-engine.js';
@@ -12,21 +12,21 @@ const state = {
     physicsWorker: null,
     latency: 4.2,
     canvasTransferred: false,
-    startTime: 0,
-    currentPhase: 'PRE_FLIGHT'
+    currentPhase: 'PRE_FLIGHT',
+    isMissionActive: false 
 };
 
 /**
- * 1. INITIALIZATION & DYNAMIC RESOLUTION LOCK
- * Ensures the canvas always matches the CSS 300px / 1fr / 320px grid perfectly.
+ * 1. UI ARCHITECTURE - Dynamic Scaling & High-DPI Support
  */
 function lockCanvasResolution() {
     const canvases = document.querySelectorAll('canvas');
     canvases.forEach(canvas => {
+        // Skip PFD if ownership is already transferred to the Physics Worker
+        if (canvas.id === 'flight-display' && state.canvasTransferred) return;
+        
         const rect = canvas.parentElement.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
-        
-        // Prevents resolution mismatch during "stretch" events
         if (rect.width > 0 && rect.height > 0) {
             canvas.width = Math.floor(rect.width * dpr);
             canvas.height = Math.floor(rect.height * dpr);
@@ -34,178 +34,175 @@ function lockCanvasResolution() {
     });
 }
 
-// Watch for window resizes and re-lock
-window.addEventListener('resize', () => {
-    lockCanvasResolution();
-    if (!state.isBooted) drawLattice('lattice-canvas');
-});
+window.addEventListener('resize', lockCanvasResolution);
 
 document.addEventListener('DOMContentLoaded', () => {
     lockCanvasResolution();
     
-    // Immediate Lattice Standby
+    // Initialize Lattice Visualizer (Security Thread Simulation)
     try {
         drawLattice('lattice-canvas');
-        logTerminalMessage("LATTICE_VISUALIZER: STANDBY", "#00FF41");
     } catch (e) {
-        console.error("SYS_ERR: LATTICE_INIT_FAILED", e);
+        console.warn("LATTICE_VIS_DELAY: Engine warming up...");
     }
-
+    
     const startBtn = document.getElementById('init-btn');
     if (startBtn) {
         startBtn.onclick = () => {
             if (!state.isBooted) {
                 state.isBooted = true;
-                runPOST();
+                runPOST(); // Power-On Self-Test
             }
         };
     }
 });
 
 /**
- * 2. TELEMETRY STREAM & MEMORY MANAGEMENT (The "Stretch" Fix)
- */
-function updateTelemetryStream(alt, vel) {
-    const hexDisplay = document.getElementById('fdr-hex-display');
-    const log = document.getElementById('terminal-box');
-    if (!log) return;
-
-    // Convert to Hex (Aviation Standard)
-    const hexAlt = Math.abs(Math.floor(alt)).toString(16).toUpperCase().padStart(4, '0');
-    const hexVel = Math.abs(Math.floor(vel)).toString(16).toUpperCase().padStart(4, '0');
-    const timestamp = Date.now().toString().slice(-4);
-
-    if (hexDisplay) hexDisplay.textContent = `0x${hexAlt} ${hexVel} ${timestamp}`;
-
-    const p = document.createElement('p');
-    p.style.margin = "0 0 2px 0";
-    p.style.lineHeight = "1.2";
-    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> BUS_01 >> <span style="color: #FFB000;">ALT:0x${hexAlt}</span> | VEL:0x${hexVel}`;
-    
-    log.appendChild(p);
-
-    // FIX: Auto-scroll to bottom so footer isn't pushed
-    log.scrollTop = log.scrollHeight;
-
-    // FIX: Garbage Collection (Keep only last 20 entries to prevent DOM bloating/stretching)
-    if (log.childNodes.length > 20) {
-        log.removeChild(log.firstChild);
-    }
-}
-
-/**
- * 3. POWER-ON SELF-TEST (POST)
+ * 2. SYSTEM_POST & WORKER INITIALIZATION
  */
 async function runPOST() {
-    const log = document.getElementById('terminal-box');
     const canvas = document.getElementById('flight-display');
     const startBtn = document.getElementById('init-btn');
+    const timerEl = document.getElementById('mission-timer');
+    const statusLightWorker = document.getElementById('hb-worker');
+    const fccLabel = document.getElementById('fcc-label');
     
-    if (!canvas || !log) return;
+    if (!canvas) {
+        console.error("CRITICAL: PFD_CANVAS_NOT_FOUND");
+        return;
+    }
 
-    logTerminalMessage("SYSTEM_POST: STARTING AVIONICS BUS...");
+    logTerminalMessage("SYSTEM_POST: INITIALIZING AVIONICS BUS...");
     
     try {
-        // Init Physics Worker (Offloading heavy math)
-        state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
+        // PATH RESOLUTION: Worker is in /src/physics/ relative to /src/main.js
+        state.physicsWorker = new Worker('./physics/physics-worker.js', { type: 'module' });
 
         if (!state.canvasTransferred) {
             const offscreen = canvas.transferControlToOffscreen();
-            state.physicsWorker.postMessage({ 
-                type: 'INIT', 
-                canvas: offscreen 
-            }, [offscreen]);
+            // Hardware Acceleration: Moving PFD rendering to the FCC Thread
+            state.physicsWorker.postMessage({ type: 'INIT', canvas: offscreen }, [offscreen]);
             state.canvasTransferred = true;
         }
 
-        // Lock UI button state (Persistent Status Display)
-        if (startBtn) {
-            startBtn.classList.add('sys-active');
-            startBtn.textContent = "BUS_STATUS: INITIALIZING...";
-        }
-
+        // Perform NIST ML-KEM Handshake (Simulated Lattice Exchange)
         await initHandshake(); 
-        logTerminalMessage("NIST-ML-KEM-1024 HANDSHAKE: VERIFIED");
+        logTerminalMessage("NIST-ML-KEM-1024: SECURE LINK ESTABLISHED", "#00FF41");
 
+        // TELEMETRY BRIDGE - High Frequency Data Stream
         state.physicsWorker.onmessage = (e) => {
-            if (e.data.type === 'TELEMETRY') {
-                const { altitude, airspeed } = e.data;
-                const elapsed = (Date.now() - state.startTime) / 1000;
-                
-                updateMissionPhase(elapsed);
-                handleSecurityLogic(altitude, state.currentPhase);
-                updateTelemetryStream(altitude, airspeed);
-                
-                const timerEl = document.getElementById('mission-timer');
-                if (timerEl) timerEl.textContent = `T+ ${elapsed.toFixed(1)}S`;
+            if (e.data.type === 'BUS_IDLE') {
+                handleMissionComplete(startBtn, statusLightWorker, fccLabel);
+                return;
+            }
 
-                // Update Progress on the persistent footer button
-                if (startBtn && elapsed <= 90) {
-                    const progress = ((elapsed / 90) * 100).toFixed(0);
-                    startBtn.textContent = `MISSION_CHRONO: ${progress}% [BUS_ACTIVE]`;
-                } else if (startBtn) {
-                    startBtn.textContent = "MISSION_COMPLETE: SYSTEM_READY";
-                    startBtn.style.color = "#00FF41";
+            if (e.data.type === 'TELEMETRY') {
+                const { altitude, airspeed, elapsed, missionPhase } = e.data;
+                const timeNum = parseFloat(elapsed);
+
+                if (state.isMissionActive) {
+                    syncPhase(missionPhase);
+                    
+                    if (timerEl) timerEl.textContent = `T+ ${timeNum.toFixed(1)}S`;
+                    
+                    if (startBtn) {
+                        const progress = Math.min(100, (timeNum / 90) * 100).toFixed(0);
+                        startBtn.textContent = `DATA_LINK: ${progress}% [${state.currentPhase}]`;
+                    }
                 }
+
+                handleSecurityLogic(state.currentPhase);
+                updateTelemetryStream(altitude, airspeed);
             }
         };
 
-        state.startTime = Date.now();
+        // IGNITION SEQUENCE
+        state.isMissionActive = true;
+        if (statusLightWorker) statusLightWorker.style.background = "#FFBF00"; 
+        if (fccLabel) {
+            fccLabel.style.color = "#00FF41";
+            fccLabel.textContent = "FCC_THREAD: ACTIVE";
+        }
+
         state.physicsWorker.postMessage({ type: 'START_FLIGHT' });
-        logTerminalMessage("MISSION_START: THROTTLE_UP", "#FFF");
+        logTerminalMessage("MISSION_START: DETACHING UMBILICAL", "#FFF");
 
-    } catch (e) {
-        logTerminalMessage("CRITICAL FAILURE: BUS_INIT_FAULT", "#FF3B3B");
-        if (startBtn) startBtn.textContent = "SYSTEM_FAULT: CHECK_LOGS";
-        console.error(e);
+    } catch (err) {
+        console.error("AVIONICS_BUS_ERROR:", err);
+        logTerminalMessage("CRITICAL FAILURE: BUS_INIT_ERROR", "#FF3B3B");
     }
 }
 
 /**
- * 4. MISSION CHRONOMETER (Phase-Logic Implementation)
+ * 3. TELEMETRY & SECURITY SYNC
  */
-function updateMissionPhase(elapsed) {
-    let nextPhase = 'STARTUP_TAXI';
-
-    if (elapsed > 90) nextPhase = 'MISSION_COMPLETE';
-    else if (elapsed > 75) nextPhase = 'FINAL_APPROACH';
-    else if (elapsed > 45) nextPhase = 'ENGAGEMENT_ZONE'; 
-    else if (elapsed > 10) nextPhase = 'STEADY_CLIMB';
-
-    if (nextPhase !== state.currentPhase) {
-        state.currentPhase = nextPhase;
-        state.physicsWorker.postMessage({ type: 'SET_PHASE', phase: nextPhase });
-        logTerminalMessage(`PHASE_TRANSITION: ${nextPhase}`, "#00FF41");
+function syncPhase(newPhase) {
+    if (newPhase && newPhase !== state.currentPhase) {
+        state.currentPhase = newPhase;
+        logTerminalMessage(`PHASE_TRANSITION: ${newPhase}`, "#FFB000");
         
-        const phaseEl = document.getElementById('current-phase');
-        if (phaseEl) phaseEl.textContent = nextPhase;
+        const phaseLabel = document.getElementById('current-phase');
+        if (phaseLabel) phaseLabel.textContent = newPhase;
     }
 }
 
-/**
- * 5. SECURITY & LATENCY MONITORING
- */
-function handleSecurityLogic(alt, phase) {
+function updateTelemetryStream(alt, vel) {
+    const hexDisplay = document.getElementById('fdr-hex-display');
+    const log = document.getElementById('terminal-box');
+    if (!hexDisplay || !log) return;
+
+    // ARINC-429 Bit-Level Simulation
+    const hexAlt = Math.max(0, Math.floor(alt)).toString(16).toUpperCase().padStart(4, '0');
+    const hexVel = Math.max(0, Math.floor(vel)).toString(16).toUpperCase().padStart(4, '0');
+
+    hexDisplay.textContent = `BUS_DATA: 0x${hexAlt} 0x${hexVel} | CH_A: NOMINAL`;
+
+    const line = document.createElement('div');
+    line.style.fontSize = "9px";
+    line.style.fontFamily = "'Share Tech Mono', monospace";
+    line.innerHTML = `<span style="color: #444;">></span> RX_BLOCK: <span style="color: #FFBF00;">0x${hexAlt}${hexVel}</span>`;
+    log.appendChild(line);
+    
+    if (log.childNodes.length > 15) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+}
+
+function handleSecurityLogic(phase) {
     const latencyEl = document.getElementById('handshake-ms');
-    const pfdPanel = document.getElementById('air-data-panel'); 
+    const securityTag = document.getElementById('security-tag');
     
     if (phase === 'ENGAGEMENT_ZONE') {
         if (!state.attackLogged) {
             triggerAttack(true); 
-            logTerminalMessage("!! WARNING: CRYPTO_CHALLENGE_DETECTED", "#FF3B3B");
-            if (pfdPanel) pfdPanel.classList.add('engagement-active');
+            logTerminalMessage("!! ALERT: MALICIOUS_TELEMETRY_INJECTION", "#FF3B3B");
             state.attackLogged = true;
+            if (securityTag) securityTag.textContent = "STATE: LATTICE_SHIELD_ACTIVE";
         }
-        state.latency = (8.4 + Math.random() * 2.2).toFixed(1); 
+        state.latency = (7.2 + Math.random() * 5).toFixed(1); 
     } else {
-        if (state.attackLogged) {
+        if (state.attackLogged && (phase === 'FINAL_APPROACH' || phase === 'MISSION_COMPLETE')) {
             triggerAttack(false); 
-            logTerminalMessage("THREAT_NEUTRALIZED: RESUMING STANDBY", "#00FF41");
-            if (pfdPanel) pfdPanel.classList.remove('engagement-active');
+            logTerminalMessage("SECURITY: ATTACK_NEUTRALIZED", "#00FF41");
             state.attackLogged = false;
+            if (securityTag) securityTag.textContent = "STATE: NIST-ML-KEM-1024";
         }
-        state.latency = (4.1 + Math.random() * 0.15).toFixed(2);
+        state.latency = (4.1 + Math.random() * 0.2).toFixed(2);
     }
     
     if (latencyEl) latencyEl.textContent = `LATENCY: ${state.latency}ms`;
+}
+
+function handleMissionComplete(btn, light, label) {
+    state.isMissionActive = false;
+    if (btn) {
+        btn.textContent = "MISSION_COMPLETE: BUS_IDLE";
+        btn.style.color = "#00FF41";
+        btn.style.borderColor = "#00FF41";
+    }
+    if (light) light.style.background = "#1a1a1a";
+    if (label) {
+        label.textContent = "FCC_THREAD: STANDBY";
+        label.style.color = "#888";
+    }
+    logTerminalMessage("SYSTEM: SHUTTING DOWN AVIONICS BUS [0x00]", "#FFB000");
 }
