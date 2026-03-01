@@ -10,76 +10,91 @@
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="./style.css">
+    <style>
+        /* Essential Fallbacks for Industrial Aesthetic */
+        :root {
+            --av-green: #00FF41;
+            --av-amber: #FFBF00;
+            --av-red: #FF3B3B;
+        }
+        body { background: #000; color: var(--av-green); font-family: 'Share Tech Mono', monospace; margin: 0; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+    </style>
 </head>
 <body>
 
     <div id="vfx-layer"></div>
 
-    <div id="cockpit-container">
+    <div id="cockpit-container" style="display: flex; flex-direction: column; height: 100vh;">
         
-        <header id="status-bar">
-            <div class="status-matrix">
-                <div class="monitor-unit">
-                    <div class="status-light" id="hb-ui" style="background: #00FF41; box-shadow: 0 0 8px #00FF41;"></div>
+        <header id="status-bar" style="padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between;">
+            <div class="status-matrix" style="display: flex; gap: 20px; align-items: center;">
+                <div class="monitor-unit" style="display: flex; align-items: center; gap: 8px;">
+                    <div class="status-light" id="hb-ui" style="width: 8px; height: 8px; background: var(--av-green); border-radius: 50%;"></div>
                     <span>BUS_MAIN: ACTIVE</span>
                 </div>
-                <div class="monitor-unit">
-                    <div class="status-light" id="hb-worker"></div>
-                    <span style="color: #888;">FCC_THREAD: STANDBY</span>
+                <div class="monitor-unit" style="display: flex; align-items: center; gap: 8px;">
+                    <div class="status-light" id="hb-worker" style="width: 8px; height: 8px; background: #1a1a1a; border-radius: 50%;"></div>
+                    <span id="fcc-label" style="color: #888;">FCC_THREAD: STANDBY</span>
                 </div>
                 <div class="monitor-unit" style="border-left: 1px solid #333; padding-left: 15px;">
-                    <span id="security-tag">STATE: NIST-ML-KEM-1024</span>
+                    <span id="security-tag" style="color: var(--av-amber);">STATE: NIST-ML-KEM-1024</span>
                 </div>
             </div>
             
             <div class="latency-monitor">
-                <span id="handshake-ms">LATENCY: 0.00ms</span>
+                <span id="handshake-ms" style="color: var(--av-green);">LATENCY: 0.00ms</span>
             </div>
         </header>
 
-        <main class="pfd-grid">
+        <main class="pfd-grid" style="flex-grow: 1; display: grid; grid-template-columns: 1fr 1fr 300px; gap: 10px; padding: 10px;">
             
-            <section class="panel" id="air-data-panel">
-                <div class="panel-header">
+            <section class="panel" id="air-data-panel" style="border: 1px solid #333; display: flex; flex-direction: column;">
+                <div class="panel-header" style="background: #111; padding: 5px; font-size: 12px; display: flex; justify-content: space-between;">
                     <span>PRIMARY FLIGHT DATA (PFD)</span>
-                    <span id="current-phase" style="color: #FFB000;">PRE_FLIGHT</span>
+                    <span id="current-phase" style="color: var(--av-amber);">PRE_FLIGHT</span>
                 </div>
-                <div class="canvas-wrapper">
+                <div class="canvas-wrapper" style="flex-grow: 1; position: relative;">
                     <canvas id="flight-display"></canvas>
                 </div>
             </section>
 
-            <section class="panel" id="lattice-panel">
-                <div class="panel-header">QUANTUM LATTICE ENTROPY (ML-KEM)</div>
-                <div class="canvas-wrapper">
+            <section class="panel" id="lattice-panel" style="border: 1px solid #333; display: flex; flex-direction: column;">
+                <div class="panel-header" style="background: #111; padding: 5px; font-size: 12px;">QUANTUM LATTICE ENTROPY (ML-KEM-SHIELD)</div>
+                <div class="canvas-wrapper" style="flex-grow: 1; position: relative;">
                     <canvas id="lattice-canvas"></canvas>
                 </div>
             </section>
 
-            <section class="panel" id="security-panel">
-                <div class="panel-header">ENCRYPTED BUS TELEMETRY (ARINC-429)</div>
+            <section class="panel" id="security-panel" style="border: 1px solid #333; padding: 10px; display: flex; flex-direction: column;">
+                <div class="panel-header" style="border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px; font-size: 12px;">ENCRYPTED BUS TELEMETRY (ARINC-429)</div>
                 
-                <div id="terminal-box">
-                    <p>> SYSTEM READY...</p>
-                    <p>> WAITING FOR PILOT INIT...</p>
+                <div id="terminal-box" style="flex-grow: 1; overflow-y: hidden; font-size: 10px; line-height: 1.4; margin-bottom: 15px;">
+                    <div style="color: #444;">[SYSTEM_READY]</div>
+                    <div style="color: #444;">[WAITING_FOR_PILOT_INIT...]</div>
                 </div>
                 
                 <div class="diagnostic-cluster">
-                    <div class="unit-label">FDR_HEX_DUMP (RAW_SERIAL)</div>
-                    <div id="fdr-hex-display">0x0000 0000 0000 0000</div>
+                    <div class="data-group" style="margin-bottom: 15px;">
+                        <div class="unit-label" style="font-size: 10px; color: #666; margin-bottom: 4px;">FDR_HEX_DUMP (RAW_SERIAL)</div>
+                        <div id="fdr-hex-display" style="color: var(--av-amber); font-size: 14px;">0x0000 0000 | STRM: IDLE</div>
+                    </div>
                     
-                    <div class="unit-label" style="margin-top: 15px;">MISSION_TIMER</div>
-                    <div id="mission-timer" style="color: #FFF; font-size: 18px; font-weight: bold;">T+ 0.0S</div>
+                    <div class="data-group">
+                        <div class="unit-label" style="font-size: 10px; color: #666; margin-bottom: 4px;">MISSION_TIMER</div>
+                        <div id="mission-timer" style="font-size: 18px;">T+ 0.0S</div>
+                    </div>
                     
-                    <div id="safety-calc">
-                        CMD_DRIFT_THRESHOLD: 0.00042% | INTEGRITY: NOMINAL
+                    <div id="safety-calc" style="font-size: 10px; color: #444; margin-top: 10px; border-top: 1px solid #1a1a1a; padding-top: 10px;">
+                        LATTICE_INTEGRITY: <span style="color: var(--av-green);">NOMINAL</span><br>
+                        SIGNAL_ERR: 0.00042%
                     </div>
                 </div>
             </section>
         </main>
 
-        <footer>
-            <button id="init-btn">INITIALIZE FLIGHT DECK</button>
+        <footer style="height: 70px; padding: 10px; border-top: 1px solid #333;">
+            <button id="init-btn" style="width: 100%; height: 100%; background: transparent; border: 1px solid var(--av-green); color: var(--av-green); font-family: 'Share Tech Mono'; cursor: pointer; transition: 0.2s;">INITIALIZE FLIGHT DECK</button>
         </footer>
     </div>
 
