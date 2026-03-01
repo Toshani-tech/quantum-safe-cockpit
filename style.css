@@ -1,6 +1,6 @@
 /**
- * style.css - HARDENED AVIONICS FRAME
- * Fix: Removed overflow-creep and height-calculation errors.
+ * style.css - HARDENED AVIONICS FRAME (V7.0 - SYMMETRY LOCK)
+ * Architecture: True 1:1:1 Ratio for Industrial Balance.
  */
 
 :root {
@@ -13,7 +13,7 @@
     --industrial-border: #1d1d1d; 
 }
 
-/* Base Reset - Force everything to stay inside the box */
+/* Base Reset */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -28,7 +28,7 @@ html, body {
     background: #000;
     color: var(--av-green);
     font-family: var(--font-main);
-    overflow: hidden; /* CRITICAL: Kills the vertical stretch scrollbar */
+    overflow: hidden; 
 }
 
 /* The Root Container */
@@ -37,30 +37,34 @@ html, body {
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    padding: 10px;
-    gap: 10px;
+    padding: 12px; /* Uniform industrial padding */
+    gap: 12px;
     background: var(--bg);
 }
 
 /* Header - Fixed Height */
 #status-bar {
-    height: 40px;
+    height: 32px;
     flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--industrial-border);
-    padding: 0 5px;
+    border: 1px solid var(--industrial-border);
+    padding: 0 15px;
+    background: #080808;
+    font-size: 10px;
+    letter-spacing: 1px;
 }
 
-/* THE GRID - This is where the 300px logic lives */
+/* THE GRID - FORCED SYMMETRY FIX */
 .pfd-grid {
     display: grid;
-    /* LEFT: 300px | CENTER: AUTO | RIGHT: 320px */
-    grid-template-columns: 300px 1fr 320px; 
+    /* This forces the browser to treat all 3 columns as IDENTICAL thirds */
+    grid-template-columns: repeat(3, minmax(0, 1fr)); 
     gap: 12px;
-    flex: 1; /* Takes up all space between Header and Footer */
-    min-height: 0; /* CRITICAL: Tells browser it's allowed to be small */
+    flex: 1; 
+    min-height: 0; 
+    width: 100%;
 }
 
 .panel {
@@ -68,22 +72,24 @@ html, body {
     border: 1px solid var(--industrial-border);
     display: flex;
     flex-direction: column;
-    min-height: 0; 
+    min-width: 0; /* Critical: allows panel to fit grid exactly */
     overflow: hidden;
 }
 
 .panel-header {
     background: #0d0d0d;
-    height: 28px;
-    line-height: 28px;
+    height: 24px;
+    line-height: 24px;
     padding: 0 10px;
-    font-size: 10px;
+    font-size: 9px;
     border-bottom: 1px solid var(--industrial-border);
     flex-shrink: 0;
-    color: #666;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
-/* Canvas Wrapper - Must grow to fill panel */
+/* Canvas Wrapper */
 .canvas-wrapper {
     flex: 1;
     position: relative;
@@ -97,32 +103,42 @@ canvas {
     display: block;
 }
 
-/* TERMINAL FIX: No more stretching */
+/* TERMINAL FIX: Industrial Data Stream */
 #terminal-box {
     flex: 1;
     padding: 10px;
     font-size: 10px;
-    overflow-y: auto; /* Internal scroll only */
-    background: #000;
-    color: rgba(0, 255, 65, 0.8);
-    font-family: 'Courier New', monospace;
-    scrollbar-width: thin;
-    scrollbar-color: #333 #000;
+    overflow-y: hidden; /* We want a controlled data stream, not a messy scrollbar */
+    background: #010101;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Keeps newest data at bottom */
+}
+
+#terminal-box div {
+    margin-bottom: 2px;
+    line-height: 1.2;
 }
 
 .diagnostic-cluster {
-    height: 160px; /* Locked height */
+    height: 140px; 
     background: #080808;
-    border-top: 1px solid #1a1a1a;
+    border-top: 1px solid var(--industrial-border);
     padding: 12px;
     flex-shrink: 0;
 }
 
-/* FOOTER - PINNED AND MEASURED */
+#mission-timer {
+    font-size: 28px;
+    color: #fff;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+
+/* FOOTER - MASTER CONTROL */
 footer {
-    height: 50px;
+    height: 60px;
     flex-shrink: 0;
-    margin-top: 5px;
 }
 
 #init-btn {
@@ -132,23 +148,19 @@ footer {
     border: 1px solid var(--av-green);
     color: var(--av-green);
     font-family: var(--font-main);
-    letter-spacing: 2px;
+    font-size: 14px;
+    letter-spacing: 4px;
     cursor: pointer;
     transition: 0.2s;
+    text-transform: uppercase;
 }
 
 #init-btn:hover { background: rgba(0, 255, 65, 0.1); }
 
-.sys-active {
-    border-color: #333 !important;
-    color: #444 !important;
-    pointer-events: none;
-}
-
 /* Scanline VFX */
 #vfx-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
     background-size: 100% 4px;
-    z-index: 9999; pointer-events: none; opacity: 0.15;
+    z-index: 9999; pointer-events: none; opacity: 0.2;
 }
