@@ -1,7 +1,7 @@
 /**
- * lattice-engine.js - NIST ML-KEM (Lattice-Based) Security Engine
- * Pitch: Visualizing Shortest Vector Problem (SVP) entropy via point-cloud matrix.
- * Architecture: Optimized for industrial symmetry and pixel-perfect scaling.
+ * lattice-engine.js - V6.0 NIST ML-KEM SECURITY KERNEL
+ * Strategy: Visualizing the Shortest Vector Problem (SVP) and LWE Noise.
+ * Safety: Thread-safe terminal logging and DPI-aware canvas scaling.
  */
 
 let isUnderAttack = false;
@@ -11,29 +11,48 @@ export function triggerAttack(status) {
     isUnderAttack = status; 
 }
 
-export async function initHandshake() {
-    logTerminalMessage("NIST_ML_KEM_1024: INJECTING ENTROPY...");
-    await new Promise(r => setTimeout(r, 1200));
-    logTerminalMessage("LATTICE_ENGINE: BASIS VECTORS STABILIZED.", "#00FF41");
-}
-
+/**
+ * High-Speed Terminal Logger
+ * Optimized for ARINC-429 data density.
+ */
 export function logTerminalMessage(msg, color = "#00FF41") {
     const term = document.getElementById('terminal-box');
     if (!term) return;
+    
     const p = document.createElement('div');
-    p.style.margin = "0 0 2px 0";
+    const isWarning = msg.includes("!!") || msg.includes("ALERT") || msg.includes("THREAT") || msg.includes("FAILURE");
     
-    const isWarning = msg.includes("!!") || msg.includes("ALERT") || msg.includes("THREAT");
-    p.style.color = isWarning ? "#FF3B3B" : color;
+    // Industrial styling: Use Amber for security info, Red for alerts
+    p.style.color = isWarning ? "#FF3B3B" : (color === "#00FF41" ? "var(--av-amber)" : color);
     
-    const timestamp = performance.now().toFixed(0).slice(-4);
-    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> ${msg}`;
+    const timestamp = performance.now().toFixed(0).slice(-5);
+    // Mimicking Hex-Encoded Telemetry
+    const hexHeader = `0x${Math.floor(Math.random() * 0xFFF).toString(16).toUpperCase().padStart(3, '0')}`;
+    
+    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> <span style="color: #666;">${hexHeader}</span> ${msg}`;
     term.appendChild(p);
     
+    // Keep the stream lean
     term.scrollTop = term.scrollHeight;
-    if (term.childNodes.length > 40) term.removeChild(term.firstChild);
+    while (term.childNodes.length > 35) {
+        term.removeChild(term.firstChild);
+    }
 }
 
+export async function initHandshake() {
+    logTerminalMessage("BOOT: LOADING WASM_CORE_V1.0...");
+    await new Promise(r => setTimeout(r, 600));
+    
+    logTerminalMessage("ML-KEM: INIT NTT (NUMBER THEORETIC TRANSFORM)...");
+    await new Promise(r => setTimeout(r, 400));
+    
+    logTerminalMessage("LATTICE: MODULUS q=3329 | DIMENSION k=4");
+    
+    logTerminalMessage("CRYPTO: GENERATING SECRET VECTOR 's'...");
+    await new Promise(r => setTimeout(r, 500));
+    
+    logTerminalMessage("CRYPTO: PUBLIC KEY 'A' COMPENSATED.", "#00FF41");
+}
 export function drawLattice(canvasId) {
     if (animationRunning) return; 
 
@@ -43,8 +62,8 @@ export function drawLattice(canvasId) {
     const ctx = mainCanvas.getContext('2d', { alpha: false, desynchronized: true });
     
     let nodes = [];
-    const rows = 18; // Slightly fewer rows for a cleaner, high-tech look
-    const cols = 18;
+    const rows = 20; 
+    const cols = 20;
 
     const setupNodes = () => {
         const dpr = window.devicePixelRatio || 1;
@@ -59,23 +78,18 @@ export function drawLattice(canvasId) {
         ctx.scale(dpr, dpr);
         
         nodes = [];
-        
-        // ADDING INDUSTRIAL MARGIN (So dots don't touch the border)
-        const margin = 30; 
-        const drawW = rect.width - (margin * 2);
-        const drawH = rect.height - (margin * 2);
-        
-        const spacingX = drawW / (cols - 1);
-        const spacingY = drawH / (rows - 1);
+        const margin = 40; 
+        const spacingX = (rect.width - (margin * 2)) / (cols - 1);
+        const spacingY = (rect.height - (margin * 2)) / (rows - 1);
 
         for(let r = 0; r < rows; r++) {
             for(let c = 0; c < cols; c++) {
                 nodes.push({
                     x: margin + (c * spacingX),
                     y: margin + (r * spacingY),
-                    phase: (c + r) * 0.4, 
-                    row: r,
-                    col: c
+                    originX: margin + (c * spacingX),
+                    originY: margin + (r * spacingY),
+                    phase: (c + r) * 0.3
                 });
             }
         }
@@ -92,52 +106,48 @@ export function drawLattice(canvasId) {
 
     function animate() {
         const time = performance.now() * 0.001;
-        const displayW = mainCanvas.width / (window.devicePixelRatio || 1);
-        const displayH = mainCanvas.height / (window.devicePixelRatio || 1);
+        const w = mainCanvas.width / (window.devicePixelRatio || 1);
+        const h = mainCanvas.height / (window.devicePixelRatio || 1);
         
         ctx.fillStyle = "#020202";
-        ctx.fillRect(0, 0, displayW, displayH);
+        ctx.fillRect(0, 0, w, h);
 
-        const currentPos = nodes.map(n => {
-            let tx = n.x + Math.sin(time + n.phase) * 1.5;
-            let ty = n.y + Math.cos(time + n.phase) * 1.5;
-            
-            if (isUnderAttack) {
-                // High-frequency noise injection
-                tx += (Math.random() - 0.5) * 8;
-                ty += (Math.random() - 0.5) * 8;
-            }
-            return { x: tx, y: ty };
-        });
+        // Calculate LWE (Learning With Errors) Noise
+        const noiseAmplitude = isUnderAttack ? 12 : 1.5;
 
-        // 1. LATTICE MESH
+        // 1. RENDER LATTICE CONNECTIONS (Symmetry)
         ctx.beginPath();
+        ctx.strokeStyle = isUnderAttack ? "rgba(255, 59, 59, 0.2)" : "rgba(0, 255, 65, 0.08)";
         ctx.lineWidth = 0.5;
-        ctx.strokeStyle = isUnderAttack ? "rgba(255, 59, 59, 0.3)" : "rgba(0, 255, 65, 0.12)";
 
         for (let i = 0; i < nodes.length; i++) {
             const n = nodes[i];
-            const pos = currentPos[i];
-            if (n.col < cols - 1) {
-                ctx.moveTo(pos.x, pos.y);
-                ctx.lineTo(currentPos[i + 1].x, currentPos[i + 1].y);
-            }
-            if (n.row < rows - 1) {
-                ctx.moveTo(pos.x, pos.y);
-                ctx.lineTo(currentPos[i + cols].x, currentPos[i + cols].y);
+            // Apply NIST-Standard Noise Simulation
+            const noiseX = Math.sin(time + n.phase) * noiseAmplitude;
+            const noiseY = Math.cos(time + n.phase) * noiseAmplitude;
+            
+            n.currentX = n.originX + noiseX;
+            n.currentY = n.originY + noiseY;
+
+            if (i % cols < cols - 1) { // Horizontal lines
+                ctx.moveTo(n.currentX, n.currentY);
+                const next = nodes[i + 1];
+                ctx.lineTo(next.originX + Math.sin(time + next.phase) * noiseAmplitude, 
+                           next.originY + Math.cos(time + next.phase) * noiseAmplitude);
             }
         }
         ctx.stroke();
 
-        // 2. BASIS POINTS
-        for (let i = 0; i < currentPos.length; i++) {
-            const pos = currentPos[i];
-            if (isUnderAttack && Math.random() > 0.97) {
-                ctx.fillStyle = "#FFFFFF"; // Glitch highlight
-                ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
+        // 2. RENDER BASIS VECTORS (Basis points)
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            
+            if (isUnderAttack && Math.random() > 0.98) {
+                ctx.fillStyle = "#FFFFFF"; // Decryption Error Glitch
+                ctx.fillRect(n.currentX - 2, n.currentY - 2, 4, 4);
             } else {
                 ctx.fillStyle = isUnderAttack ? "#FF3B3B" : "#00FF41";
-                ctx.fillRect(pos.x - 1, pos.y - 1, 2, 2);
+                ctx.fillRect(n.currentX - 1, n.currentY - 1, 2, 2);
             }
         }
         
