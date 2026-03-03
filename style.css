@@ -1,25 +1,20 @@
 /**
- * style.css - HARDENED AVIONICS FRAME (V7.0 - SYMMETRY LOCK)
- * Architecture: True 1:1:1 Ratio for Industrial Balance.
+ * style.css - V16.0 FINAL STRUCTURAL SPEC
+ * Strategy: Grid-Force Columns & Priority Telemetry Verticality.
  */
 
 :root {
-    --bg: #020202;
-    --panel-bg: #050505;
+    --bg: #000000;
     --av-green: #00FF41;
     --av-amber: #FFBF00;
-    --tactical-red: #FF3B3B;
+    --industrial-border: #1a1a1a; 
     --font-main: 'Share Tech Mono', monospace;
-    --industrial-border: #1d1d1d; 
 }
 
-/* Base Reset */
 * { 
     box-sizing: border-box; 
     margin: 0; 
-    padding: 0; 
-    cursor: crosshair; 
-    user-select: none;
+    padding: 0;
 }
 
 html, body {
@@ -28,68 +23,58 @@ html, body {
     background: #000;
     color: var(--av-green);
     font-family: var(--font-main);
-    overflow: hidden; 
+    overflow: hidden; /* Absolute kill for scrollbars */
 }
 
-/* The Root Container */
+/* 1. MASTER CONTAINER - Forced Grid */
 #cockpit-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    width: 100vw;
-    padding: 12px; /* Uniform industrial padding */
-    gap: 12px;
-    background: var(--bg);
+    padding: 10px;
+    gap: 10px;
 }
 
-/* Header - Fixed Height */
-#status-bar {
-    height: 32px;
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid var(--industrial-border);
-    padding: 0 15px;
-    background: #080808;
-    font-size: 10px;
-    letter-spacing: 1px;
-}
-
-/* THE GRID - FORCED SYMMETRY FIX */
+/* 2. THE GRID - 33.3% Absolute Lock */
 .pfd-grid {
-    display: grid;
-    /* This forces the browser to treat all 3 columns as IDENTICAL thirds */
-    grid-template-columns: repeat(3, minmax(0, 1fr)); 
-    gap: 12px;
+    display: grid !important;
+    /* This forces the 3 panels to stay identical width, no matter what */
+    grid-template-columns: 1fr 1fr 1fr !important; 
+    gap: 10px;
     flex: 1; 
     min-height: 0; 
-    width: 100%;
 }
 
+/* 3. PANEL - Industrial Casing */
 .panel {
-    background: var(--panel-bg);
+    display: flex !important;
+    flex-direction: column !important;
+    background: #050505;
     border: 1px solid var(--industrial-border);
-    display: flex;
-    flex-direction: column;
-    min-width: 0; /* Critical: allows panel to fit grid exactly */
+    min-height: 0;
     overflow: hidden;
 }
 
 .panel-header {
+    flex: 0 0 32px; /* Fixed height so titles never overlap data */
+    line-height: 32px;
+    padding: 0 12px;
+    font-size: 10px;
     background: #0d0d0d;
-    height: 24px;
-    line-height: 24px;
-    padding: 0 10px;
-    font-size: 9px;
-    border-bottom: 1px solid var(--industrial-border);
-    flex-shrink: 0;
-    color: #555;
     text-transform: uppercase;
     letter-spacing: 2px;
+    border-bottom: 1px solid var(--industrial-border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Canvas Wrapper */
+/* Color Sync for RHS */
+.panel:nth-child(3) .panel-header {
+    color: var(--av-amber);
+}
+
+/* 4. CANVAS WRAPPER - Full Bleed */
 .canvas-wrapper {
     flex: 1;
     position: relative;
@@ -98,47 +83,64 @@ html, body {
 }
 
 canvas {
+    /* Absolute positioning ensures the canvas respects the wrapper's limits */
+    position: absolute;
+    top: 0; left: 0;
     width: 100% !important;
     height: 100% !important;
     display: block;
 }
 
-/* TERMINAL FIX: Industrial Data Stream */
+/* 5. TELEMETRY PANEL (RHS) - Vertical Dominance */
 #terminal-box {
-    flex: 1;
-    padding: 10px;
-    font-size: 10px;
-    overflow-y: hidden; /* We want a controlled data stream, not a messy scrollbar */
-    background: #010101;
+    flex: 1 1 auto !important; /* Forces terminal to be the tallest element */
+    padding: 12px;
+    font-size: clamp(9px, 1.3vh, 12px);
     display: flex;
     flex-direction: column;
-    justify-content: flex-end; /* Keeps newest data at bottom */
-}
-
-#terminal-box div {
-    margin-bottom: 2px;
-    line-height: 1.2;
-}
-
-.diagnostic-cluster {
-    height: 140px; 
-    background: #080808;
-    border-top: 1px solid var(--industrial-border);
-    padding: 12px;
-    flex-shrink: 0;
-}
-
-#mission-timer {
-    font-size: 28px;
-    color: #fff;
-    font-weight: bold;
+    justify-content: flex-end; /* New data appears at bottom */
+    color: var(--av-amber);
+    background: #010101;
+    overflow: hidden;
     font-variant-numeric: tabular-nums;
 }
 
-/* FOOTER - MASTER CONTROL */
+/* High-density ARINC rows */
+#terminal-box div {
+    border-bottom: 1px solid rgba(255, 191, 0, 0.05);
+    padding: 2px 0;
+    white-space: nowrap;
+}
+
+/* 6. DIAGNOSTIC CLUSTER - Fixed Bottom Anchor */
+.diagnostic-cluster {
+    flex: 0 0 100px; /* Locked height to prevent it from 'eating' the telemetry */
+    background: #080808;
+    border-top: 2px solid var(--industrial-border);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#mission-timer {
+    font-size: clamp(24px, 4vh, 32px);
+    color: #fff;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.diag-label {
+    font-size: 9px;
+    color: #444;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+/* 7. FOOTER */
 footer {
-    height: 60px;
-    flex-shrink: 0;
+    flex: 0 0 60px;
+    margin-top: 5px;
 }
 
 #init-btn {
@@ -147,20 +149,23 @@ footer {
     background: transparent;
     border: 1px solid var(--av-green);
     color: var(--av-green);
+    letter-spacing: 12px;
     font-family: var(--font-main);
-    font-size: 14px;
-    letter-spacing: 4px;
-    cursor: pointer;
-    transition: 0.2s;
     text-transform: uppercase;
+    cursor: pointer;
+    transition: 0.3s;
 }
 
-#init-btn:hover { background: rgba(0, 255, 65, 0.1); }
+#init-btn:hover {
+    background: rgba(0, 255, 65, 0.1);
+}
 
-/* Scanline VFX */
+/* 8. SCANLINE EFFECT */
 #vfx-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
     background-size: 100% 4px;
-    z-index: 9999; pointer-events: none; opacity: 0.2;
+    z-index: 9999; 
+    pointer-events: none; 
+    opacity: 0.1;
 }
