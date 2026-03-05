@@ -1,5 +1,4 @@
-/target/
 /security-kernel/target/
-/node_modules/
-.env
-*.log
+/security-kernel/pkg/
+node_modules/
+.DS_Store
