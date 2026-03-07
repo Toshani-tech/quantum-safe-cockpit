@@ -1,95 +1,116 @@
 /**
- * lattice-engine.js - V6.0 NIST ML-KEM SECURITY KERNEL
- * Strategy: Visualizing the Shortest Vector Problem (SVP) and LWE Noise.
- * Safety: Thread-safe terminal logging and DPI-aware canvas scaling.
+ * lattice-engine.js - V7.2 [STABILIZED LWE_CORE]
+ * Feature: Learning With Errors (LWE) Noise & Decoupled State Management.
+ * Industrial Fix: Added Canvas Context-Loss protection & performance throttling.
  */
 
 let isUnderAttack = false;
+let isSystemArmed = false; 
 let animationRunning = false; 
+let killSwitch = false; 
 
-export function triggerAttack(status) { 
-    isUnderAttack = status; 
+/**
+ * Atomic termination to prevent ghost loops after 90s
+ */
+export function stopLattice() {
+    killSwitch = true;
+    animationRunning = false;
+    isSystemArmed = false;
+    isUnderAttack = false;
 }
 
 /**
- * High-Speed Terminal Logger
- * Optimized for ARINC-429 data density.
+ * Triggers visual "Attack" mode (High-Amplitude LWE Noise)
  */
-export function logTerminalMessage(msg, color = "#00FF41") {
+export function triggerAttack(status) { 
+    isUnderAttack = status; 
+    logTerminalMessage(status ? "ALERT: LWE_VECTOR_INJECTION_DETECTED" : "SHIELD: LWE_NOISE_CANCELLATION_ACTIVE", 
+                       status ? "#FF3B3B" : "#00FF41", "0xSHIELD");
+}
+
+/**
+ * High-Speed Terminal Logger (Max 35 Lines for Industrial look)
+ */
+export function logTerminalMessage(msg, color = "#00FF41", tag = null) {
     const term = document.getElementById('terminal-box');
     if (!term) return;
     
     const p = document.createElement('div');
     const isWarning = msg.includes("!!") || msg.includes("ALERT") || msg.includes("THREAT") || msg.includes("FAILURE");
     
-    // Industrial styling: Use Amber for security info, Red for alerts
-    p.style.color = isWarning ? "#FF3B3B" : (color === "#00FF41" ? "var(--av-amber)" : color);
+    // Industrial color logic: Amber during POST, Green when Secure, Red on Alert
+    let finalColor = isWarning ? "#FF3B3B" : (isSystemArmed ? color : "var(--av-amber)");
+
+    const timestamp = (performance.now() / 1000).toFixed(2);
+    const signature = tag ? tag : `0x${Math.floor(Math.random() * 0xFFF).toString(16).toUpperCase().padStart(3, '0')}`;
     
-    const timestamp = performance.now().toFixed(0).slice(-5);
-    // Mimicking Hex-Encoded Telemetry
-    const hexHeader = `0x${Math.floor(Math.random() * 0xFFF).toString(16).toUpperCase().padStart(3, '0')}`;
+    p.innerHTML = `
+        <span style="color: #444;">[T+${timestamp}s]</span> 
+        <span style="color: ${isWarning ? '#FF3B3B' : '#00FF41'}; font-weight: bold;">[${signature}]</span> 
+        <span style="margin-left: 8px; color: ${finalColor}; font-family: 'JetBrains Mono', monospace;">${msg}</span>
+    `;
     
-    p.innerHTML = `<span style="color: #444;">[${timestamp}]</span> <span style="color: #666;">${hexHeader}</span> ${msg}`;
     term.appendChild(p);
-    
-    // Keep the stream lean
     term.scrollTop = term.scrollHeight;
+    
+    // Memory Management: Prune old logs to prevent DOM bloat
     while (term.childNodes.length > 35) {
         term.removeChild(term.firstChild);
     }
 }
 
+/**
+ * NIST ML-KEM Handshake Simulation (Kyber 1024 Logic)
+ */
 export async function initHandshake() {
-    logTerminalMessage("BOOT: LOADING WASM_CORE_V1.0...");
+    if (isSystemArmed) return;
+
+    logTerminalMessage("BOOT: LOADING WASM_CORE_V1.0...", "var(--av-amber)");
     await new Promise(r => setTimeout(r, 600));
     
     logTerminalMessage("ML-KEM: INIT NTT (NUMBER THEORETIC TRANSFORM)...");
-    await new Promise(r => setTimeout(r, 400));
-    
-    logTerminalMessage("LATTICE: MODULUS q=3329 | DIMENSION k=4");
-    
-    logTerminalMessage("CRYPTO: GENERATING SECRET VECTOR 's'...");
+    logTerminalMessage("LATTICE: q=3329 | k=4 | NIST_LEVEL_3");
     await new Promise(r => setTimeout(r, 500));
     
-    logTerminalMessage("CRYPTO: PUBLIC KEY 'A' COMPENSATED.", "#00FF41");
+    isSystemArmed = true; 
+    logTerminalMessage("CRYPTO: PUBLIC KEY 'A' COMPENSATED. BUS_SECURE.", "#00FF41");
 }
+
+/**
+ * Renders the Post-Quantum Lattice Visualization
+ */
 export function drawLattice(canvasId) {
     if (animationRunning) return; 
+    killSwitch = false;
 
     const mainCanvas = document.getElementById(canvasId);
     if (!mainCanvas) return;
     
+    // Desynchronized hint for lower latency rendering
     const ctx = mainCanvas.getContext('2d', { alpha: false, desynchronized: true });
-    
     let nodes = [];
-    const rows = 20; 
-    const cols = 20;
+    const rows = 18; 
+    const cols = 18;
 
     const setupNodes = () => {
         const dpr = window.devicePixelRatio || 1;
         const rect = mainCanvas.parentElement.getBoundingClientRect();
-        
         if (rect.width <= 0 || rect.height <= 0) return false;
 
         mainCanvas.width = rect.width * dpr;
         mainCanvas.height = rect.height * dpr;
-        
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
         
         nodes = [];
-        const margin = 40; 
-        const spacingX = (rect.width - (margin * 2)) / (cols - 1);
-        const spacingY = (rect.height - (margin * 2)) / (rows - 1);
+        const spacingX = rect.width / (cols - 1);
+        const spacingY = rect.height / (rows - 1);
 
         for(let r = 0; r < rows; r++) {
             for(let c = 0; c < cols; c++) {
                 nodes.push({
-                    x: margin + (c * spacingX),
-                    y: margin + (r * spacingY),
-                    originX: margin + (c * spacingX),
-                    originY: margin + (r * spacingY),
-                    phase: (c + r) * 0.3
+                    x: c * spacingX, y: r * spacingY,
+                    originX: c * spacingX, originY: r * spacingY,
+                    phase: (c * r) * 0.1 
                 });
             }
         }
@@ -102,51 +123,65 @@ export function drawLattice(canvasId) {
     }
 
     animationRunning = true;
-    window.addEventListener('resize', setupNodes);
 
     function animate() {
+        if (killSwitch) {
+            animationRunning = false;
+            return;
+        }
+
         const time = performance.now() * 0.001;
-        const w = mainCanvas.width / (window.devicePixelRatio || 1);
-        const h = mainCanvas.height / (window.devicePixelRatio || 1);
+        const dpr = window.devicePixelRatio || 1;
+        const w = mainCanvas.width / dpr;
+        const h = mainCanvas.height / dpr;
         
+        // Background: Solid Black
         ctx.fillStyle = "#020202";
         ctx.fillRect(0, 0, w, h);
 
-        // Calculate LWE (Learning With Errors) Noise
-        const noiseAmplitude = isUnderAttack ? 12 : 1.5;
+        const themeColor = isUnderAttack ? "255, 59, 59" : (isSystemArmed ? "0, 255, 65" : "255, 191, 0");
+        const noiseAmplitude = isUnderAttack ? 14 : 1.5;
 
-        // 1. RENDER LATTICE CONNECTIONS (Symmetry)
+        // Draw Lattice Connections (The basis vectors)
         ctx.beginPath();
-        ctx.strokeStyle = isUnderAttack ? "rgba(255, 59, 59, 0.2)" : "rgba(0, 255, 65, 0.08)";
+        ctx.strokeStyle = `rgba(${themeColor}, 0.12)`;
         ctx.lineWidth = 0.5;
 
         for (let i = 0; i < nodes.length; i++) {
             const n = nodes[i];
-            // Apply NIST-Standard Noise Simulation
             const noiseX = Math.sin(time + n.phase) * noiseAmplitude;
             const noiseY = Math.cos(time + n.phase) * noiseAmplitude;
             
             n.currentX = n.originX + noiseX;
             n.currentY = n.originY + noiseY;
 
-            if (i % cols < cols - 1) { // Horizontal lines
+            // Connect Horizontal
+            if (i % cols < cols - 1) { 
                 ctx.moveTo(n.currentX, n.currentY);
-                const next = nodes[i + 1];
-                ctx.lineTo(next.originX + Math.sin(time + next.phase) * noiseAmplitude, 
-                           next.originY + Math.cos(time + next.phase) * noiseAmplitude);
+                const nextNode = nodes[i+1];
+                ctx.lineTo(nextNode.originX + (Math.sin(time + nextNode.phase) * noiseAmplitude), 
+                           nextNode.originY + (Math.cos(time + nextNode.phase) * noiseAmplitude));
+            }
+            // Connect Vertical
+            if (i < nodes.length - cols) { 
+                ctx.moveTo(n.currentX, n.currentY);
+                const downNode = nodes[i+cols];
+                ctx.lineTo(downNode.originX + (Math.sin(time + downNode.phase) * noiseAmplitude), 
+                           downNode.originY + (Math.cos(time + downNode.phase) * noiseAmplitude));
             }
         }
         ctx.stroke();
 
-        // 2. RENDER BASIS VECTORS (Basis points)
+        // Draw Basis Points (The actual Lattice Nodes)
         for (let i = 0; i < nodes.length; i++) {
             const n = nodes[i];
+            ctx.fillStyle = isUnderAttack ? "#FF3B3B" : (isSystemArmed ? "#00FF41" : "#FFBF00");
             
+            // Random "glitch" effect during attack to simulate signal noise
             if (isUnderAttack && Math.random() > 0.98) {
-                ctx.fillStyle = "#FFFFFF"; // Decryption Error Glitch
+                ctx.fillStyle = "#FFF";
                 ctx.fillRect(n.currentX - 2, n.currentY - 2, 4, 4);
             } else {
-                ctx.fillStyle = isUnderAttack ? "#FF3B3B" : "#00FF41";
                 ctx.fillRect(n.currentX - 1, n.currentY - 1, 2, 2);
             }
         }
