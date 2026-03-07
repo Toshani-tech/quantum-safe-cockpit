@@ -111,3 +111,14 @@ Note: Successfully synthesized the Security Kernel after resolving a critical OS
 
 P.S: Bypassed Windows pathing conflicts using absolute directory targeting. (took an hr to find this cause). 
 
+Day 13: March 6 2026 
+
+Task: Telemetry Synchronization & RTT Latency Calibration.
+
+Tech: Web Workers, DOM API, JavaScript (ES6+), ARINC-429 Logic.
+
+Note: Finalized V10.4 of the FCC Master Engine. Successfully resolved a "Silent Zero" latency bug(took close to an hour to resolve) by implementing a Round-Trip Time (RTT) reflection protocol; the Main Thread now pings the Physics Worker with a performance.now() timestamp, which is mirrored back in the Telemetry packet to calculate real-time bus lag. Synchronized the lattice-engine.js handshake with the mission ignition sequence. Hardened the Flight Data Recorder (FDR) export logic to ensure millisecond-accurate latency logging in the CSV black box. 
+
+P.S: Fixed a critical UI "ghost update" caused by a DOM ID mismatch between the JS controller (latency-value) and the HTML markup (handshake-ms). Also bypassed Web Worker scope shadowing by elevating the latestSentTime state to the global worker context. (Took 15 min to resolve)
+
+
