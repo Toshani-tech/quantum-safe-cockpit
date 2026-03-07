@@ -1,6 +1,6 @@
 /**
- * style.css - V16.4 INDUSTRIAL AVIONICS SPEC [PQC-HARDENED]
- * Strategy: Grid-Force Columns, Tabular Numerics, & Phosphor Glow.
+ * style.css - V16.7 [HARDENED_TACTICAL_SPEC]
+ * Aesthetic: High-Contrast MFD / Zero-Glow Industrial.
  */
 
 :root {
@@ -10,7 +10,6 @@
     --av-red: #FF3B3B; 
     --industrial-border: #1a1a1a; 
     --font-main: 'Share Tech Mono', monospace;
-    --glass: rgba(10, 10, 10, 0.95);
 }
 
 * { 
@@ -37,9 +36,9 @@ html, body {
     gap: 10px;
 }
 
-/* 2. STATUS BAR - Hardened Header */
+/* 2. STATUS BAR - Flat & Functional */
 #status-bar {
-    flex: 0 0 40px;
+    flex: 0 0 35px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -47,39 +46,25 @@ html, body {
     background: #0a0a0a;
     border: 1px solid var(--industrial-border);
     font-size: 11px;
-    text-transform: uppercase;
 }
 
 .status-matrix { display: flex; gap: 20px; align-items: center; }
-
-.monitor-unit {
-    display: flex;
-    align-items: center;
-    color: #888;
-}
-
+.monitor-unit { display: flex; align-items: center; color: #555; } /* Dimmed for standby */
 .status-light {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #1a1a1a; 
-    display: inline-block;
+    width: 7px; height: 7px;
+    background: #1a1a1a; display: inline-block;
     margin-right: 8px;
-    box-shadow: inset 0 0 3px #000;
+    border: 1px solid #333;
 }
 
-#hb-ui { background: var(--av-green); box-shadow: 0 0 8px var(--av-green); }
-#hb-worker { transition: background 0.3s ease; }
+#hb-ui { background: var(--av-green); }
+#hb-worker { transition: none; }
+.latency-monitor { color: var(--av-amber); font-variant-numeric: tabular-nums; }
 
-.latency-monitor {
-    color: var(--av-amber);
-    font-variant-numeric: tabular-nums;
-}
-
-/* 3. THE GRID - 3-Column Absolute Lock */
+/* 3. THE GRID */
 .pfd-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr !important; 
+    grid-template-columns: repeat(3, 1fr) !important; 
     gap: 10px;
     flex: 1; 
     min-height: 0; 
@@ -89,185 +74,104 @@ html, body {
 .panel {
     display: flex !important;
     flex-direction: column !important;
-    background: #050505;
+    background: #000;
     border: 1px solid var(--industrial-border);
     min-height: 0;
-    overflow: hidden;
 }
 
 .panel-header {
-    flex: 0 0 32px; 
-    line-height: 32px;
-    padding: 0 12px;
+    flex: 0 0 28px; 
+    line-height: 28px;
+    padding: 0 10px;
     font-size: 10px;
-    background: #0d0d0d;
+    background: #111;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     border-bottom: 1px solid var(--industrial-border);
 }
 
-.panel:nth-child(3) .panel-header { color: var(--av-amber); }
-
 /* 5. CANVAS HANDLING */
 .canvas-wrapper {
-    flex: 1;
-    position: relative;
-    background: #000;
-    min-height: 0;
+    flex: 1; position: relative; background: #000;
+    min-height: 0; width: 100%; height: 100%;
 }
+canvas { object-fit: contain; width: 100%; height: 100%; display: block; }
 
-canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-}
-
-/* 6. TELEMETRY & TERMINAL - Phosphor Glow & Tabular Alignment */
+/* 6. TELEMETRY & TERMINAL - High contrast, no shadows */
 #terminal-box {
-    flex: 1 1 auto !important; 
-    padding: 12px;
-    font-size: clamp(9px, 1.3vh, 12px);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; 
-    color: var(--av-amber);
-    background: #010101;
-    overflow: hidden;
-    font-variant-numeric: tabular-nums;
+    flex: 1; padding: 10px; font-size: 11px;
+    display: flex; flex-direction: column; justify-content: flex-end; 
+    color: var(--av-amber); background: #000; overflow: hidden;
 }
 
 #terminal-box div {
-    border-bottom: 1px solid rgba(255, 191, 0, 0.05);
-    padding: 2px 0;
-    white-space: nowrap;
-    text-shadow: 0 0 5px rgba(255, 191, 0, 0.3);
+    border-bottom: 1px solid #111;
+    padding: 2px 0; white-space: nowrap;
 }
 
 .diagnostic-cluster {
-    flex: 0 0 100px; 
-    background: #080808;
-    border-top: 2px solid var(--industrial-border);
-    padding: 15px;
+    flex: 0 0 auto; background: #050505;
+    border-top: 1px solid var(--industrial-border); padding: 12px;
 }
 
 #mission-timer {
-    font-size: clamp(24px, 4vh, 32px);
-    color: #fff;
-    font-weight: bold;
-    font-variant-numeric: tabular-nums;
+    font-size: 28px; color: #fff; font-weight: normal;
+    font-variant-numeric: tabular-nums; margin-bottom: 5px;
 }
 
-/* 7. FOOTER BUTTON */
-footer { flex: 0 0 60px; margin-top: 5px; }
+/* 7. TACTICAL FOOTER BUTTON - INVERSION LOGIC */
+footer { flex: 0 0 60px; }
 
 #init-btn {
     width: 100%; height: 100%;
     background: transparent;
     border: 1px solid var(--av-green);
     color: var(--av-green);
-    letter-spacing: 12px;
+    letter-spacing: 4px;
     font-family: var(--font-main);
     text-transform: uppercase;
-    cursor: pointer;
-    transition: 0.3s;
+    cursor: crosshair;
+    transition: none; /* Instant feedback */
 }
 
-#init-btn:hover { background: rgba(0, 255, 65, 0.1); }
+/* Inverted State: Active */
+#init-btn.active-state {
+    background: var(--av-green);
+    color: #000;
+    font-weight: 900;
+}
 
-/* 8. OVERLAYS & MODALS */
+/* Jarring State: Critical */
+#init-btn.critical-state {
+    background: var(--av-red);
+    color: #000;
+    border-color: var(--av-red);
+    animation: tactical-strobe 0.1s infinite;
+}
+
+#init-btn:hover:not(.active-state) {
+    background: rgba(0, 255, 65, 0.1);
+}
+
+/* 8. OVERLAYS & MODALS - Flat & Serious */
 .overlay-layer {
-    display: none; 
-    position: fixed; 
+    display: none; position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.92); 
-    z-index: 99999; 
-    justify-content: center; 
-    align-items: center; 
-    backdrop-filter: blur(12px);
+    background: rgba(0,0,0,0.96); z-index: 99999; 
+    justify-content: center; align-items: center;
 }
 
-.modal-content {
-    border: 2px solid var(--av-red); 
-    background: #0a0000; 
-    padding: 40px; width: 500px; 
-    text-align: center; 
-    box-shadow: 0 0 60px rgba(255, 59, 59, 0.2);
+/* 9. ANIMATIONS - Functional Only */
+@keyframes tactical-strobe {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
 }
 
-/* 9. MISSION REPORT (The Black Box Recovery UI) */
-#mission-report {
-    display: none; /* Controlled by main.js handleMissionComplete */
-    background: var(--glass);
-}
-
-.report-container {
-    width: 600px;
-    background: #050505;
-    border: 1px solid var(--av-green);
-    padding: 40px;
-    box-shadow: 0 0 50px rgba(0, 255, 65, 0.1);
-    position: relative;
-    text-align: left;
-}
-
-.report-container::before {
-    content: "CRASH_SURVIVABLE_MEMORY_UNIT";
-    position: absolute;
-    top: -10px; left: 20px;
-    background: #000;
-    padding: 0 10px;
-    font-size: 10px;
-    color: var(--av-green);
-    letter-spacing: 2px;
-}
-
-.data-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin: 30px 0;
-}
-
-.data-cell {
-    border: 1px solid var(--industrial-border);
-    padding: 15px;
-    background: #080808;
-}
-
-.data-label { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 5px; }
-.data-value { font-size: 22px; color: var(--av-green); }
-
-.report-footer { display: flex; gap: 15px; }
-.action-btn {
-    flex: 1;
-    padding: 15px;
-    background: transparent;
-    border: 1px solid var(--av-green);
-    color: var(--av-green);
-    font-family: var(--font-main);
-    text-transform: uppercase;
-    cursor: pointer;
-}
-.action-btn:hover { background: var(--av-green); color: #000; }
-
-/* Master Caution Animation */
-.master-caution-pulse {
-    animation: master-caution-flash 0.5s infinite alternate;
-}
-
-@keyframes master-caution-flash {
-    0% { background: rgba(10, 0, 0, 0.95); }
-    100% { background: rgba(50, 0, 0, 0.98); }
-}
-
-/* 10. VFX LAYER (Scanlines) */
+/* 10. VFX LAYER - CRT Scanlines */
 #vfx-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-    background-size: 100% 4px;
-    z-index: 9998; 
-    pointer-events: none; 
-    opacity: 0.15;
+    background-size: 100% 2px;
+    z-index: 9998; pointer-events: none; opacity: 0.1;
 }
