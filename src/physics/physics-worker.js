@@ -1,6 +1,7 @@
 /**
- * physics-worker.js - V10.1 [FCC MASTER ENGINE]
- * Fix: Explicitly capturing and reflecting 'sentTime' to prevent 0.0 latency.
+ * physics-worker.js - V10.3 [FLIGHT_PRECISION_STABLE]
+ * Fix: Synchronized Aerodynamics V8.1 with PFD rendering.
+ * Feature: Unit-locked VVI and high-DPR scaling.
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
@@ -11,7 +12,7 @@ let missionStartTime = 0;
 let canvasW = 0;
 let canvasH = 0;
 let dpr = 1; 
-let latestSentTime = 0; // The state that holds the current round-trip stamp
+let latestSentTime = 0; 
 
 let state = {
     altitude: 0,
@@ -27,10 +28,7 @@ let state = {
 };
 
 self.onmessage = function(e) {
-    // CAPTURE THE PING: Check for 'sentTime' in any incoming message
-    if (e.data.sentTime) {
-        latestSentTime = e.data.sentTime;
-    }
+    if (e.data.sentTime) latestSentTime = e.data.sentTime;
 
     if (e.data.type === 'INIT') {
         const canvas = e.data.canvas;
@@ -82,6 +80,7 @@ function mainLoop(currentTime) {
         return; 
     }
 
+    // Standardized time step for physics stability
     const dt = Math.max(0.001, Math.min((currentTime - lastTime) / 1000, 0.033)); 
     lastTime = currentTime;
     const elapsed = (currentTime - missionStartTime) / 1000;
@@ -94,10 +93,17 @@ function mainLoop(currentTime) {
         state.missionPhase = result.missionPhase;
         state.vviStatus = result.vviStatus;
         state.vviDirection = result.vviDirection;
-        state.verticalVelocity = (state.verticalVelocity * 0.85) + (result.verticalVelocity * 0.15); 
+        
+        /**
+         * VVI UNIT SYNC:
+         * We use the V8.1 stabilized FPM for display and telemetry.
+         * The 0.8 interpolation remains to prevent "shimmer" on the PFD tape.
+         */
+        state.verticalVelocity = (state.verticalVelocity * 0.8) + (result.verticalVelocity * 0.2); 
     }
 
-    if (state.missionPhase === 'MISSION_COMPLETE' || elapsed >= 90.0) {
+    // ENFORCE 90S MISSION CAP
+    if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
         terminateMission();
         return; 
     }
@@ -105,7 +111,6 @@ function mainLoop(currentTime) {
     try {
         if (canvasCtx) drawPFD();
         
-        // MIRROR THE TIMESTAMP: We send 'latestSentTime' back as 'sentTime'
         self.postMessage({ 
             type: 'TELEMETRY', 
             altitude: state.altitude,
@@ -128,20 +133,28 @@ function terminateMission() {
     state.isRunning = false;
     state.isTerminated = true; 
     state.missionPhase = 'MISSION_COMPLETE';
+    state.altitude = 0;
+    state.airspeed = 0;
+    state.verticalVelocity = 0;
     
     if (canvasCtx) drawPFD(); 
     self.postMessage({ type: 'BUS_IDLE' });
 }
 
-// ... Keep your drawPFD, drawVerticalTape, drawVVI, drawStaticHorizon functions the same ...
+// RENDER ENGINE
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
     const h = canvasH / dpr; 
+    
     ctx.fillStyle = "#020202"; 
     ctx.fillRect(0, 0, w, h);
+
+    // DYNAMIC PPU CALIBRATION
+    // Adjusting altPPU slightly higher to make altitude changes more visible
     const altPPU = h / 600; 
-    const spdPPU = h / 120;  
+    const spdPPU = h / 200;  
+
     drawStaticHorizon(ctx, w, h);
     drawVerticalTape(ctx, state.airspeed, 5, 65, "SPD", 20, "#00FF41", spdPPU);
     drawVerticalTape(ctx, state.altitude, w - 70, 70, "ALT", 100, "#00FF41", altPPU);
@@ -151,43 +164,50 @@ function drawPFD() {
 function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     const h = canvasH / dpr;
     const centerY = h / 2;
+    
     ctx.save();
     ctx.beginPath();
     ctx.rect(x, 10, width, h - 20); 
     ctx.clip(); 
-    ctx.fillStyle = "rgba(10, 10, 10, 0.9)";
+    
+    ctx.fillStyle = "rgba(10, 10, 10, 0.95)";
     ctx.fillRect(x, 0, width, h);
+    
     ctx.strokeStyle = themeColor;
     ctx.fillStyle = themeColor;
     ctx.font = "11px 'Share Tech Mono'";
+
     const range = (h / 2) / ppu;
     const firstTick = Math.floor((value - range) / step) * step;
     const lastTick = Math.ceil((value + range) / step) * step;
+
     for (let i = firstTick; i <= lastTick; i += step) {
         if (i < 0 && label === "ALT") continue;
         const y = centerY - (i - value) * ppu;
         ctx.beginPath();
-        ctx.globalAlpha = Math.max(0, 1.0 - (Math.abs(y - centerY) / (h/2))); 
+        ctx.globalAlpha = Math.max(0, 1.1 - (Math.abs(y - centerY) / (h / 2))); 
+        
         if (label === "SPD") {
             ctx.moveTo(x + width, y);
-            ctx.lineTo(x + width - 10, y);
+            ctx.lineTo(x + width - 8, y);
             ctx.textAlign = "right";
-            ctx.fillText(i.toString(), x + width - 15, y + 4);
+            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + width - 12, y + 4);
         } else {
             ctx.moveTo(x, y);
-            ctx.lineTo(x + 10, y); 
+            ctx.lineTo(x + 8, y); 
             ctx.textAlign = "left";
-            ctx.fillText(i.toString(), x + 15, y + 4);
+            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + 12, y + 4);
         }
         ctx.stroke();
     }
     ctx.restore();
+
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1;
     ctx.globalAlpha = 1;
     ctx.fillRect(x - 2, centerY - 12, width + 4, 24);
     ctx.strokeRect(x - 2, centerY - 12, width + 4, 24);
+    
     ctx.fillStyle = "#fff";
     ctx.font = "bold 13px 'Share Tech Mono'";
     ctx.textAlign = "center";
@@ -200,6 +220,7 @@ function drawVVI(ctx, w, h, vvi, status, direction) {
     ctx.fillRect(w/2 - 60, h - 45, 120, 30);
     ctx.strokeStyle = color;
     ctx.strokeRect(w/2 - 60, h - 45, 120, 30);
+    
     ctx.fillStyle = color;
     ctx.font = "12px 'Share Tech Mono'";
     ctx.textAlign = "center";
@@ -210,17 +231,14 @@ function drawVVI(ctx, w, h, vvi, status, direction) {
 }
 
 function drawStaticHorizon(ctx, w, h) {
-    ctx.strokeStyle = "#1a1a1a";
-    ctx.lineWidth = 1;
+    const midX = w / 2;
+    const midY = h / 2;
+    ctx.strokeStyle = "#222";
     ctx.strokeRect(75, 10, w - 150, h - 20);
     ctx.strokeStyle = "#00FF41"; 
     ctx.lineWidth = 2;
-    const midX = w / 2;
-    const midY = h / 2;
     ctx.beginPath();
-    ctx.moveTo(midX - 40, midY); ctx.lineTo(midX - 15, midY);
-    ctx.lineTo(midX - 15, midY + 8);
-    ctx.moveTo(midX + 40, midY); ctx.lineTo(midX + 15, midY);
-    ctx.lineTo(midX + 15, midY + 8);
+    ctx.moveTo(midX - 35, midY); ctx.lineTo(midX - 10, midY); ctx.lineTo(midX - 10, midY + 5);
+    ctx.moveTo(midX + 35, midY); ctx.lineTo(midX + 10, midY); ctx.lineTo(midX + 10, midY + 5);
     ctx.stroke();
 }
