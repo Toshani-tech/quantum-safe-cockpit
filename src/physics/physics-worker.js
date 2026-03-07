@@ -1,7 +1,6 @@
 /**
- * physics-worker.js - V6.0 FCC HARDENED ENGINE
- * Architecture: OffscreenCanvas Logic with High-DPI Scaling.
- * Added: State-Pause logic for Pilot-in-the-Loop intervention.
+ * physics-worker.js - V10.1 [FCC MASTER ENGINE]
+ * Fix: Explicitly capturing and reflecting 'sentTime' to prevent 0.0 latency.
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
@@ -12,6 +11,7 @@ let missionStartTime = 0;
 let canvasW = 0;
 let canvasH = 0;
 let dpr = 1; 
+let latestSentTime = 0; // The state that holds the current round-trip stamp
 
 let state = {
     altitude: 0,
@@ -19,15 +19,22 @@ let state = {
     verticalVelocity: 0,
     missionPhase: 'PRE_FLIGHT',
     isRunning: false,
-    isPaused: false, // Added for intervention handling
-    pausedAt: 0      // Tracks time spent in pause to keep mission timer accurate
+    isPaused: false,
+    isTerminated: false,
+    pausedAt: 0,
+    vviStatus: 'NORMAL',
+    vviDirection: 'LEVEL'
 };
 
 self.onmessage = function(e) {
+    // CAPTURE THE PING: Check for 'sentTime' in any incoming message
+    if (e.data.sentTime) {
+        latestSentTime = e.data.sentTime;
+    }
+
     if (e.data.type === 'INIT') {
         const canvas = e.data.canvas;
         dpr = e.data.dpr || 1; 
-        
         canvasW = canvas.width;
         canvasH = canvas.height;
         
@@ -36,188 +43,184 @@ self.onmessage = function(e) {
             desynchronized: true 
         });
         
+        canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         canvasCtx.scale(dpr, dpr);
-        console.log(`FCC_THREAD: DPI_SCALED_INIT [${canvasW}x${canvasH} @ ${dpr}x]`);
     }
     
     if (e.data.type === 'START_FLIGHT') {
-        if (state.isRunning) return; 
+        if (state.isRunning || state.isTerminated) return; 
         state.isRunning = true;
         state.isPaused = false;
+        
         const now = performance.now();
         lastTime = now;
         missionStartTime = now;
+        
         requestAnimationFrame(mainLoop);
     }
 
-    // PILOT INTERVENTION: STOP THE ENGINE
     if (e.data.type === 'PAUSE_FLIGHT') {
         state.isPaused = true;
         state.pausedAt = performance.now();
-        console.log("FCC_THREAD: SYSTEM_HALT_RECEIVED");
     }
 
-    // PILOT INTERVENTION: RESUME THE ENGINE
     if (e.data.type === 'RESUME_FLIGHT') {
-        if (!state.isPaused) return;
-        
-        // Offset the mission start time by the duration of the pause
+        if (!state.isPaused || state.isTerminated) return;
         const pauseDuration = performance.now() - state.pausedAt;
         missionStartTime += pauseDuration;
-        
         state.isPaused = false;
-        lastTime = performance.now(); // Reset lastTime to prevent huge "dt" jump
+        lastTime = performance.now(); 
         requestAnimationFrame(mainLoop);
-        console.log("FCC_THREAD: RESUMING_OPERATIONS");
     }
 };
 
 function mainLoop(currentTime) {
-    // If paused or stopped, kill the loop
-    if (!state.isRunning || state.isPaused) return;
+    if (state.isTerminated) return;
+
+    if (state.isPaused) {
+        if (canvasCtx) drawPFD();
+        return; 
+    }
 
     const dt = Math.max(0.001, Math.min((currentTime - lastTime) / 1000, 0.033)); 
     lastTime = currentTime;
     const elapsed = (currentTime - missionStartTime) / 1000;
 
-    const physicsResult = calculateFlightDynamics(state, dt, elapsed);
+    const result = calculateFlightDynamics(state, dt, elapsed);
     
-    if (physicsResult) {
-        state.altitude = physicsResult.altitude; 
-        state.airspeed = physicsResult.airspeed;
-        state.verticalVelocity = physicsResult.verticalVelocity; 
-        state.missionPhase = physicsResult.actualPhase;
+    if (result) {
+        state.altitude = result.altitude; 
+        state.airspeed = result.airspeed;
+        state.missionPhase = result.missionPhase;
+        state.vviStatus = result.vviStatus;
+        state.vviDirection = result.vviDirection;
+        state.verticalVelocity = (state.verticalVelocity * 0.85) + (result.verticalVelocity * 0.15); 
     }
 
-    if (canvasCtx) drawPFD();
+    if (state.missionPhase === 'MISSION_COMPLETE' || elapsed >= 90.0) {
+        terminateMission();
+        return; 
+    }
 
-    // Broadcast ARINC-429 Telemetry
-    const syncElapsed = Math.min(90.0, elapsed).toFixed(2);
-    self.postMessage({ 
-        type: 'TELEMETRY', 
-        altitude: state.altitude,
-        airspeed: state.airspeed,
-        verticalVelocity: state.verticalVelocity,
-        missionPhase: state.missionPhase,
-        elapsed: syncElapsed,
-        density: physicsResult.density 
-    });
-
-    if (elapsed >= 90.0) {
-        state.isRunning = false;
-        drawPFD(); 
-        self.postMessage({ type: 'BUS_IDLE' });
-        return;
+    try {
+        if (canvasCtx) drawPFD();
+        
+        // MIRROR THE TIMESTAMP: We send 'latestSentTime' back as 'sentTime'
+        self.postMessage({ 
+            type: 'TELEMETRY', 
+            altitude: state.altitude,
+            airspeed: state.airspeed,
+            verticalVelocity: state.verticalVelocity,
+            missionPhase: state.missionPhase,
+            vviStatus: state.vviStatus,
+            vviDirection: state.vviDirection,
+            elapsed: elapsed.toFixed(2),
+            sentTime: latestSentTime 
+        });
+    } catch (e) {
+        console.error("PFD_RENDER_FAULT", e);
     }
 
     requestAnimationFrame(mainLoop);
 }
 
+function terminateMission() {
+    state.isRunning = false;
+    state.isTerminated = true; 
+    state.missionPhase = 'MISSION_COMPLETE';
+    
+    if (canvasCtx) drawPFD(); 
+    self.postMessage({ type: 'BUS_IDLE' });
+}
+
+// ... Keep your drawPFD, drawVerticalTape, drawVVI, drawStaticHorizon functions the same ...
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
     const h = canvasH / dpr; 
-
-    // 1. SYSTEM CLEAR
     ctx.fillStyle = "#020202"; 
     ctx.fillRect(0, 0, w, h);
-
-    const altPPU = h / 500; 
-    const spdPPU = h / 80;  
-
-    // 2. HORIZON
+    const altPPU = h / 600; 
+    const spdPPU = h / 120;  
     drawStaticHorizon(ctx, w, h);
-
-    // 3. TAPES
-    drawVerticalTape(ctx, state.airspeed, 0, 75, "SPD", 20, "#00FF41", spdPPU);
-    drawVerticalTape(ctx, state.altitude, w - 75, 75, "ALT", 100, "#00FF41", altPPU);
-
-    // 4. VVI
-    drawVVI(ctx, w, h, state.verticalVelocity);
+    drawVerticalTape(ctx, state.airspeed, 5, 65, "SPD", 20, "#00FF41", spdPPU);
+    drawVerticalTape(ctx, state.altitude, w - 70, 70, "ALT", 100, "#00FF41", altPPU);
+    drawVVI(ctx, w, h, state.verticalVelocity, state.vviStatus, state.vviDirection);
 }
 
 function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     const h = canvasH / dpr;
     const centerY = h / 2;
-    
     ctx.save();
     ctx.beginPath();
-    ctx.rect(x, 0, width, h); 
+    ctx.rect(x, 10, width, h - 20); 
     ctx.clip(); 
-
-    let grad = ctx.createLinearGradient(x, 0, x + width, 0);
-    grad.addColorStop(0, "#050505");
-    grad.addColorStop(1, "#0a0a0a");
-    ctx.fillStyle = grad;
+    ctx.fillStyle = "rgba(10, 10, 10, 0.9)";
     ctx.fillRect(x, 0, width, h);
-    
     ctx.strokeStyle = themeColor;
     ctx.fillStyle = themeColor;
-    ctx.lineWidth = 1;
     ctx.font = "11px 'Share Tech Mono'";
-
     const range = (h / 2) / ppu;
     const firstTick = Math.floor((value - range) / step) * step;
     const lastTick = Math.ceil((value + range) / step) * step;
-
     for (let i = firstTick; i <= lastTick; i += step) {
         if (i < 0 && label === "ALT") continue;
         const y = centerY - (i - value) * ppu;
-        
         ctx.beginPath();
+        ctx.globalAlpha = Math.max(0, 1.0 - (Math.abs(y - centerY) / (h/2))); 
         if (label === "SPD") {
             ctx.moveTo(x + width, y);
             ctx.lineTo(x + width - 10, y);
-            if (i % (step) === 0) {
-                ctx.textAlign = "right";
-                ctx.fillText(i.toString(), x + width - 15, y + 4);
-            }
+            ctx.textAlign = "right";
+            ctx.fillText(i.toString(), x + width - 15, y + 4);
         } else {
             ctx.moveTo(x, y);
             ctx.lineTo(x + 10, y); 
-            if (i % step === 0) {
-                ctx.textAlign = "left";
-                ctx.fillText(i.toString(), x + 15, y + 4);
-            }
+            ctx.textAlign = "left";
+            ctx.fillText(i.toString(), x + 15, y + 4);
         }
         ctx.stroke();
     }
     ctx.restore();
-
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
-    ctx.fillRect(x - 5, centerY - 15, width + 10, 30);
-    ctx.strokeRect(x - 5, centerY - 15, width + 10, 30);
-    
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+    ctx.fillRect(x - 2, centerY - 12, width + 4, 24);
+    ctx.strokeRect(x - 2, centerY - 12, width + 4, 24);
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 16px 'Share Tech Mono'";
+    ctx.font = "bold 13px 'Share Tech Mono'";
     ctx.textAlign = "center";
-    ctx.fillText(Math.round(value), x + width / 2, centerY + 6);
+    ctx.fillText(Math.round(value).toString(), x + width / 2, centerY + 5);
 }
 
-function drawVVI(ctx, w, h, fpm) {
-    const isClimbing = fpm > 0;
-    ctx.fillStyle = Math.abs(fpm) > 4000 ? "#FF3B3B" : "#00FF41";
+function drawVVI(ctx, w, h, vvi, status, direction) {
+    const color = (status === 'DANGER') ? "#FF3B3B" : "#00FF41";
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(w/2 - 60, h - 45, 120, 30);
+    ctx.strokeStyle = color;
+    ctx.strokeRect(w/2 - 60, h - 45, 120, 30);
+    ctx.fillStyle = color;
     ctx.font = "12px 'Share Tech Mono'";
     ctx.textAlign = "center";
-    
-    const indicator = isClimbing ? "▲" : "▼";
-    ctx.fillText(`${indicator} ${Math.abs(Math.round(fpm))} FPM`, w / 2, h - 20);
+    let arrow = "―";
+    if (direction === 'UP') arrow = "▲";
+    if (direction === 'DOWN') arrow = "▼";
+    ctx.fillText(`${arrow} VVI: ${Math.abs(Math.round(vvi))} FT/M`, w / 2, h - 25);
 }
 
 function drawStaticHorizon(ctx, w, h) {
-    ctx.strokeStyle = "#00FF41";
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(75, 10, w - 150, h - 20);
+    ctx.strokeStyle = "#00FF41"; 
     ctx.lineWidth = 2;
     const midX = w / 2;
     const midY = h / 2;
-
     ctx.beginPath();
-    ctx.moveTo(midX - 40, midY);
-    ctx.lineTo(midX - 15, midY);
-    ctx.lineTo(midX - 15, midY + 10);
-    ctx.moveTo(midX + 40, midY);
-    ctx.lineTo(midX + 15, midY);
-    ctx.lineTo(midX + 15, midY + 10);
+    ctx.moveTo(midX - 40, midY); ctx.lineTo(midX - 15, midY);
+    ctx.lineTo(midX - 15, midY + 8);
+    ctx.moveTo(midX + 40, midY); ctx.lineTo(midX + 15, midY);
+    ctx.lineTo(midX + 15, midY + 8);
     ctx.stroke();
 }
