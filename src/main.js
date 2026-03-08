@@ -1,6 +1,5 @@
 /**
- * main.js - V10.6 [TACTICAL_SYNC]
- * Feature: Military Button Lifecycle & Critical State Monitoring.
+ * main.js - V11.2 
  */
 import init, { encrypt_telemetry } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
@@ -25,31 +24,85 @@ const state = {
     securityEventLocked: false 
 };
 
-// 0. INITIALIZE WASM KERNEL
+function updateHeaderStatus(status) {
+    const busLight = document.getElementById('hb-ui');
+    const busText = document.getElementById('bus-status-text');
+    const fccLight = document.getElementById('fcc-status-light');
+    const fccText = document.getElementById('fcc-status-text');
+    const modeTag = document.getElementById('security-tag');
+
+    if (status === 'ACTIVE') {
+        const activeGreen = "var(--av-green)";
+        const activeGlow = "0 0 10px var(--av-green)";
+
+        [busLight, fccLight].forEach(el => {
+            if (el) {
+                el.style.background = activeGreen;
+                el.style.boxShadow = activeGlow;
+            }
+        });
+
+        [busText, fccText, modeTag].forEach(el => {
+            if (el) {
+                el.style.color = activeGreen;
+                if (el === modeTag) el.textContent = "MODE: ML-KEM-1024 [SECURE]";
+                else el.textContent = el.textContent.replace("STANDBY", "ACTIVE").replace("IDLE", "ACTIVE");
+            }
+        });
+    } else {
+        const standbyAmber = "var(--av-amber)";
+        const standbyGlow = "0 0 4px var(--av-amber)";
+
+        if (busLight) {
+            busLight.style.background = standbyAmber;
+            busLight.style.boxShadow = standbyGlow;
+        }
+        if (fccLight) {
+            fccLight.style.background = standbyAmber;
+            fccLight.style.boxShadow = standbyGlow;
+        }
+
+        if (busText) {
+            busText.textContent = "BUS_MAIN: STANDBY";
+            busText.style.color = standbyAmber;
+        }
+        if (fccText) {
+            fccText.textContent = "FCC_PROC: STANDBY";
+            fccText.style.color = standbyAmber;
+        }
+        if (modeTag) {
+            modeTag.textContent = "MODE: ML-KEM [WAITING]";
+            modeTag.style.color = standbyAmber;
+        }
+    }
+}
+
+// Kernel Handshake
 async function initializeAvionics() {
     try {
         await init(); 
-        if (typeof encrypt_telemetry === 'function') {
-            state.isKernelReady = true;
-            logTerminalMessage(">> SECURITY KERNEL LINK ESTABLISHED", "#00FF41");
-            const startBtn = document.getElementById('init-btn');
-            if (startBtn) {
-                startBtn.classList.add('ready-state');
-                startBtn.textContent = "SYSTEM_READY: ENGAGE MISSION BUS";
-            }
+        state.isKernelReady = true;
+        logTerminalMessage("SECURITY KERNEL LINK ESTABLISHED [NIST_L5]", "#00FF41", "0xBOOT");
+        
+        const startBtn = document.getElementById('init-btn');
+        if (startBtn) {
+            startBtn.classList.add('ready-state');
+            startBtn.textContent = "SYSTEM_READY: ENGAGE MISSION BUS";
         }
+        updateHeaderStatus('STANDBY');
     } catch (error) {
-        logTerminalMessage(">> CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B");
+        logTerminalMessage("CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B", "0xFAIL");
     }
 }
 initializeAvionics();
 
-// 1. UI SETUP
+//  UI Scaling Logic
 function lockCanvasResolution() {
     const canvases = document.querySelectorAll('canvas');
     const dpr = window.devicePixelRatio || 1;
     canvases.forEach(canvas => {
         if (canvas.id === 'flight-display' && state.canvasTransferred) return;
+        
         const rect = canvas.parentElement.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) {
             canvas.width = Math.floor(rect.width * dpr);
@@ -61,22 +114,28 @@ window.addEventListener('resize', lockCanvasResolution);
 
 document.addEventListener('DOMContentLoaded', () => {
     lockCanvasResolution();
-    try { drawLattice('lattice-canvas'); } catch (e) {}
+    try { drawLattice('lattice-canvas'); } catch (e) { console.log("Lattice sync pending..."); }
     
     const startBtn = document.getElementById('init-btn');
     if (startBtn) {
         startBtn.onclick = () => {
             if (!state.isBooted && state.isKernelReady) {
                 state.isBooted = true;
-                // Immediate tactical feedback on click
-                startBtn.textContent = "BUS_INIT >> [WAITING]";
+                
+                
+                startBtn.textContent = "BUS_INIT >> [ACTIVE]";
+                startBtn.classList.remove('ready-state');
+                startBtn.classList.add('active-state');
+                
+                updateHeaderStatus('ACTIVE');
+                
                 runPOST(); 
             }
         };
     }
 });
 
-// 2. POWER-ON SELF-TEST & WORKER START
+// 2. Worker Lifecycle Management 
 async function runPOST() {
     const canvas = document.getElementById('flight-display');
     const dpr = window.devicePixelRatio || 1;
@@ -87,6 +146,8 @@ async function runPOST() {
 
         if (!state.canvasTransferred) {
             const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width === 0) throw new Error("CANVAS_WIDTH_ZERO");
+
             canvas.width = Math.floor(rect.width * dpr);
             canvas.height = Math.floor(rect.height * dpr);
 
@@ -100,7 +161,18 @@ async function runPOST() {
         }
 
         state.physicsWorker.onmessage = (e) => {
+            if (e.data.type === 'KERNEL_READY') {
+                logTerminalMessage("WORKER_BUS: NIST_L5_MODULE_LOADED", "#00FF41", "0xBUS");
+                state.physicsWorker.postMessage({ 
+                    type: 'START_FLIGHT',
+                    sentTime: performance.now()
+                });
+                state.isMissionActive = true;
+                startRenderLoop();
+            }
+
             if (e.data.type === 'BUS_IDLE') handleMissionComplete();
+            
             if (e.data.type === 'TELEMETRY') {
                 if (e.data.sentTime && e.data.sentTime > 0) {
                     const rtt = performance.now() - e.data.sentTime;
@@ -110,21 +182,12 @@ async function runPOST() {
             }
         };
 
-        state.isMissionActive = true;
-        startRenderLoop();
-        
-        state.physicsWorker.postMessage({ 
-            type: 'START_FLIGHT',
-            sentTime: performance.now()
-        });
-        
         logTerminalMessage("IGNITION: DATA_BUS_NOMINAL", "#FFF", "0xPOST_OK");
     } catch (err) {
-        logTerminalMessage("CRITICAL: BUS_INIT_FAILURE", "#FF3B3B");
+        logTerminalMessage(`CRITICAL: ${err.message}`, "#FF3B3B", "0xERR");
     }
 }
 
-// 3. MAIN RENDER LOOP & TACTICAL HUD UPDATES
 function startRenderLoop() {
     if (state.isLoopRunning) return;
     state.isLoopRunning = true;
@@ -142,10 +205,8 @@ function startRenderLoop() {
             const safeAlt = Number(d.altitude);
             const safeSpd = Number(d.airspeed);
 
-            // TACTICAL BUTTON LOGIC: Update Button based on flight data
             updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
 
-            // Telemetry Buffering
             const tick = Math.floor(safeT * 10);
             if (!state.fdrBuffer[tick] && !isNaN(safeT)) {
                 state.fdrBuffer[tick] = {
@@ -158,7 +219,6 @@ function startRenderLoop() {
             if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
             if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
 
-            // HUD Refresh
             const timerEl = document.getElementById('mission-timer');
             if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
             
@@ -178,20 +238,18 @@ function startRenderLoop() {
     requestAnimationFrame(loop);
 }
 
-// 4. TACTICAL HUD UTILS
 function updateTacticalButton(alt, spd, phase) {
     const btn = document.getElementById('init-btn');
     if (!btn) return;
 
-    // Critical/Stall Monitoring
-    if (alt > 100 && spd < 40) {
+    if (alt > 100 && spd < 50) {
         btn.innerText = "WARN: LOW_SPEED / STALL";
         btn.className = "critical-state";
     } 
-    // Active Mission Monitoring
     else if (phase !== 'PRE_FLIGHT' && phase !== 'MISSION_COMPLETE') {
         btn.innerText = "MODE: FLT / ACTV";
-        btn.className = "active-state";
+        btn.classList.remove('ready-state');
+        btn.classList.add('active-state');
     }
 }
 
@@ -207,7 +265,7 @@ function updateTelemetryStream(alt, vel) {
     if (!hexDisplay) return;
     const hexAlt = Math.floor(alt).toString(16).toUpperCase().padStart(4, '0');
     const hexVel = Math.floor(vel).toString(16).toUpperCase().padStart(4, '0');
-    hexDisplay.innerHTML = `<span style="color: #666">CORE:</span> <span style="color: #888">RUST</span> <span style="color: #333">|</span> RX: 0x${hexAlt}${hexVel} <span style="color: #333">|</span> <span style="color: var(--av-amber)">NOMINAL</span>`;
+    hexDisplay.innerHTML = `<span style="color: #666">CORE:</span> <span style="color: #888">RUST</span> RX: 0x${hexAlt}${hexVel} <span style="color: var(--av-amber)">NOMINAL</span>`;
 }
 
 function syncPhase(newPhase) {
@@ -220,6 +278,7 @@ function syncPhase(newPhase) {
 
 function handleSecurityLogic(phase) {
     if (state.securityEventLocked || state.attackLogged) return;
+    
     if (phase === 'ENGAGEMENT_ZONE') {
         state.securityEventLocked = true; 
         state.physicsWorker.postMessage({ type: 'PAUSE_FLIGHT' });
@@ -231,7 +290,7 @@ function handleSecurityLogic(phase) {
             state.securityEventLocked = false; 
             triggerAttack(true); 
             state.physicsWorker.postMessage({ type: 'RESUME_FLIGHT' });
-            logTerminalMessage("SECURITY: ML-KEM_SHIELD_ACTIVE", "#00FF41", "0xSAFE");
+            logTerminalMessage("SECURITY: ML-KEM_SHIELD_L5_ACTIVE", "#00FF41", "0xSAFE");
         };
     }
 }
@@ -240,7 +299,7 @@ function runMissionStory(elapsed) {
     const time = Number(elapsed);
     const storyMilestones = [
         { t: 4.5, msg: "PHASE: V1_SPEED_REACHED. ROTATING...", color: "#00FF41" },
-        { t: 25.0, msg: "AVIONICS: ML-KEM_PROTOCOL_LOCKED", color: "var(--av-amber)" },
+        { t: 25.0, msg: "AVIONICS: ML-KEM_L5_PROTOCOL_LOCKED", color: "var(--av-amber)" },
         { t: 75.0, msg: "GUIDANCE: GLIDESLOPE_ESTABLISHED", color: "#00FF41" }
     ];
     storyMilestones.forEach(event => {
@@ -251,12 +310,13 @@ function runMissionStory(elapsed) {
     });
 }
 
-// 5. TERMINATION
 function handleMissionComplete() {
     if (state.isTerminated) return;
     state.isTerminated = true;
     state.isMissionActive = false;
     stopLattice();
+    
+    updateHeaderStatus('IDLE');
 
     const btn = document.getElementById('init-btn');
     if (btn) {
@@ -271,29 +331,4 @@ function handleMissionComplete() {
     
     document.getElementById('report-alt').textContent = Math.round(state.maxAlt);
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
-    
-    const dlBtn = document.getElementById('download-fdr-btn');
-    if (dlBtn) {
-        dlBtn.onclick = (e) => {
-            e.preventDefault();
-            exportFDR();
-        };
-    }
-}
-
-function exportFDR() {
-    const buffer = state.fdrBuffer.filter(r => r && typeof r.t === 'number');
-    if (buffer.length === 0) return;
-    let csv = "T_ELAPSED,ALTITUDE_FT,AIRSPEED_KTS,LATENCY_MS,PHASE\n";
-    buffer.forEach(r => {
-        csv += `${r.t.toFixed(2)},${Math.round(r.alt)},${Math.round(r.spd)},${r.lat.toFixed(1)},${r.phase}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `FDR_RECOVERY_${Math.floor(Date.now()/1000)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 }
