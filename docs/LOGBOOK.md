@@ -1,132 +1,146 @@
+
 Day 1: Feb 21, 2026
 
-Task: Built the basic cockpit layout and integrated the PQC (Post-Quantum Cryptography) security status bar.
+Task: Built the basic cockpit layout and integrated the PQC security status bar.
 
-Tech: Used HTML/CSS for the "Glass Cockpit" type aesthetic.
+Tech: HTML/CSS, "Glass Cockpit" aesthetic.
 
-Note: Focused on making the security bar look active to show the AI-monitoring state.
+Note: I spent today just trying to get the "vibe" right. I want it to look like a high-tech flight display, not a basic website. I focused on the security bar first because I want the user to see that "AI-monitoring" state as soon as they boot it up.
 
 Day 2: Feb 22, 2026
 
-Task: Developed the "System Boot" logic and made the flight telemetry numbers move in real-time.
+Task: Developed the "System Boot" logic and live telemetry numbers.
 
-Tech: Used JavaScript (DOM manipulation and setInterval) to link the HTML buttons to the data display.
+Tech: JavaScript (DOM manipulation, setInterval).
 
-Note: Adjusted the starting altitude to 0 FT instead of 35,000 FT to simulate a "cold start" takeoff sequence. Fixed an issue with duplicate functions to ensure the boot sequence triggers correctly. Also, optimized telemetry climb rates for a faster climb(in under 10 seconds). 
+Note: I finally got the numbers moving! It felt weird starting at 35,000 FT, so I changed it to 0 FT to simulate a "cold start" takeoff. I had some dumb duplicate functions that were breaking the boot sequence, but I cleared those out. Also tuned the climb rate so you can actually get into the air in under 10 seconds.
 
-Day 3: Feb 23, 2026 
+Day 3: Feb 23, 2026
 
-Task: Re-engineered the UI into a 3-column Primary Flight Display (PFD) and built an AI Security Terminal.
+Task: Re-engineered the UI into a 3-column PFD and built the Security Terminal.
 
-Tech: CSS Grid for aerospace-grade layout; JavaScript setTimeout and DOM injection for simulated data-bus handshakes.
+Tech: CSS Grid, JavaScript (setTimeout, DOM injection).
 
-Note: Implemented a "Safety Amber" logging system to visualize the ML-KEM (Lattice-Based) handshake. Integrated physics-based airspeed scaling, ensuring the velocity correlates with altitude gain and caps at a realistic cruise speed of 450 KTS to simulate commercial jet performance.
+Note: The 3-column layout makes it look way more professional—more like a real Primary Flight Display (PFD). I added a "Safety Amber" log to show the lattice handshake happening. I also made sure the airspeed actually matches the altitude gain, capping it at 450 KTS so it feels like a real jet and not a rocket ship.
 
 Day 4: Feb 24, 2026
 
-Task: Migrated to a Modular Architecture and implemented a Dynamic Quantum Stress Test (Red Alert).
+Task: Migrated to Modules and built the "Red Alert" Quantum Stress Test.
 
-Tech: ES6 Modules (import/export) for scalable code management; HTML5 Canvas API for real-time mathematical lattice rendering; Git/GitHub for professional version control and CI/CD foundations.
+Tech: ES6 Modules (import/export), HTML5 Canvas, Git/GitHub.
 
-Note: Refactored the monolithic script into a modular engine, separating physics telemetry from security visualization. Engineered a PQC (Post-Quantum Cryptography) Lattice Visualizer that simulates "Quantum Decoherence." Integrated an automated stress test that triggers a high-visibility "Red Alert" state (color shift and coordinate jitter) between 20,000 and 25,000 feet, simulating a successful detection and mitigation of a lattice-based attack.
+Note: I refactored my giant messy script into smaller modules because it was getting impossible to manage. I also built a "Lattice Visualizer" that starts glitching out between 20k and 25k feet. It triggers this high-visibility "Red Alert" to show the system detecting a quantum attack.
 
-P.S: The Bug(Took over 2 hours to find): Project files were "hidden" in a sub-folder (/quantum-safe-cockpit-main/), hence Github wasn't reflecting my VS code progress. Because Git didn't know who I was (very tiny email mismatch). I flattened the repo (moved files to root), verified identity (git config --global user.email) and synced the world (git reset --hard).
+P.S (The Bug): Spent over 2 hours losing my mind because GitHub wasn't showing my work. Turns out my files were stuck in a weird sub-folder, and my Git email didn't match my VS Code email. I had to flatten the whole repo and force-sync everything. Git is a nightmare sometimes.
 
 Day 5: Feb 25, 2026
 
-Task: Implemented Multithreaded System Initialization (POST) and Binary Flight Data Recording (Black Box).
+Task: Multithreaded System Init (POST) and Binary "Black Box" Recording.
 
-Tech: Web Workers API (Thread Concurrency); ArrayBuffer & DataView for low-level memory mapping; CSS ::before overlays for CRT/Hardware scanline emulation; OffscreenCanvas for non-blocking 60FPS rendering.
+Tech: Web Workers API, ArrayBuffer & DataView, OffscreenCanvas.
 
-Note: Executed a "Professional Pivot" to kill the "kid-coded" aesthetic. Engineered a Power-On Self-Test (POST) sequence that simulates hardware register checks and memory allocation before flight ops commence. Migrated core telemetry and rendering to a Physics Worker thread, decoupling the math from the UI to ensure 0ms input lag. Implemented a Binary Circular Buffer (Black Box) using a 10KB raw ArrayBuffer. Instead of high-level arrays, the system now performs pointer arithmetic to store altitude and velocity as Float32 bits, mirroring real-world FDR (Flight Data Recorder) logic used in Airbus/Boeing avionics.
+Note: I decided to kill the "kid-coded" look and go full industrial. I moved the physics and rendering to a Web Worker so the UI has zero lag. I also built a "Black Box" using raw ArrayBuffers—it stores data as bits instead of normal arrays, which is exactly how real flight recorders in a Boeing or Airbus work.
 
-P.S: The Bug(Took 1 hour to find): Spent time debugging a "Race Condition" where the Main Thread tried to draw to the Canvas after I had already transferred control to the Worker via transferControlToOffscreen(). The Fix: Created a "System State" handshake where the Main Thread strictly handles UI (tags/terminal) and the Worker owns the Canvas context exclusively. Once ownership is transferred, the Main Thread is "locked out" of the pixels—true hardware-level separation. 
+P.S (The Bug): Took an hour to find a "Race Condition." I tried to draw on the canvas from the main thread after I already gave control to the worker. Now I have a "handshake" where the main thread knows it's locked out of the pixels. True hardware separation!
 
 Day 6: Feb 26, 2026
 
-Task: Developed Industrial "Glass Cockpit" PFD Components and Contextual Diagnostic Logging.
+Task: Developed Industrial PFD Tapes and Diagnostic Logging.
 
-Tech: HTML5 Canvas (Linear Scale Interpolation); CSS Grid (Rigid Hardware Geometry); NIST-Standardized ML-KEM (Lattice-Based) Logic Hooks; HMI (Human-Machine Interface) Design Patterns.
+Tech: HTML5 Canvas (Linear Interpolation), CSS Grid, NIST ML-KEM Logic.
 
-Note: Refined the UI from "game-like" to "Industrial Research Tool." Replaced static text with scrolling Vertical Altitude and Airspeed Tapes that use linear interpolation to provide pilots with "trend awareness" rather than just digits. Locked the UI into a Rigid Grid with min-height: 0 and flex-shrink: 0 constraints to prevent "layout bouncing" during high-velocity data bursts. Integrated Contextual Annotations into the telemetry stream; the system now narrates its own state transitions (e.g., SIGNAL_NOISE_THRESHOLD_EXCEEDED). This ensures the "Observer" (admissions/recruiters) understands that the red lattice flicker isn't a glitch, but a deliberate NIST-Standardized ML-KEM re-keying event in response to a simulated quantum breach.
+Note: Finally replaced the static text with scrolling Altitude and Airspeed Tapes. It makes the pilot much more aware of the "trend" of the flight. I also added annotations so you can actually tell why the screen is flickering—it's not a glitch, it's the system re-keying in response to a breach.
 
-P.S: The Bug (Fixed under 35 minutes): Encountered a "Visual Hallucination" where the terminal data pushed the footer off-screen, causing the entire UI to stretch and "bounce" with every new line of hex code. The Fix: Implemented a Hard Bezel Lock using overflow-y: auto on the terminal and fixed-height footer containers. This forced the data to scroll within its allocated hardware address space rather than resizing the physical display—preserving the "Glass Cockpit" structural integrity.
+P.S (The Bug): Fixed a "Visual Hallucination" in 35 minutes. The terminal logs were getting so long they pushed my footer off the screen and made the whole UI "bounce." I forced a "Hard Bezel Lock" so the logs scroll inside a fixed space instead of stretching the display.
 
 Day 7: Feb 27, 2026
-Task: Implemented Decoupled Main-Thread Execution and OffscreenCanvas Logic.
 
-Tech: Web Workers (Concurrency); transferControlToOffscreen() (Worker-Side Rendering); High-Fidelity Physics Integration (Euler Method); Arinc-429 Type-Safe Serialization.
+Task: Implemented Decoupled Execution and OffscreenCanvas Logic.
 
-Note: Migrated the Primary Flight Display (PFD) and Aerodynamics Engine to a dedicated Web Worker to ensure "Safety-Critical" performance. By offloading complex Newtonian calculations and canvas rendering to a background thread, I’ve prevented the UI Event Loop from "blocking" during high-entropy Lattice generation. This architecture mirrors real-world avionics where the Display Processor is physically isolated from the Flight Control Computer. Added a Worker-Side Heartbeat (Thread_002) to visualize this concurrency—providing a real-time "Health Status" of the decoupled process.
+Tech: Web Workers, transferControlToOffscreen(), Arinc-429 Serialization.
 
-P.S: The Bug (Fixed under 1 hr): Resolved the "Constellation Cluster" anomaly where lattice nodes initialized in a default 300x150 coordinate space before the CSS Grid had settled. The Fix: Implemented a Resolution Guard that captures parent-container dimensions via getBoundingClientRect() before transferring canvas control, ensuring the mathematical lattice scales to the physical hardware resolution upon boot.
+Note: I moved the Aerodynamics engine to its own thread to keep things "safety-critical." If the UI thread gets busy, the physics won't stop. It’s like real avionics where the display processor is separate from the flight computer. I even added a "Heartbeat" light to show the threads working.
 
-Day 8: Feb 28, 2026 
+P.S (The Bug): Fixed the "Constellation Cluster" mess. My lattice dots were initializing in a tiny 300x150 box before the CSS grid even loaded. I added a "Resolution Guard" that checks the container size first so the lattice scales to the screen properly on boot.
 
-Task: Hardened Aerodynamics Core & Temporal Synchronization.
+Day 8: Feb 28, 2026
 
-Tech: Thrust Spooling Logic (Linear Interpolation); Y-Axis Coordinate Inversion (Cartesian-to-Screen Mapping); Deterministic Frame-Rate Clamping; Predictive Ground-Contact Guards.
+Task: Hardened Aerodynamics and Fixed Temporal Syncing.
 
-Note: Refactored the Physics Engine to move beyond "Game Logic" into "Simulation Grade" territory. Implemented Thrust Spooling to simulate jet engine spool-up times, successfully resolving a 4800 FPM vertical velocity spike caused by instantaneous force application. Further hardened the PFD by correcting a Y-coordinate inversion bug; the instrumentation now utilizes a true Cartesian-to-Screen mapping where altitude increases represent a decrease in pixel-Y, mirroring actual glass cockpit behavior.
+Tech: Thrust Spooling (LERP), Y-Axis Inversion, Frame-Rate Clamping.
 
-P.S: The Bug ( Took over 3 hours to resolve) During the "Steady Climb" phase, the altitude and airspeed tapes appeared to "vibrate" or stutter, despite the physics worker reporting smooth data.This was a Temporal Aliasing issue. The Main Thread (UI) and the Physics Worker (Logic) were running at slightly different frequencies. When the UI requested a frame, it was sometimes grabbing a physics state from 2ms ago and sometimes from 10ms ago, causing a "micro-teleportation" effect on the vertical bars. The Fix: Implemented Linear Interpolation (LERP) & Sub-Pixel Translation. Instead of rounding the altitude to the nearest pixel, I refactored the drawVerticalTape function to use floating-point offsets for the Y coordinates. By calculating the exact pixel remainder ( y = centerY - (i - value)* ppu), the tapes now slide with "Retina-grade" smoothness, regardless of the worker's internal tick rate.
+Note: I refactored the physics to feel like a real simulation. Engines don't just hit max thrust instantly, so I added "spooling." I also fixed a Y-coordinate bug where climbing actually looked like falling on the screen—fixed that mapping real quick.
+
+P.S (The Bug): This one took over 3 hours. The altitude tapes were "vibrating" or stuttering during the climb even though the math was right. It was "Temporal Aliasing"—the UI and Physics threads weren't perfectly in sync. I fixed it by using LERP (Linear Interpolation) to smooth out the bars between data packets. It finally looks like a pro HUD.
 
 Day 9: March 1, 2026
 
-Task: Industrial UI Symmetrization & Multi-Threaded State Synchronization.
+Task: Fixing the UI symmetry so it looks like a real flight deck.
 
-Tech: Strict CSS Grid (repeat(3, 1fr) with minmax(0, 1fr)); Grid-Cell Containment (min-width: 0 logic); NIST ML-KEM Basis Vector Margin-Scaling; Flex-End Data Streaming.
+Tech: CSS Grid (repeat(3, 1fr)), Grid-Cell Containment (min-width: 0), NIST ML-KEM Scaling.
 
-Note: Achieved a mathematical 1:1:1 "Triple-Glass" symmetry across the avionics suite to eliminate the "chindi" adaptive stretching. Implemented grid-template-columns: repeat(3, minmax(0, 1fr)) and min-width: 0 on the panel containers to force the PFD, Lattice Engine, and Telemetry into identical thirds of the viewport, regardless of internal canvas scaling. This ensures the Primary Flight Display cannot "bully" the Security Engine for screen real estate, maintaining the visual authority required for an industrial flight deck.
+Note: I spent today trying to get that "Triple-Glass" cockpit look where everything stays perfectly in its own lane. I wanted the PFD, the Lattice map, and the logs to stay in identical thirds of the screen. I had to force the grid columns to stop "bullying" each other for space, which actually makes it feel like an industrial flight tool rather than a standard webpage.
 
-P.S: The Bug (Took 45 mins to fix): Even with 1fr grid columns, the PFD was stretching the left panel, pushing the Telemetry sidebar into a overflow state. The browser's default min-width: auto behavior for grid items was causing it. If a canvas child is "wide," the grid cell expands to fit it, breaking the 33.33% ratio. The Fix: Overrode the implicit minimum width with min-width: 0 and applied calc(33.33% - gap) logic. Now, the PFD is "hardened" inside its container, and the UI remains perfectly balanced on high-resolution displays.
+P.S (The Bug): Spent 45 mins wondering why the PFD was stretching its panel and pushing the Telemetry logs off-screen. Turns out the browser’s default behavior for grid items is to expand to fit a "wide" child (the canvas). I had to override it with min-width: 0 to "harden" the containers and keep the layout balanced.
 
-Day 10: March 3 2026 
+Day 10: March 3, 2026
 
-Task: Implementation of Post-Flight Data Analysis (PFD) and Black Box (FDR) Serialization.
+Task: Building the "Black Box" (FDR) and Mission Report system.
 
-Tech: ARINC-429 Mimicry, CSV Blob Serialization, and State Persistence.
+Tech: ARINC-429 Mimicry, CSV Serialization, State Persistence.
 
-Note: Successfully closed the simulation loop by implementing a "Mission Report" overlay. The system now tracks maxAlt and maxSpd in real-time. Added a "Black Box" feature that captures a telemetry snapshot every 1,000ms into a fdrBuffer. Upon mission completion, the user can trigger an exportFDR() function which generates a RFC 4180-compliant CSV file for external flight analysis. This proves the simulation is processing real data, not just playing an animation.
+Note: Finally closed the simulation loop. Now, at the end of a flight, a report pops up showing your max altitude and speed. I also added a "Black Box" feature that captures data every second into a buffer. You can actually export it as a CSV file for real analysis. It proves the simulation is running on real data and isn't just a canned animation.
 
-P.S: Fixed a UI bug ( took 15 min to solve) where the "Initialize" button remained active during the flight; added state.isBooted guarding to prevent multiple worker instances from spawning and crashing the telemetry bus.
+P.S: Found a 15-minute bug where the "Initialize" button stayed active during flight. I added some isBooted guarding to stop the user from accidentally spawning 10 different workers and crashing the entire data bus.
 
-Day 11: March 4 2026
+Day 11: March 4, 2026
 
-Task: Critical Environment Re-Provisioning & Windows Kernel Mapping.
+Task: Environment Re-Provisioning & SDK Fighting.
 
-Tech: MSVC v14.44, Git 2.53, Rust Toolchain, Windows SDK.
+Tech: MSVC v14.44, Rust Toolchain, Windows SDK.
 
-Note: Following a manual decommissioning of the version control layer, successfully restored the Git environment and re-initialized the project repository. Currently resolving a LNK1181 dependency conflict by forcing a manual update of the Windows 10/11 SDK. This is a critical step to ensure the Rust-based Security Kernel has access to kernel32.lib for low-level memory management.
+Note: I had to redo my version control because things got messy. I spent most of the day fighting with the Windows SDK because the Rust compiler couldn't link to the right memory libraries. It was a massive headache just to get the "Security Kernel" to talk to the hardware properly.
 
-P.S: Managing high Disk I/O and CPU thermal throttling on legacy hardware during the SDK installation phase. Implemented a global .gitignore to protect the SSD from "bloat" generated by Rust build artifacts. 
+P.S: My laptop was screaming with high CPU usage during the SDK install. I had to set up a global .gitignore fast because the Rust build artifacts were basically trying to eat my SSD.
 
-Day 12: March 5 2026
+Day 12: March 5, 2026
 
-Task: Rust-to-WASM Compilation & Repository Hardening.
+Task: Rust-to-WASM Compilation & Repo Hardening.
 
-Tech: Rust, wasm-pack, WebAssembly (WASM), Git.
+Tech: Rust, wasm-pack, WebAssembly, Git.
 
-Note: Successfully synthesized the Security Kernel after resolving a critical OS Error 112 during toolchain acquisition (took 15 mins to solve). Stabilized the Git index by restoring the root-level .gitignore, suppressing 200+ build artifacts in the /target directory. Verified the Polyglot Architecture, ensuring a clean separation between the UI Cockpit (/src) and the Cryptographic Engine (/security-kernel).
+Note: Finally got the Security Kernel to compile to WASM! I hit a weird "OS Error 112" while getting the toolchain, but I figured it out in 15 minutes. I also cleaned up the GitHub repo so the UI code and the Crypto code are totally separate. It’s a "Polyglot" setup now—JS for the HUD and Rust for the encryption math.
 
-P.S: Bypassed Windows pathing conflicts using absolute directory targeting. (took an hr to find this cause). 
+P.S: Spent an hour chasing a bug that turned out to be Windows pathing issues. I had to switch to absolute directory paths to get the compiler to actually find the source files.
 
-Day 13: March 6 2026 
+Day 13: March 6, 2026
 
-Task: Telemetry Synchronization & RTT Latency Calibration.
+Task: Telemetry Sync & "Bus Lag" (RTT) Calibration.
 
-Tech: Web Workers, DOM API, JavaScript (ES6+), ARINC-429 Logic.
+Tech: Web Workers, RTT Latency Reflection, ARINC-429 Logic.
 
-Note: Finalized V10.4 of the FCC Master Engine. Successfully resolved a "Silent Zero" latency bug(took close to an hour to resolve) by implementing a Round-Trip Time (RTT) reflection protocol; the Main Thread now pings the Physics Worker with a performance.now() timestamp, which is mirrored back in the Telemetry packet to calculate real-time bus lag. Synchronized the lattice-engine.js handshake with the mission ignition sequence. Hardened the Flight Data Recorder (FDR) export logic to ensure millisecond-accurate latency logging in the CSV black box. 
+Note: Finished the Master Engine today. I had this weird "Silent Zero" bug where my lag was showing as 0ms, which is impossible. I built an RTT (Round-Trip Time) Reflection Protocol—the main thread pings the worker with a timestamp, and it mirrors it back. Now I can actually see the real-world micro-lag of the data bus.
 
-P.S: Fixed a critical UI "ghost update" caused by a DOM ID mismatch between the JS controller (latency-value) and the HTML markup (handshake-ms). Also bypassed Web Worker scope shadowing by elevating the latestSentTime state to the global worker context. (Took 15 min to resolve)
+P.S: Fixed a 15-minute "ghost update" where a DOM ID in the JS didn't match the HTML, so the latency wasn't showing. I also had to move a variable to the global worker scope to prevent "shadowing" from losing my data packets.
 
-Day 14: March 7 2026 
+Day 14: March 7, 2026
 
-Task: UI Refit, Lattice Clipping Fix, and Security Modal Overhaul
+Task: UI Refit, Lattice Clipping Fix, and "Emergency" Modal.
 
-Tech: CSS Grid, HTML5 Canvas, NIST ML-KEM-L5 (Kyber-1024)
+Tech: CSS Grid, HTML5 Canvas, NIST ML-KEM-L5 (Kyber-1024).
 
-Note: Successfully resolved the "Lattice Dots" clipping issue by implementing a flex-based min-height: 0 constraint on the canvas wrappers. Hardened the telemetry panel with industrial data-group framing and upgraded the Kyber security popup to a high-threat "Emergency Override" aesthetic.
+Note: Fixed the bug where the Lattice dots were getting cut off at the edges of the canvas. I also redesigned the Kyber security popup to look like a high-threat "Emergency Override." It feels way more intense now when the attack triggers.
 
-P.S: Rust environment is fully primed and the WASM kernel is linked, but Day 15 must pivot entirely to the physics engine to finally resolve the 90-second simulation stability issues that have persisted for a while.
+P.S: The Rust environment is solid and the WASM kernel is linked. I'm spending Day 15 focusing purely on the physics engine to stop the 90-second stability issues that have been unstable for a while. Decided to keep my GitHub messages strictly professional (feat/fix) so I can stay organized, but honestly, this physics overhaul is killing me. Moving back to the 'Aerodynamics' core tomorrow.
+
+Date 15 : March 8, 2026
+
+Task: Global UI Sync, Rust Kernel Link, and (Attempted) Physics Hardening.
+
+Tech: WASM, Rust (security-kernel), CSS Transitions, ARINC-429.
+
+Note: Spent the entire day (3 hours straight) buried in the Rust environment. Got the WASM kernel fully linked for the ML-KEM-1024 handshake, so the security side is rock solid. But the physics? Absolute trash. I’m seeing VVI spikes of 17,000+ FT/M which is basically a suicide dive. I tried using the Rust core for some of the RK (Runge-Kutta) integration to stabilize the flight path, but the math is still tripling over itself. Tomorrow ( and I guess a lot more days) is 100% "Aerodynamics" day. If I don't fix these vertical rate overflows, the whole sim is basically a rocket simulator, not a plane.
+
+P.S: Fixed the "visual weight" issue. The Mode and FCC buttons weren't matching the Main Bus ( it was a mess). Now all three snap from Amber to Green at the exact same millisecond. Also patched the Init button so it turns Green the instant you click it—no more weird amber lag while the kernel boots.
+
+
