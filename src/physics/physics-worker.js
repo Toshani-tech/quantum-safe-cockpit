@@ -1,18 +1,18 @@
 /**
- * physics-worker.js - V10.3 [FLIGHT_PRECISION_STABLE]
- * Fix: Synchronized Aerodynamics V8.1 with PFD rendering.
- * Feature: Unit-locked VVI and high-DPR scaling.
+ * physics-worker.js - V10.7
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
 
+import init from '../../security-kernel/pkg/security_kernel.js'; 
+
 let canvasCtx;
-let lastTime = 0;
 let missionStartTime = 0;
 let canvasW = 0;
 let canvasH = 0;
 let dpr = 1; 
 let latestSentTime = 0; 
+let physicsInterval;
 
 let state = {
     altitude: 0,
@@ -27,9 +27,10 @@ let state = {
     vviDirection: 'LEVEL'
 };
 
-self.onmessage = function(e) {
+self.onmessage = async function(e) {
     if (e.data.sentTime) latestSentTime = e.data.sentTime;
 
+    // 1. Setup OffscreenCanvas and WASM
     if (e.data.type === 'INIT') {
         const canvas = e.data.canvas;
         dpr = e.data.dpr || 1; 
@@ -43,74 +44,73 @@ self.onmessage = function(e) {
         
         canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         canvasCtx.scale(dpr, dpr);
+
+        try {
+            // Booting ML-KEM-1024 Kernel
+            await init();
+            console.log("WORKER_KERNEL: ONLINE [NIST LEVEL 5]");
+            self.postMessage({ type: 'KERNEL_READY' });
+        } catch (err) {
+            console.error("CRITICAL_KERNEL_ERROR:", err);
+            // Attempt a manual notify if init fails
+            self.postMessage({ type: 'BUS_IDLE', error: 'WASM_LOAD_FAIL' });
+        }
     }
     
+    // 2. Mission Control Logic
     if (e.data.type === 'START_FLIGHT') {
         if (state.isRunning || state.isTerminated) return; 
         state.isRunning = true;
         state.isPaused = false;
         
-        const now = performance.now();
-        lastTime = now;
-        missionStartTime = now;
-        
-        requestAnimationFrame(mainLoop);
+        missionStartTime = performance.now();
+        startPhysicsLoop();
+        requestAnimationFrame(renderLoop);
     }
 
     if (e.data.type === 'PAUSE_FLIGHT') {
         state.isPaused = true;
         state.pausedAt = performance.now();
+        clearInterval(physicsInterval);
     }
 
     if (e.data.type === 'RESUME_FLIGHT') {
         if (!state.isPaused || state.isTerminated) return;
-        const pauseDuration = performance.now() - state.pausedAt;
-        missionStartTime += pauseDuration;
+        missionStartTime += (performance.now() - state.pausedAt);
         state.isPaused = false;
-        lastTime = performance.now(); 
-        requestAnimationFrame(mainLoop);
+        startPhysicsLoop();
+        requestAnimationFrame(renderLoop);
     }
 };
 
-function mainLoop(currentTime) {
-    if (state.isTerminated) return;
+// 3. RK4 Physics Heartbeat
+function startPhysicsLoop() {
+    const DT = 0.0166; 
+    physicsInterval = setInterval(() => {
+        if (state.isPaused || state.isTerminated) return;
 
-    if (state.isPaused) {
-        if (canvasCtx) drawPFD();
-        return; 
-    }
+        const elapsed = (performance.now() - missionStartTime) / 1000;
 
-    // Standardized time step for physics stability
-    const dt = Math.max(0.001, Math.min((currentTime - lastTime) / 1000, 0.033)); 
-    lastTime = currentTime;
-    const elapsed = (currentTime - missionStartTime) / 1000;
+        try {
+            const result = calculateFlightDynamics(state, DT, elapsed);
+            
+            if (result) {
+                state.altitude = result.altitude; 
+                state.airspeed = result.airspeed;
+                state.missionPhase = result.missionPhase;
+                state.vviStatus = result.vviStatus;
+                state.vviDirection = result.vviDirection;
+                // Vertical dampening for smoother HUD tape movement
+                state.verticalVelocity = (state.verticalVelocity * 0.7) + (result.verticalVelocity * 0.3); 
+            }
+        } catch (err) {
+            console.error("PHYSICS_STEP_FAIL:", err);
+        }
 
-    const result = calculateFlightDynamics(state, dt, elapsed);
-    
-    if (result) {
-        state.altitude = result.altitude; 
-        state.airspeed = result.airspeed;
-        state.missionPhase = result.missionPhase;
-        state.vviStatus = result.vviStatus;
-        state.vviDirection = result.vviDirection;
-        
-        /**
-         * VVI UNIT SYNC:
-         * We use the V8.1 stabilized FPM for display and telemetry.
-         * The 0.8 interpolation remains to prevent "shimmer" on the PFD tape.
-         */
-        state.verticalVelocity = (state.verticalVelocity * 0.8) + (result.verticalVelocity * 0.2); 
-    }
+        if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
+            terminateMission();
+        }
 
-    // ENFORCE 90S MISSION CAP
-    if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
-        terminateMission();
-        return; 
-    }
-
-    try {
-        if (canvasCtx) drawPFD();
-        
         self.postMessage({ 
             type: 'TELEMETRY', 
             altitude: state.altitude,
@@ -122,26 +122,27 @@ function mainLoop(currentTime) {
             elapsed: elapsed.toFixed(2),
             sentTime: latestSentTime 
         });
-    } catch (e) {
-        console.error("PFD_RENDER_FAULT", e);
-    }
+    }, 16.6);
+}
 
-    requestAnimationFrame(mainLoop);
+function renderLoop() {
+    if (state.isTerminated) return;
+    if (canvasCtx) drawPFD();
+    if (!state.isPaused) requestAnimationFrame(renderLoop);
 }
 
 function terminateMission() {
+    clearInterval(physicsInterval);
     state.isRunning = false;
     state.isTerminated = true; 
     state.missionPhase = 'MISSION_COMPLETE';
-    state.altitude = 0;
-    state.airspeed = 0;
-    state.verticalVelocity = 0;
-    
     if (canvasCtx) drawPFD(); 
     self.postMessage({ type: 'BUS_IDLE' });
 }
 
-// RENDER ENGINE
+/**
+ * PFD HUD RENDERER
+ */
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
@@ -150,8 +151,6 @@ function drawPFD() {
     ctx.fillStyle = "#020202"; 
     ctx.fillRect(0, 0, w, h);
 
-    // DYNAMIC PPU CALIBRATION
-    // Adjusting altPPU slightly higher to make altitude changes more visible
     const altPPU = h / 600; 
     const spdPPU = h / 200;  
 
@@ -188,13 +187,11 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
         ctx.globalAlpha = Math.max(0, 1.1 - (Math.abs(y - centerY) / (h / 2))); 
         
         if (label === "SPD") {
-            ctx.moveTo(x + width, y);
-            ctx.lineTo(x + width - 8, y);
+            ctx.moveTo(x + width, y); ctx.lineTo(x + width - 8, y);
             ctx.textAlign = "right";
             if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + width - 12, y + 4);
         } else {
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + 8, y); 
+            ctx.moveTo(x, y); ctx.lineTo(x + 8, y); 
             ctx.textAlign = "left";
             if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + 12, y + 4);
         }
