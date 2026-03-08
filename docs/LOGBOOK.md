@@ -141,6 +141,6 @@ Tech: WASM, Rust (security-kernel), CSS Transitions, ARINC-429.
 
 Note: Spent the entire day (3 hours straight) buried in the Rust environment. Got the WASM kernel fully linked for the ML-KEM-1024 handshake, so the security side is rock solid. But the physics? Absolute trash. I’m seeing VVI spikes of 17,000+ FT/M which is basically a suicide dive. I tried using the Rust core for some of the RK (Runge-Kutta) integration to stabilize the flight path, but the math is still tripling over itself. Tomorrow ( and I guess a lot more days) is 100% "Aerodynamics" day. If I don't fix these vertical rate overflows, the whole sim is basically a rocket simulator, not a plane.
 
-P.S: Fixed the "visual weight" issue. The Mode and FCC buttons weren't matching the Main Bus ( it was a mess). Now all three snap from Amber to Green at the exact same millisecond. Also patched the Init button so it turns Green the instant you click it—no more weird amber lag while the kernel boots.
+P.S: Fixed the "visual weight" issue. The Mode and FCC buttons weren't matching the Main Bus ( it was a mess). Now all three snap from Amber to Green at the exact same millisecond. Also patched the Init button so it turns Green the instant you click it—no more weird amber lag while the kernel boots. (Took 15 min max)
 
 
