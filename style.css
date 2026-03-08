@@ -1,11 +1,10 @@
 /**
- * style.css - V16.7 [HARDENED_TACTICAL_SPEC]
- * Aesthetic: High-Contrast MFD / Zero-Glow Industrial.
+ * style.css - V17.4 [TACTICAL_GLOW_SYNC]
  */
 
 :root {
     --bg: #000000;
-    --av-green: #00FF41;
+    --av-green: #00FF41; 
     --av-amber: #FFBF00;
     --av-red: #FF3B3B; 
     --industrial-border: #1a1a1a; 
@@ -27,7 +26,7 @@ html, body {
     overflow: hidden; 
 }
 
-/* 1. MASTER CONTAINER */
+/* MASTER CONTAINER */
 #cockpit-container {
     display: flex;
     flex-direction: column;
@@ -36,7 +35,7 @@ html, body {
     gap: 10px;
 }
 
-/* 2. STATUS BAR - Flat & Functional */
+/* STATUS BAR */
 #status-bar {
     flex: 0 0 35px;
     display: flex;
@@ -49,19 +48,34 @@ html, body {
 }
 
 .status-matrix { display: flex; gap: 20px; align-items: center; }
-.monitor-unit { display: flex; align-items: center; color: #555; } /* Dimmed for standby */
+.monitor-unit { display: flex; align-items: center; color: #555; }
+
+/* UNIFIED STATUS LIGHTS (LED STYLE) */
 .status-light {
-    width: 7px; height: 7px;
-    background: #1a1a1a; display: inline-block;
+    width: 8px; height: 8px;
+    background: #1a1a1a; 
+    display: inline-block;
     margin-right: 8px;
     border: 1px solid #333;
+    transition: background 0.05s step-end, box-shadow 0.05s step-end;
 }
 
-#hb-ui { background: var(--av-green); }
+/* SYNCED HEADERS & MODE TAG */
+#bus-status-text, #fcc-status-text, #security-tag {
+    transition: color 0.05s step-end, text-shadow 0.05s step-end;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+
+#security-tag {
+    text-transform: uppercase;
+}
+
 #hb-worker { transition: none; }
 .latency-monitor { color: var(--av-amber); font-variant-numeric: tabular-nums; }
 
-/* 3. THE GRID */
+/* LAYOUT GRID */
 .pfd-grid {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important; 
@@ -70,7 +84,7 @@ html, body {
     min-height: 0; 
 }
 
-/* 4. PANEL ARCHITECTURE */
+/* PANEL ARCHITECTURE */
 .panel {
     display: flex !important;
     flex-direction: column !important;
@@ -90,14 +104,14 @@ html, body {
     border-bottom: 1px solid var(--industrial-border);
 }
 
-/* 5. CANVAS HANDLING */
+/* CANVAS HANDLING */
 .canvas-wrapper {
     flex: 1; position: relative; background: #000;
     min-height: 0; width: 100%; height: 100%;
 }
 canvas { object-fit: contain; width: 100%; height: 100%; display: block; }
 
-/* 6. TELEMETRY & TERMINAL - High contrast, no shadows */
+/* TELEMETRY & TERMINAL */
 #terminal-box {
     flex: 1; padding: 10px; font-size: 11px;
     display: flex; flex-direction: column; justify-content: flex-end; 
@@ -119,41 +133,51 @@ canvas { object-fit: contain; width: 100%; height: 100%; display: block; }
     font-variant-numeric: tabular-nums; margin-bottom: 5px;
 }
 
-/* 7. TACTICAL FOOTER BUTTON - INVERSION LOGIC */
+/* FOOTER TRIGGER */
 footer { flex: 0 0 60px; }
 
 #init-btn {
     width: 100%; height: 100%;
-    background: transparent;
-    border: 1px solid var(--av-green);
-    color: var(--av-green);
+    background: #000;
+    border: 1px solid #1a1a1a; 
+    color: #222; 
     letter-spacing: 4px;
     font-family: var(--font-main);
     text-transform: uppercase;
     cursor: crosshair;
-    transition: none; /* Instant feedback */
+    transition: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed;
 }
 
-/* Inverted State: Active */
+#init-btn.ready-state {
+    border-color: #444;
+    color: #888;
+}
+
 #init-btn.active-state {
-    background: var(--av-green);
-    color: #000;
+    background: #000;
+    color: var(--av-green) !important;
     font-weight: 900;
+    border: 3px solid var(--av-green) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
 }
 
-/* Jarring State: Critical */
 #init-btn.critical-state {
     background: var(--av-red);
     color: #000;
-    border-color: var(--av-red);
-    animation: tactical-strobe 0.1s infinite;
+    border: 3px solid var(--av-red);
+    animation: sharp-blink 0.4s step-end infinite;
 }
 
 #init-btn:hover:not(.active-state) {
-    background: rgba(0, 255, 65, 0.1);
+    border-color: #444;
+    color: #444;
 }
 
-/* 8. OVERLAYS & MODALS - Flat & Serious */
+/* Modals */
 .overlay-layer {
     display: none; position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%; 
@@ -161,14 +185,13 @@ footer { flex: 0 0 60px; }
     justify-content: center; align-items: center;
 }
 
-/* 9. ANIMATIONS - Functional Only */
-@keyframes tactical-strobe {
-    0% { opacity: 1; }
-    50% { opacity: 0.8; }
-    100% { opacity: 1; }
+/* ANIMATIONS */
+@keyframes sharp-blink {
+    0% { background: var(--av-red); color: #000; }
+    50% { background: #000; color: var(--av-red); }
 }
 
-/* 10. VFX LAYER - CRT Scanlines */
+/* VFX LAYER */
 #vfx-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
