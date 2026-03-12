@@ -1,5 +1,6 @@
 /**
- * main.js - V11.2 
+ * main.js - V11.5 
+ 
  */
 import init, { encrypt_telemetry } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
@@ -21,7 +22,8 @@ const state = {
     lastWorkerData: null,
     isBusBusy: false,
     isTerminated: false,
-    securityEventLocked: false 
+    securityEventLocked: false,
+    telemetryLines: [] // Buffer for rolling hex stream
 };
 
 function updateHeaderStatus(status) {
@@ -122,13 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!state.isBooted && state.isKernelReady) {
                 state.isBooted = true;
                 
-                
                 startBtn.textContent = "BUS_INIT >> [ACTIVE]";
                 startBtn.classList.remove('ready-state');
                 startBtn.classList.add('active-state');
                 
                 updateHeaderStatus('ACTIVE');
-                
                 runPOST(); 
             }
         };
@@ -196,6 +196,7 @@ function startRenderLoop() {
         if (state.isTerminated) { state.isLoopRunning = false; return; }
 
         if (state.physicsWorker && state.isMissionActive && !state.securityEventLocked) {
+            // High-frequency handshake
             state.physicsWorker.postMessage({ sentTime: performance.now() });
         }
 
@@ -223,7 +224,7 @@ function startRenderLoop() {
             if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
             
             const latDisplay = document.getElementById('latency-value');
-            if (latDisplay) latDisplay.textContent = state.latency.toFixed(1);
+            if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); // Increased precision for MIT look
 
             syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
             syncPhase(d.missionPhase);
@@ -260,12 +261,30 @@ function syncVVI(fpm, status, direction) {
     vviLabel.style.color = (status === 'DANGER') ? '#FF3B3B' : '#00FF41';
 }
 
+/**
+ *
+ Rolling buffer to visualize the ARINC-style bitstream.
+ */
 function updateTelemetryStream(alt, vel) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
+
+    // Converting state vectors to Hex format for bit-level monitoring
     const hexAlt = Math.floor(alt).toString(16).toUpperCase().padStart(4, '0');
     const hexVel = Math.floor(vel).toString(16).toUpperCase().padStart(4, '0');
-    hexDisplay.innerHTML = `<span style="color: #666">CORE:</span> <span style="color: #888">RUST</span> RX: 0x${hexAlt}${hexVel} <span style="color: var(--av-amber)">NOMINAL</span>`;
+    const timestamp = (performance.now() / 1000).toFixed(2);
+    
+    const newLine = `<div style="margin-bottom: 2px;">
+        <span style="color: #666">[${timestamp}]</span> 
+        <span style="color: #888">RX_PACKET:</span> 
+        <span style="color: var(--av-green)">0x${hexAlt}${hexVel}</span> 
+        <span style="color: var(--av-amber)">[AUTH_OK]</span>
+    </div>`;
+
+    state.telemetryLines.push(newLine);
+    if (state.telemetryLines.length > 8) state.telemetryLines.shift(); // Keep scroll clean
+
+    hexDisplay.innerHTML = state.telemetryLines.join('');
 }
 
 function syncPhase(newPhase) {
@@ -332,3 +351,32 @@ function handleMissionComplete() {
     document.getElementById('report-alt').textContent = Math.round(state.maxAlt);
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
+
+// 3. FDR DATA EXPORT (CSV)
+document.getElementById('download-fdr-btn').addEventListener('click', () => {
+    if (state.fdrBuffer.length === 0) {
+        logTerminalMessage("ERROR: NO FDR DATA TO EXTRACT", "#FF3B3B", "0xCSV_FAIL");
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Time(S),Altitude(FT),Airspeed(KTS),Phase,Latency(MS)\n";
+
+    state.fdrBuffer.forEach(row => {
+        if (row) {
+            const line = `${row.t},${row.alt},${row.spd},${row.phase},${row.lat}`;
+            csvContent += line + "\n";
+        }
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `FDR_LOG_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+
+    link.click();
+    document.body.removeChild(link);
+    
+    logTerminalMessage("FDR EXTRACTION SUCCESSFUL", "#00FF41", "0xCSV_OK");
+});
