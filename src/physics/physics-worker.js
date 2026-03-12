@@ -1,9 +1,8 @@
 /**
- * physics-worker.js - V10.7
+ * physics-worker.js - V11.0
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
-
 import init from '../../security-kernel/pkg/security_kernel.js'; 
 
 let canvasCtx;
@@ -14,6 +13,7 @@ let dpr = 1;
 let latestSentTime = 0; 
 let physicsInterval;
 
+// Global state tracking for the PFD (Primary Flight Display)
 let state = {
     altitude: 0,
     airspeed: 0,
@@ -30,13 +30,15 @@ let state = {
 self.onmessage = async function(e) {
     if (e.data.sentTime) latestSentTime = e.data.sentTime;
 
-    // 1. Setup OffscreenCanvas and WASM
+    // 1. KERNEL BOOTSTRAPPING
+   
     if (e.data.type === 'INIT') {
         const canvas = e.data.canvas;
         dpr = e.data.dpr || 1; 
         canvasW = canvas.width;
         canvasH = canvas.height;
         
+        // ow-latency HUD updates
         canvasCtx = canvas.getContext('2d', { 
             alpha: false, 
             desynchronized: true 
@@ -46,18 +48,17 @@ self.onmessage = async function(e) {
         canvasCtx.scale(dpr, dpr);
 
         try {
-            // Booting ML-KEM-1024 Kernel
+            // Booting the Security (ML-KEM/Lattice-Engine)
             await init();
-            console.log("WORKER_KERNEL: ONLINE [NIST LEVEL 5]");
+            console.log("WORKER_KERNEL: ONLINE [NIST LEVEL 5 SECURITY]");
             self.postMessage({ type: 'KERNEL_READY' });
         } catch (err) {
-            console.error("CRITICAL_KERNEL_ERROR:", err);
-            // Attempt a manual notify if init fails
+            console.error("CRITICAL_SYSTEM_FAULT: WASM Kernel failed to initialize", err);
             self.postMessage({ type: 'BUS_IDLE', error: 'WASM_LOAD_FAIL' });
         }
     }
     
-    // 2. Mission Control Logic
+    // 2. MISSION CONTROL
     if (e.data.type === 'START_FLIGHT') {
         if (state.isRunning || state.isTerminated) return; 
         state.isRunning = true;
@@ -83,7 +84,10 @@ self.onmessage = async function(e) {
     }
 };
 
-// 3. RK4 Physics Heartbeat
+/**
+ *  RK4 KINEMATIC INTEGRATION
+ * We run this at 16.6ms (60Hz) to match the avionics display refresh rate.
+ */
 function startPhysicsLoop() {
     const DT = 0.0166; 
     physicsInterval = setInterval(() => {
@@ -92,6 +96,7 @@ function startPhysicsLoop() {
         const elapsed = (performance.now() - missionStartTime) / 1000;
 
         try {
+            // Processing Aerodynamics through the Calculus-based Governor
             const result = calculateFlightDynamics(state, DT, elapsed);
             
             if (result) {
@@ -100,17 +105,22 @@ function startPhysicsLoop() {
                 state.missionPhase = result.missionPhase;
                 state.vviStatus = result.vviStatus;
                 state.vviDirection = result.vviDirection;
-                // Vertical dampening for smoother HUD tape movement
+                
+                // DATA DAMPING: 
+                // Implementing a weighted moving average (0.7/0.3) to prevent 'jitter' 
+        
                 state.verticalVelocity = (state.verticalVelocity * 0.7) + (result.verticalVelocity * 0.3); 
             }
         } catch (err) {
-            console.error("PHYSICS_STEP_FAIL:", err);
+            console.error("AVIONICS_BUS_ERROR: Physics step failed", err);
         }
 
+        // Automatic mission termination at the 90-second ceiling
         if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
             terminateMission();
         }
 
+        // TELEMETRY UPLINK
         self.postMessage({ 
             type: 'TELEMETRY', 
             altitude: state.altitude,
@@ -141,35 +151,45 @@ function terminateMission() {
 }
 
 /**
- * PFD HUD RENDERER
+ * INDUSTRIAL GLASS COCKPIT
  */
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
     const h = canvasH / dpr; 
     
-    ctx.fillStyle = "#020202"; 
+    ctx.fillStyle = "#010101"; 
     ctx.fillRect(0, 0, w, h);
 
+    // PPU (Pixels Per Unit) 
     const altPPU = h / 600; 
     const spdPPU = h / 200;  
 
     drawStaticHorizon(ctx, w, h);
+    
+    // TAPE 1: AIRSPEED (IAS)
     drawVerticalTape(ctx, state.airspeed, 5, 65, "SPD", 20, "#00FF41", spdPPU);
+    
+    // TAPE 2: ALTITUDE (MSL)
     drawVerticalTape(ctx, state.altitude, w - 70, 70, "ALT", 100, "#00FF41", altPPU);
+    
+    // INDICATOR: VVI (Vertical Velocity Indicator)
     drawVVI(ctx, w, h, state.verticalVelocity, state.vviStatus, state.vviDirection);
 }
 
+/**
+ *  VERTICAL TAPES
+ */
 function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     const h = canvasH / dpr;
     const centerY = h / 2;
     
     ctx.save();
     ctx.beginPath();
-    ctx.rect(x, 10, width, h - 20); 
+    ctx.rect(x, 10, width, h - 20); // Clipping path for the tape window
     ctx.clip(); 
     
-    ctx.fillStyle = "rgba(10, 10, 10, 0.95)";
+    ctx.fillStyle = "rgba(5, 5, 5, 0.9)";
     ctx.fillRect(x, 0, width, h);
     
     ctx.strokeStyle = themeColor;
@@ -183,7 +203,9 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     for (let i = firstTick; i <= lastTick; i += step) {
         if (i < 0 && label === "ALT") continue;
         const y = centerY - (i - value) * ppu;
+        
         ctx.beginPath();
+        // Fading edges 
         ctx.globalAlpha = Math.max(0, 1.1 - (Math.abs(y - centerY) / (h / 2))); 
         
         if (label === "SPD") {
@@ -199,6 +221,7 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     }
     ctx.restore();
 
+    // The 'Digital Readout' Box 
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
     ctx.globalAlpha = 1;
@@ -212,8 +235,9 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
 }
 
 function drawVVI(ctx, w, h, vvi, status, direction) {
-    const color = (status === 'DANGER') ? "#FF3B3B" : "#00FF41";
-    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    // Visual warning if descent rate is dangerous
+    const color = (status === 'DANGER') ? "#FF3030" : "#00FF41";
+    ctx.fillStyle = "rgba(0,0,0,0.85)";
     ctx.fillRect(w/2 - 60, h - 45, 120, 30);
     ctx.strokeStyle = color;
     ctx.strokeRect(w/2 - 60, h - 45, 120, 30);
@@ -230,8 +254,10 @@ function drawVVI(ctx, w, h, vvi, status, direction) {
 function drawStaticHorizon(ctx, w, h) {
     const midX = w / 2;
     const midY = h / 2;
-    ctx.strokeStyle = "#222";
+    ctx.strokeStyle = "#1a1a1a";
     ctx.strokeRect(75, 10, w - 150, h - 20);
+    
+    //  Waterline
     ctx.strokeStyle = "#00FF41"; 
     ctx.lineWidth = 2;
     ctx.beginPath();
