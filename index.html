@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AVIONICS_BUS_V16.9 [HARDENED]</title>
+    <title>AVIONICS_BUS_V16.9 </title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,6 +17,24 @@
             --av-red: #FF3B3B;
             --av-amber: #FFBF00;
             --av-cyan: #00F0FF;
+            /*  variable that JS will override via the class */
+            --lattice-theme: var(--av-green); 
+        }
+
+        /* --- GLOBAL ALERT STATE --- */
+        
+        body.under-attack {
+            --av-green: #FF3B3B; 
+            --lattice-theme: var(--av-red);
+        }
+
+        body.under-attack #mission-timer {
+            color: var(--av-red) !important;
+            animation: pulse 0.5s infinite;
+        }
+
+        body.under-attack .panel {
+            border-color: var(--av-red) !important;
         }
 
         .overlay-layer {
@@ -34,12 +52,13 @@
         }
 
         .modal-content {
-            border: 1px solid var(--av-red); 
+            border: 2px solid var(--av-red); 
             background: #000; 
             padding: 30px; 
             width: 90%;
             max-width: 500px; 
             text-align: left; 
+            box-shadow: 0 0 30px rgba(255, 59, 59, 0.2);
         }
 
         .threat-header {
@@ -121,7 +140,7 @@
         }
     </style>
 </head>
-<body>
+<body id="avionics-body">
 
     <div id="cockpit-container">
         <header id="status-bar">
