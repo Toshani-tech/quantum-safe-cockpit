@@ -13,7 +13,7 @@ Task: Developed the "System Boot" logic and live telemetry numbers.
 
 Tech: JavaScript (DOM manipulation, setInterval).
 
-Note: I finally got the numbers moving! It felt weird starting at 35,000 FT, so I changed it to 0 FT to simulate a "cold start" takeoff. I had some dumb duplicate functions that were breaking the boot sequence, but I cleared those out. Also tuned the climb rate so you can actually get into the air in under 10 seconds.
+Note: I finally got the numbers moving! It felt weird starting at 35,000 FT, so I changed it to 0 FT to simulate a "cold start" takeoff. I had some  duplicate functions that were breaking the boot sequence, but I cleared those out. Also tuned the climb rate so you can actually get into the air in under 10 seconds.
 
 Day 3: Feb 23, 2026
 
@@ -139,8 +139,19 @@ Task: Global UI Sync, Rust Kernel Link, and (Attempted) Physics Hardening.
 
 Tech: WASM, Rust (security-kernel), CSS Transitions, ARINC-429.
 
-Note: Spent the entire day (3 hours straight) buried in the Rust environment. Got the WASM kernel fully linked for the ML-KEM-1024 handshake, so the security side is rock solid. But the physics? Absolute trash. I’m seeing VVI spikes of 17,000+ FT/M which is basically a suicide dive. I tried using the Rust core for some of the RK (Runge-Kutta) integration to stabilize the flight path, but the math is still tripling over itself. Tomorrow ( and I guess a lot more days) is 100% "Aerodynamics" day. If I don't fix these vertical rate overflows, the whole sim is basically a rocket simulator, not a plane.
+Note: Spent the entire day (3 hours straight) buried in the Rust environment. Got the WASM kernel fully linked for the ML-KEM-1024 handshake, so the security side is rock solid. But the physics? Absolute trash. I’m seeing VVI spikes of 17,000+ FT/M which is basically a suicide dive. I tried using the Rust core for some of the RK (Runge-Kutta) integration to stabilize the flight path, but the math is still tripling over itself. Tomorrow (and I guess a lot more days) is 100% "Aerodynamics" day. If I don't fix these vertical rate overflows, the whole sim is basically a rocket simulator, not a plane.
 
-P.S: Fixed the "visual weight" issue. The Mode and FCC buttons weren't matching the Main Bus ( it was a mess). Now all three snap from Amber to Green at the exact same millisecond. Also patched the Init button so it turns Green the instant you click it—no more weird amber lag while the kernel boots. (Took 15 min max)
+P.S: Fixed the "visual weight" issue. The Mode and FCC buttons weren't matching the Main Bus (it was a mess). Now all three snap from Amber to Green at the exact same millisecond. Also patched the Init button so it turns Green the instant you click it—no more weird amber lag while the kernel boots. (Took 15 min max)
 
 
+Day 16: March 11, 2026
+
+Task: Telemetry Stream Integration, Global State Synchronization, and Physics Stress Testing.
+
+Tech: JavaScript (Modules & Global Scope), CSS (Glass Cockpit UI), ARINC-style Hex Serialization.
+
+Note: Today was a brutal lesson in "State Management." I spent 2 hours fighting with the lattice-engine; it turns red via the console but was refusing to sync with the main mission logic. I thought if I bridged the gap using a global window override, the UI would reflect the security state in real-time. (It didn't. Still gotta fix that) I also finally got the Persistent Hex Stream working—it's now dumping raw ARINC-429 style data words into the sidebar. It looks incredibly industrial, but the sizing was a nightmare; had to hard-code container heights and force the font scale just to make it readable on the flight deck.
+
+On the physics side, I tried to implement the "Climb to Ceiling" throttled ascent logic, but it's a mess. The craft is currently moving like a snail—literally crawling through the air—because my drag coefficients or phase-logic timing is completely off. It's better than the suicide-dives from yesterday, but now it feels like flying through molasses.
+
+P.S: The lattice dots are still pending a final fix. Even though the "red alert" trigger is live, I'm still seeing some green ghosting on the canvas. I’m pretty sure it’s a CSS priority issue or a duplicate canvas element hiding in the root. If I can't kill the green pixels tomorrow, I'm going to have to rewrite the entire draw loop from scratch. 
