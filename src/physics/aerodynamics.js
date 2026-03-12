@@ -1,5 +1,5 @@
 /**
- * aerodynamics.js - V10.5
+ * aerodynamics.js - V11.0 
  */
 
 import { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
@@ -13,7 +13,7 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
     const T_END = 90.0;
     const T_LANDING = 72.0; 
 
-    // 2. Logic phase transitions
+    // 2. Logic phase transitions (The 90-second arc)
     let phase = 'PRE_FLIGHT';
     if (elapsed >= T_END) phase = 'MISSION_COMPLETE';
     else if (elapsed >= T_LANDING) phase = 'FINAL_APPROACH';
@@ -28,53 +28,66 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
         };
     }
 
-    // 3. Autopilot logic
+    
+    // As altitude increases, air density (rho) drops. 
+
+    const rho0 = 1.225; 
+    const rho = rho0 * Math.exp(-alt / 30480); 
+
+    // 4. Autopilot logic 
     let targetPitch = 0; 
     let thrust = 0;
 
     switch (phase) {
         case 'STARTUP_TAXI':
-            thrust = 95; 
+            thrust = 120; 
             targetPitch = 0;
             break;
 
         case 'STEADY_CLIMB':
-            thrust = 260; 
-            targetPitch = v_ias > 115 ? 13.5 : 0; 
+            thrust = 450; 
+            // Climbing at a safe angle; if we go too slow, drop nose to gain speed (Stall protection)
+            targetPitch = v_ias > 120 ? 12.0 : 5.0; 
             break;
 
         case 'ENGAGEMENT_ZONE':
-            thrust = 160; 
-            // Hold altitude at 7500ft
-            targetPitch = (7500 - alt) * 0.006; 
-            targetPitch = Math.max(-6, Math.min(6, targetPitch)); 
+            thrust = 220; // Cruise power
+            
+            const altError = 7500 - alt;
+            targetPitch = altError * 0.004; 
+            targetPitch = Math.max(-5, Math.min(5, targetPitch)); 
             break;
 
         case 'FINAL_APPROACH':
-            thrust = 25; 
-            
-            // DYNAMIC GLIDESLOPE (Sync with Rust Constants)
+            thrust = 45; 
             const secondsLeft = Math.max(0.1, T_END - elapsed);
-            const timeRemainingMin = secondsLeft / 60;
-            const reqVVI = -(alt / timeRemainingMin); // Required FPM
+            const reqVVI = -(alt / (secondsLeft / 60)); 
 
+            // Convert required VVI to a pitch angle based on current speed
             let correlatedPitch = ((reqVVI / 60) / (v_ias * 1.68781)) * (180 / Math.PI);
             
-            if (alt < 70 && alt > 1.5) {
-                targetPitch = 3.5; 
+            if (alt < 50 && alt > 2) {
+                targetPitch = 4.0; 
             } else {
-                targetPitch = Math.max(-14, Math.min(-2, correlatedPitch)); 
+                targetPitch = Math.max(-12, Math.min(-1, correlatedPitch)); 
             }
             break;
     }
 
-    // 4. Forces
-    let inducedDrag = Math.abs(targetPitch) * 0.02;
-    let drag = (v_ias * 0.04) + inducedDrag; 
-    let acceleration = (thrust - drag) * 0.16;
+    // 5. Calculus-Based Force Balance
+    
+    let dragCoefficient = 0.035; 
+    let parasiticDrag = 0.5 * rho * Math.pow(v_ias, 2) * dragCoefficient;
+    let inducedDrag = Math.abs(targetPitch) * 1.5; 
+    
+    let totalDrag = parasiticDrag + inducedDrag;
+    
+    // F = ma -> a = F/m. 
+    let acceleration = (thrust - totalDrag) / 120; 
     let newVel = v_ias + (acceleration * dt);
 
-    // 5.  Calling my True RK4 Rust Kernel
+    
+    // We pass our calculated velocity/pitch into the Rust RK4 step.
     const rustResult = rk4_step(alt, newVel, targetPitch, dt);
 
     if (!rustResult || rustResult.length < 4) {
@@ -84,28 +97,28 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
     let newAlt = rustResult[0];
     let vvi_fpm = rustResult[3];
 
-    // 6. Ground & Friction Physics
+    // 7. Surface Physics 
     if (newAlt <= 0) {
         newAlt = 0;
         vvi_fpm = Math.max(0, vvi_fpm);
         
-        // Rapid deceleration on touchdown
-        if (phase === 'FINAL_APPROACH' || phase === 'MISSION_COMPLETE') {
-            newVel = Math.max(0, newVel - (45 * dt)); 
+        // Ground friction braking
+        if (phase === 'FINAL_APPROACH') {
+            newVel = Math.max(0, newVel - (60 * dt)); 
         }
     }
 
-    // 7. Telemetry Metadata for HUD
+    // 8. Safety Envelope Checks
     let vviDirection = 'LEVEL';
-    if (vvi_fpm > 100) vviDirection = 'UP';
-    if (vvi_fpm < -100) vviDirection = 'DOWN';
+    if (vvi_fpm > 150) vviDirection = 'UP';
+    if (vvi_fpm < -150) vviDirection = 'DOWN';
     
     return {
         altitude: newAlt, 
         airspeed: newVel,
         verticalVelocity: vvi_fpm,
         missionPhase: phase,
-        vviStatus: (vvi_fpm < -3200) ? 'DANGER' : 'NORMAL',
+        vviStatus: (vvi_fpm < -4500) ? 'DANGER' : 'NORMAL', // Structural limit
         vviDirection: vviDirection
     };
 }
