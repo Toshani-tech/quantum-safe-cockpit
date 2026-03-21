@@ -154,4 +154,14 @@ Note: Today was a brutal lesson in "State Management." I spent 2 hours fighting 
 
 On the physics side, I tried to implement the "Climb to Ceiling" throttled ascent logic, but it's a mess. The craft is currently moving like a snail—literally crawling through the air—because my drag coefficients or phase-logic timing is completely off. It's better than the suicide-dives from yesterday, but now it feels like flying through molasses.
 
-P.S: The lattice dots are still pending a final fix. Even though the "red alert" trigger is live, I'm still seeing some green ghosting on the canvas. I’m pretty sure it’s a CSS priority issue or a duplicate canvas element hiding in the root. If I can't kill the green pixels tomorrow, I'm going to have to rewrite the entire draw loop from scratch. 
+P.S: The lattice dots are still pending a final fix. Even though the "red alert" trigger is live, I'm still seeing some green ghosting on the canvas. I’m pretty sure it’s a CSS priority issue or a duplicate canvas element hiding in the root. If I can't kill the green pixels tomorrow, I'm going to have to rewrite the entire draw loop from scratch.  
+
+Day 17: March 21, 2026 
+
+Task: Phase-Logic Synchronization & Visual State Recovery.
+
+Tech: Decoupled Main-Thread Execution, State-Driven UI Synchronicity, and NIST-Standardized ML-KEM Visual Feedback.
+
+Note: Refined the "Aviation Green" recovery logic to ensure the PFD and Lattice Shield revert to nominal colors after a security event. Implemented a triggerAttack(false) hook tied to the 72-second mission milestone (Glideslope). This ensures the UI doesn't remain "stuck" in a critical alert state once the Lattice-Based handshake has successfully neutralized the packet injection. Finally fixed the lattice dots bug. The architecture now uses a centralized body.under attack CSS class toggle, ensuring that all modular components—from the Telemetry Stream to the Physics Canvas stay synchronized without manual color overrides in every function. This type of approach is critical for reducing computational overhead during high-velocity simulation phases.
+
+P.S: I spent a good few hours playing around with the physics engine the entire last 2 weeks, but the telemetry is still going absolutely haywire at high velocities. The integration is drifting way too much. I'm realizing that standard RK-4 (Runge-Kutta) might not be good enough for this simulation. I need to move toward something more calculus-heavy and numerically stable for the aerodynamic vectors. maybe a Velocity Verlet or a higher-order symplectic integrator to keep the flight path from collapsing.
