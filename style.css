@@ -1,6 +1,4 @@
-/**
- * style.css - V17.4 [TACTICAL_GLOW_SYNC]
- */
+/**  V17.5 */
 
 :root {
     --bg: #000000;
@@ -9,6 +7,12 @@
     --av-red: #FF3B3B; 
     --industrial-border: #1a1a1a; 
     --font-main: 'Share Tech Mono', monospace;
+    --lattice-theme: var(--av-green); 
+}
+
+body.under-attack {
+    --lattice-theme: var(--av-red);
+    border: 2px solid var(--av-red);
 }
 
 * { 
@@ -24,6 +28,7 @@ html, body {
     color: var(--av-green);
     font-family: var(--font-main);
     overflow: hidden; 
+    transition: border 0.2s ease;
 }
 
 /* MASTER CONTAINER */
@@ -50,7 +55,7 @@ html, body {
 .status-matrix { display: flex; gap: 20px; align-items: center; }
 .monitor-unit { display: flex; align-items: center; color: #555; }
 
-/* UNIFIED STATUS LIGHTS (LED STYLE) */
+/* LED STYLE */
 .status-light {
     width: 8px; height: 8px;
     background: #1a1a1a; 
@@ -60,19 +65,16 @@ html, body {
     transition: background 0.05s step-end, box-shadow 0.05s step-end;
 }
 
-/* SYNCED HEADERS & MODE TAG */
 #bus-status-text, #fcc-status-text, #security-tag {
-    transition: color 0.05s step-end, text-shadow 0.05s step-end;
+    transition: color 0.05s step-end;
     font-weight: bold;
     letter-spacing: 1px;
 }
-
 
 #security-tag {
     text-transform: uppercase;
 }
 
-#hb-worker { transition: none; }
 .latency-monitor { color: var(--av-amber); font-variant-numeric: tabular-nums; }
 
 /* LAYOUT GRID */
@@ -84,13 +86,14 @@ html, body {
     min-height: 0; 
 }
 
-/* PANEL ARCHITECTURE */
+/* PANEL  */
 .panel {
     display: flex !important;
     flex-direction: column !important;
     background: #000;
     border: 1px solid var(--industrial-border);
     min-height: 0;
+    transition: border-color 0.3s ease;
 }
 
 .panel-header {
@@ -116,6 +119,7 @@ canvas { object-fit: contain; width: 100%; height: 100%; display: block; }
     flex: 1; padding: 10px; font-size: 11px;
     display: flex; flex-direction: column; justify-content: flex-end; 
     color: var(--av-amber); background: #000; overflow: hidden;
+    font-variant-numeric: tabular-nums;
 }
 
 #terminal-box div {
@@ -133,7 +137,6 @@ canvas { object-fit: contain; width: 100%; height: 100%; display: block; }
     font-variant-numeric: tabular-nums; margin-bottom: 5px;
 }
 
-/* FOOTER TRIGGER */
 footer { flex: 0 0 60px; }
 
 #init-btn {
@@ -147,42 +150,25 @@ footer { flex: 0 0 60px; }
     cursor: crosshair;
     transition: none;
     -webkit-font-smoothing: none;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeSpeed;
 }
 
 #init-btn.ready-state {
-    border-color: #444;
-    color: #888;
+    border-color: var(--av-amber);
+    color: var(--av-amber);
 }
 
 #init-btn.active-state {
     background: #000;
     color: var(--av-green) !important;
     font-weight: 900;
-    border: 3px solid var(--av-green) !important;
-    text-shadow: none !important;
-    box-shadow: none !important;
+    border: 2px solid var(--av-green) !important;
 }
 
 #init-btn.critical-state {
     background: var(--av-red);
     color: #000;
-    border: 3px solid var(--av-red);
+    border: 2px solid var(--av-red);
     animation: sharp-blink 0.4s step-end infinite;
-}
-
-#init-btn:hover:not(.active-state) {
-    border-color: #444;
-    color: #444;
-}
-
-/* Modals */
-.overlay-layer {
-    display: none; position: fixed; 
-    top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.96); z-index: 99999; 
-    justify-content: center; align-items: center;
 }
 
 /* ANIMATIONS */
@@ -191,10 +177,10 @@ footer { flex: 0 0 60px; }
     50% { background: #000; color: var(--av-red); }
 }
 
-/* VFX LAYER */
+/* VFX LAYER*/
 #vfx-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-    background-size: 100% 2px;
-    z-index: 9998; pointer-events: none; opacity: 0.1;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%);
+    background-size: 100% 4px;
+    z-index: 9998; pointer-events: none; opacity: 0.2;
 }
