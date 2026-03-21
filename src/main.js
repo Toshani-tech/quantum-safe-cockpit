@@ -1,6 +1,5 @@
 /**
  * main.js - V11.5 
- 
  */
 import init, { encrypt_telemetry } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
@@ -196,7 +195,7 @@ function startRenderLoop() {
         if (state.isTerminated) { state.isLoopRunning = false; return; }
 
         if (state.physicsWorker && state.isMissionActive && !state.securityEventLocked) {
-            // High-frequency handshake
+            // handshake
             state.physicsWorker.postMessage({ sentTime: performance.now() });
         }
 
@@ -261,15 +260,13 @@ function syncVVI(fpm, status, direction) {
     vviLabel.style.color = (status === 'DANGER') ? '#FF3B3B' : '#00FF41';
 }
 
-/**
- *
- Rolling buffer to visualize the ARINC-style bitstream.
- */
+// Rolling buffer to visualize the ARINC-style bitstream.
+ 
 function updateTelemetryStream(alt, vel) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
 
-    // Converting state vectors to Hex format for bit-level monitoring
+    
     const hexAlt = Math.floor(alt).toString(16).toUpperCase().padStart(4, '0');
     const hexVel = Math.floor(vel).toString(16).toUpperCase().padStart(4, '0');
     const timestamp = (performance.now() / 1000).toFixed(2);
@@ -282,7 +279,7 @@ function updateTelemetryStream(alt, vel) {
     </div>`;
 
     state.telemetryLines.push(newLine);
-    if (state.telemetryLines.length > 8) state.telemetryLines.shift(); // Keep scroll clean
+    if (state.telemetryLines.length > 8) state.telemetryLines.shift(); 
 
     hexDisplay.innerHTML = state.telemetryLines.join('');
 }
@@ -296,7 +293,14 @@ function syncPhase(newPhase) {
 }
 
 function handleSecurityLogic(phase) {
-    if (state.securityEventLocked || state.attackLogged) return;
+    if (state.securityEventLocked || state.attackLogged) {
+        // Reset attack state if we move into final approach
+        if (phase === 'FINAL_APPROACH' && state.attackLogged) {
+             triggerAttack(false);
+             state.attackLogged = false; 
+        }
+        return;
+    }
     
     if (phase === 'ENGAGEMENT_ZONE') {
         state.securityEventLocked = true; 
@@ -319,11 +323,12 @@ function runMissionStory(elapsed) {
     const storyMilestones = [
         { t: 4.5, msg: "PHASE: V1_SPEED_REACHED. ROTATING...", color: "#00FF41" },
         { t: 25.0, msg: "AVIONICS: ML-KEM_L5_PROTOCOL_LOCKED", color: "var(--av-amber)" },
-        { t: 75.0, msg: "GUIDANCE: GLIDESLOPE_ESTABLISHED", color: "#00FF41" }
+        { t: 72.0, msg: "GUIDANCE: GLIDESLOPE_ESTABLISHED", color: "#00FF41", triggerReset: true }
     ];
     storyMilestones.forEach(event => {
         if (time >= event.t && !state.triggeredEvents.has(event.t)) {
             logTerminalMessage(event.msg, event.color, "0xLOG");
+            if (event.triggerReset) triggerAttack(false); // Force green on final approach
             state.triggeredEvents.add(event.t);
         }
     });
@@ -333,6 +338,7 @@ function handleMissionComplete() {
     if (state.isTerminated) return;
     state.isTerminated = true;
     state.isMissionActive = false;
+    triggerAttack(false); 
     stopLattice();
     
     updateHeaderStatus('IDLE');
