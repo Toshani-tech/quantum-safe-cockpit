@@ -1,6 +1,5 @@
 /**
  * lattice-engine.js - V7.3
-
  */
 
 let isUnderAttack = false;
@@ -22,7 +21,7 @@ export function triggerAttack(status) {
 }
 
 /**
- * High-performance terminal logger
+ * terminal logger
  */
 export function logTerminalMessage(msg, color = "#00FF41", tag = null) {
     const term = document.getElementById('terminal-box');
@@ -31,7 +30,8 @@ export function logTerminalMessage(msg, color = "#00FF41", tag = null) {
     const p = document.createElement('div');
     const isWarning = msg.includes("!!") || msg.includes("ALERT") || msg.includes("THREAT") || msg.includes("FAILURE");
     
-    let finalColor = isWarning ? "#FF3B3B" : (isSystemArmed ? color : "#FFBF00");
+
+    let finalColor = isWarning ? "#FF3B3B" : (isUnderAttack ? "#FF3B3B" : (isSystemArmed ? color : "#FFBF00"));
 
     const timestamp = (performance.now() / 1000).toFixed(2);
     const signature = tag ? tag : `0x${Math.floor(Math.random() * 0xFFF).toString(16).toUpperCase().padStart(3, '0')}`;
@@ -68,9 +68,8 @@ export async function initHandshake() {
     logTerminalMessage("CRYPTO: KYBER_1024_KEY_EXCHANGE: BUS_SECURE.", "#00FF41");
 }
 
-/**
- * Lattice Geometry Renderer
- */
+// Lattice Geometry Renderer
+ 
 export function drawLattice(canvasId) {
     if (animationRunning) return; 
     killSwitch = false;
