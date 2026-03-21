@@ -17,14 +17,12 @@
             --av-red: #FF3B3B;
             --av-amber: #FFBF00;
             --av-cyan: #00F0FF;
-            /*  variable that JS will override via the class */
             --lattice-theme: var(--av-green); 
         }
 
-        /* --- GLOBAL ALERT STATE --- */
+        /*GLOBAL ALERT STATE */
         
         body.under-attack {
-            --av-green: #FF3B3B; 
             --lattice-theme: var(--av-red);
         }
 
@@ -35,6 +33,11 @@
 
         body.under-attack .panel {
             border-color: var(--av-red) !important;
+        }
+
+        /* Added: Smooth transition for returning to nominal state */
+        body {
+            transition: background-color 0.5s ease;
         }
 
         .overlay-layer {
