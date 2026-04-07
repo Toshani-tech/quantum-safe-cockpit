@@ -1,19 +1,18 @@
-/**
- * physics-worker.js - V11.0
- */
+/* physics-worker.js - V12.1 */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
 import init from '../../security-kernel/pkg/security_kernel.js'; 
 
 let canvasCtx;
 let missionStartTime = 0;
+let lastFrameTime = 0;
 let canvasW = 0;
 let canvasH = 0;
 let dpr = 1; 
 let latestSentTime = 0; 
-let physicsInterval;
+let physicsLoopActive = false;
 
-// Global state tracking for the PFD (Primary Flight Display)
+// PFD 
 let state = {
     altitude: 0,
     airspeed: 0,
@@ -30,15 +29,13 @@ let state = {
 self.onmessage = async function(e) {
     if (e.data.sentTime) latestSentTime = e.data.sentTime;
 
-    // 1. KERNEL BOOTSTRAPPING
-   
     if (e.data.type === 'INIT') {
         const canvas = e.data.canvas;
         dpr = e.data.dpr || 1; 
         canvasW = canvas.width;
         canvasH = canvas.height;
         
-        // ow-latency HUD updates
+      
         canvasCtx = canvas.getContext('2d', { 
             alpha: false, 
             desynchronized: true 
@@ -48,101 +45,100 @@ self.onmessage = async function(e) {
         canvasCtx.scale(dpr, dpr);
 
         try {
-            // Booting the Security (ML-KEM/Lattice-Engine)
             await init();
-            console.log("WORKER_KERNEL: ONLINE [NIST LEVEL 5 SECURITY]");
+            console.log("AVIONICS_KERNEL: NIST-PQC ML-KEM ACTIVE");
             self.postMessage({ type: 'KERNEL_READY' });
         } catch (err) {
-            console.error("CRITICAL_SYSTEM_FAULT: WASM Kernel failed to initialize", err);
-            self.postMessage({ type: 'BUS_IDLE', error: 'WASM_LOAD_FAIL' });
+            console.error("SYSTEM_FAULT: WASM Kernel Failure", err);
         }
     }
     
-    // 2. MISSION CONTROL
     if (e.data.type === 'START_FLIGHT') {
         if (state.isRunning || state.isTerminated) return; 
         state.isRunning = true;
         state.isPaused = false;
-        
         missionStartTime = performance.now();
-        startPhysicsLoop();
-        requestAnimationFrame(renderLoop);
+        lastFrameTime = performance.now();
+        physicsLoopActive = true;
+        runMasterLoop(); 
     }
 
     if (e.data.type === 'PAUSE_FLIGHT') {
         state.isPaused = true;
         state.pausedAt = performance.now();
-        clearInterval(physicsInterval);
+        physicsLoopActive = false;
     }
 
     if (e.data.type === 'RESUME_FLIGHT') {
         if (!state.isPaused || state.isTerminated) return;
         missionStartTime += (performance.now() - state.pausedAt);
+        lastFrameTime = performance.now();
         state.isPaused = false;
-        startPhysicsLoop();
-        requestAnimationFrame(renderLoop);
+        physicsLoopActive = true;
+        runMasterLoop();
     }
 };
 
-/**
- *  RK4 KINEMATIC INTEGRATION
- * We run this at 16.6ms (60Hz) to match the avionics display refresh rate.
- */
-function startPhysicsLoop() {
-    const DT = 0.0166; 
-    physicsInterval = setInterval(() => {
-        if (state.isPaused || state.isTerminated) return;
+/* MASTER AVIONICS LOOP  */
+function runMasterLoop() {
+    if (!physicsLoopActive || state.isTerminated) return;
 
-        const elapsed = (performance.now() - missionStartTime) / 1000;
+    const now = performance.now();
+    // Delta Time calculation 
+    const dt = (now - lastFrameTime) / 1000;
+    lastFrameTime = now;
 
-        try {
-            // Processing Aerodynamics through the Calculus-based Governor
-            const result = calculateFlightDynamics(state, DT, elapsed);
-            
-            if (result) {
-                state.altitude = result.altitude; 
-                state.airspeed = result.airspeed;
-                state.missionPhase = result.missionPhase;
-                state.vviStatus = result.vviStatus;
-                state.vviDirection = result.vviDirection;
-                
-                // DATA DAMPING: 
-                // Implementing a weighted moving average (0.7/0.3) to prevent 'jitter' 
-        
-                state.verticalVelocity = (state.verticalVelocity * 0.7) + (result.verticalVelocity * 0.3); 
-            }
-        } catch (err) {
-            console.error("AVIONICS_BUS_ERROR: Physics step failed", err);
-        }
+    const elapsed = (now - missionStartTime) / 1000;
 
-        // Automatic mission termination at the 90-second ceiling
-        if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
-            terminateMission();
-        }
+    // 1. Physics Step (Calculus Governor)
+    
+    const cappedDt = Math.min(dt, 0.033); 
+    updatePhysics(cappedDt, elapsed);
 
-        // TELEMETRY UPLINK
-        self.postMessage({ 
-            type: 'TELEMETRY', 
-            altitude: state.altitude,
-            airspeed: state.airspeed,
-            verticalVelocity: state.verticalVelocity,
-            missionPhase: state.missionPhase,
-            vviStatus: state.vviStatus,
-            vviDirection: state.vviDirection,
-            elapsed: elapsed.toFixed(2),
-            sentTime: latestSentTime 
-        });
-    }, 16.6);
+    // 2. Render Step 
+    if (canvasCtx) drawPFD();
+
+    // 3. Telemetry Broadcast 
+    broadcastTelemetry(elapsed);
+
+    // 4. Mission Termination Control
+    if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
+        terminateMission();
+    } else {
+        requestAnimationFrame(runMasterLoop);
+    }
 }
 
-function renderLoop() {
-    if (state.isTerminated) return;
-    if (canvasCtx) drawPFD();
-    if (!state.isPaused) requestAnimationFrame(renderLoop);
+function updatePhysics(dt, elapsed) {
+    try {
+        const result = calculateFlightDynamics(state, dt, elapsed);
+        
+        if (result) {
+            state.altitude = result.altitude; 
+            state.airspeed = result.airspeed;
+            state.missionPhase = result.missionPhase;
+            state.vviStatus = result.vviStatus;
+            state.vviDirection = result.vviDirection;
+            
+            // Industrial Damping
+            state.verticalVelocity = (state.verticalVelocity * 0.9) + (result.verticalVelocity * 0.1); 
+        }
+    } catch (err) {
+        console.error("PHYSICS_CORE_EXCEPTION", err);
+    }
+}
+
+function broadcastTelemetry(elapsed) {
+    self.postMessage({ 
+        type: 'TELEMETRY', 
+        ...state,
+        elapsed: elapsed.toFixed(2),
+        sentTime: latestSentTime 
+    });
 }
 
 function terminateMission() {
-    clearInterval(physicsInterval);
+    physicsLoopActive = false;
     state.isRunning = false;
     state.isTerminated = true; 
     state.missionPhase = 'MISSION_COMPLETE';
@@ -150,118 +146,110 @@ function terminateMission() {
     self.postMessage({ type: 'BUS_IDLE' });
 }
 
-/**
- * INDUSTRIAL GLASS COCKPIT
- */
+/** GLASS COCKPIT - RENDERING ENGINE **/ 
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
     const h = canvasH / dpr; 
     
-    ctx.fillStyle = "#010101"; 
+    ctx.fillStyle = "#050505"; 
     ctx.fillRect(0, 0, w, h);
 
-    // PPU (Pixels Per Unit) 
-    const altPPU = h / 600; 
-    const spdPPU = h / 200;  
+    // Pixels scaling 
+    const altPPU = h / 800; 
+    const spdPPU = h / 250;  
 
     drawStaticHorizon(ctx, w, h);
     
-    // TAPE 1: AIRSPEED (IAS)
-    drawVerticalTape(ctx, state.airspeed, 5, 65, "SPD", 20, "#00FF41", spdPPU);
+    // Primary Flight Tapes
+    drawVerticalTape(ctx, state.airspeed, 10, 70, "SPD", 20, "#00FF41", spdPPU);
+    drawVerticalTape(ctx, state.altitude, w - 80, 70, "ALT", 100, "#00FF41", altPPU);
     
-    // TAPE 2: ALTITUDE (MSL)
-    drawVerticalTape(ctx, state.altitude, w - 70, 70, "ALT", 100, "#00FF41", altPPU);
-    
-    // INDICATOR: VVI (Vertical Velocity Indicator)
+    // Status Overlays
+ctx.save();
+ctx.fillStyle = "rgba(255, 180, 0, 0.95)"; 
+ctx.font = "bold 10px 'Share Tech Mono'";
+ctx.textAlign = "center";
+ctx.fillText("IFF_MODE_5: CRYPTO_ID_0x8842", w/2, 35); 
+ctx.restore();
     drawVVI(ctx, w, h, state.verticalVelocity, state.vviStatus, state.vviDirection);
 }
 
-/**
- *  VERTICAL TAPES
- */
 function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     const h = canvasH / dpr;
     const centerY = h / 2;
     
     ctx.save();
     ctx.beginPath();
-    ctx.rect(x, 10, width, h - 20); // Clipping path for the tape window
+    ctx.rect(x, 15, width, h - 30);
     ctx.clip(); 
-    
-    ctx.fillStyle = "rgba(5, 5, 5, 0.9)";
-    ctx.fillRect(x, 0, width, h);
     
     ctx.strokeStyle = themeColor;
     ctx.fillStyle = themeColor;
-    ctx.font = "11px 'Share Tech Mono'";
+    ctx.font = "10px 'Share Tech Mono'";
 
     const range = (h / 2) / ppu;
     const firstTick = Math.floor((value - range) / step) * step;
     const lastTick = Math.ceil((value + range) / step) * step;
 
     for (let i = firstTick; i <= lastTick; i += step) {
-        if (i < 0 && label === "ALT") continue;
         const y = centerY - (i - value) * ppu;
+        // Fade ticks 
+        ctx.globalAlpha = Math.max(0, 1 - (Math.abs(y - centerY) / (h / 2.5))); 
         
         ctx.beginPath();
-        // Fading edges 
-        ctx.globalAlpha = Math.max(0, 1.1 - (Math.abs(y - centerY) / (h / 2))); 
-        
         if (label === "SPD") {
-            ctx.moveTo(x + width, y); ctx.lineTo(x + width - 8, y);
-            ctx.textAlign = "right";
-            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + width - 12, y + 4);
+            ctx.moveTo(x + width, y); ctx.lineTo(x + width - 10, y);
+            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + width - 15, y + 4);
         } else {
-            ctx.moveTo(x, y); ctx.lineTo(x + 8, y); 
-            ctx.textAlign = "left";
-            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + 12, y + 4);
+            ctx.moveTo(x, y); ctx.lineTo(x + 10, y); 
+            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + 15, y + 4);
         }
         ctx.stroke();
     }
     ctx.restore();
 
-    // The 'Digital Readout' Box 
+    // Central Digital Readout
+    ctx.globalAlpha = 1;
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
-    ctx.globalAlpha = 1;
-    ctx.fillRect(x - 2, centerY - 12, width + 4, 24);
-    ctx.strokeRect(x - 2, centerY - 12, width + 4, 24);
+    ctx.lineWidth = 1;
+    ctx.fillRect(x - 5, centerY - 12, width + 10, 24);
+    ctx.strokeRect(x - 5, centerY - 12, width + 10, 24);
     
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 13px 'Share Tech Mono'";
+    ctx.font = "14px 'Share Tech Mono'";
     ctx.textAlign = "center";
-    ctx.fillText(Math.round(value).toString(), x + width / 2, centerY + 5);
+    ctx.fillText(Math.round(value), x + width / 2, centerY + 5);
 }
 
 function drawVVI(ctx, w, h, vvi, status, direction) {
-    // Visual warning if descent rate is dangerous
-    const color = (status === 'DANGER') ? "#FF3030" : "#00FF41";
-    ctx.fillStyle = "rgba(0,0,0,0.85)";
-    ctx.fillRect(w/2 - 60, h - 45, 120, 30);
+    const color = (status === 'CRITICAL') ? "#FF3030" : (status === 'CAUTION') ? "#FFD700" : "#00FF41";
+    
+    ctx.fillStyle = "rgba(0,0,0,0.9)";
     ctx.strokeStyle = color;
-    ctx.strokeRect(w/2 - 60, h - 45, 120, 30);
+    ctx.lineWidth = 1;
+    ctx.fillRect(w/2 - 65, h - 50, 130, 35);
+    ctx.strokeRect(w/2 - 65, h - 50, 130, 35);
     
     ctx.fillStyle = color;
-    ctx.font = "12px 'Share Tech Mono'";
+    ctx.font = "11px 'Share Tech Mono'";
     ctx.textAlign = "center";
-    let arrow = "―";
-    if (direction === 'UP') arrow = "▲";
-    if (direction === 'DOWN') arrow = "▼";
-    ctx.fillText(`${arrow} VVI: ${Math.abs(Math.round(vvi))} FT/M`, w / 2, h - 25);
+    let glyph = direction === 'UP' ? "▲" : direction === 'DOWN' ? "▼" : "•";
+    ctx.fillText(`${glyph} VVI: ${Math.abs(Math.round(vvi))} FPM`, w / 2, h - 28);
 }
 
 function drawStaticHorizon(ctx, w, h) {
     const midX = w / 2;
     const midY = h / 2;
-    ctx.strokeStyle = "#1a1a1a";
-    ctx.strokeRect(75, 10, w - 150, h - 20);
+    ctx.strokeStyle = "rgba(0, 255, 65, 0.2)";
+    ctx.strokeRect(85, 15, w - 170, h - 30);
     
-    //  Waterline
+    // Bore sight 
     ctx.strokeStyle = "#00FF41"; 
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(midX - 35, midY); ctx.lineTo(midX - 10, midY); ctx.lineTo(midX - 10, midY + 5);
-    ctx.moveTo(midX + 35, midY); ctx.lineTo(midX + 10, midY); ctx.lineTo(midX + 10, midY + 5);
+    ctx.moveTo(midX - 30, midY); ctx.lineTo(midX - 10, midY); ctx.lineTo(midX - 10, midY + 5);
+    ctx.moveTo(midX + 30, midY); ctx.lineTo(midX + 10, midY); ctx.lineTo(midX + 10, midY + 5);
     ctx.stroke();
 }
