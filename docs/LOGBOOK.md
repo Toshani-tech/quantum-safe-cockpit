@@ -5,7 +5,7 @@ Task: Built the basic cockpit layout and integrated the PQC security status bar.
 
 Tech: HTML/CSS, "Glass Cockpit" aesthetic.
 
-Note: I spent today just trying to get the "vibe" right. I want it to look like a high-tech flight display, not a basic website. I focused on the security bar first because I want the user to see that "AI-monitoring" state as soon as they boot it up.
+Note: I spent today just trying to get the "vibe" right. I want it to look like a high tech flight display, not a basic website. I focused on the security bar first because I want the user to see that "AI-monitoring" state as soon as they boot it up.
 
 Day 2: Feb 22, 2026
 
@@ -21,7 +21,7 @@ Task: Re-engineered the UI into a 3-column PFD and built the Security Terminal.
 
 Tech: CSS Grid, JavaScript (setTimeout, DOM injection).
 
-Note: The 3-column layout makes it look way more professional—more like a real Primary Flight Display (PFD). I added a "Safety Amber" log to show the lattice handshake happening. I also made sure the airspeed actually matches the altitude gain, capping it at 450 KTS so it feels like a real jet and not a rocket ship.
+Note: The 3-column layout makes it look way more professional more like a real Primary Flight Display (PFD). I added a "Safety Amber" log to show the lattice handshake happening. I also made sure the airspeed actually matches the altitude gain, capping it at 450 KTS so it feels like a real jet and not a rocket ship.
 
 Day 4: Feb 24, 2026
 
@@ -39,7 +39,7 @@ Task: Multithreaded System Init (POST) and Binary "Black Box" Recording.
 
 Tech: Web Workers API, ArrayBuffer & DataView, OffscreenCanvas.
 
-Note: I decided to kill the "kid-coded" look and go full industrial. I moved the physics and rendering to a Web Worker so the UI has zero lag. I also built a "Black Box" using raw ArrayBuffers—it stores data as bits instead of normal arrays, which is exactly how real flight recorders in a Boeing or Airbus work.
+Note: I decided to kill the "kid-coded" look and go full industrial. I moved the physics and rendering to a Web Worker so the UI has zero lag. I also built a "Black Box" using raw ArrayBuffers, it stores data as bits instead of normal arrays, which is exactly how real flight recorders in a Boeing or Airbus work.
 
 P.S (The Bug): Took an hour to find a "Race Condition." I tried to draw on the canvas from the main thread after I already gave control to the worker. Now I have a "handshake" where the main thread knows it's locked out of the pixels. True hardware separation!
 
@@ -49,7 +49,7 @@ Task: Developed Industrial PFD Tapes and Diagnostic Logging.
 
 Tech: HTML5 Canvas (Linear Interpolation), CSS Grid, NIST ML-KEM Logic.
 
-Note: Finally replaced the static text with scrolling Altitude and Airspeed Tapes. It makes the pilot much more aware of the "trend" of the flight. I also added annotations so you can actually tell why the screen is flickering—it's not a glitch, it's the system re-keying in response to a breach.
+Note: Finally replaced the static text with scrolling Altitude and Airspeed Tapes. It makes the pilot much more aware of the "trend" of the flight. I also added annotations so you can actually tell why the screen is flickering, it's not a glitch, it's the system re-keying in response to a breach.
 
 P.S (The Bug): Fixed a "Visual Hallucination" in 35 minutes. The terminal logs were getting so long they pushed my footer off the screen and made the whole UI "bounce." I forced a "Hard Bezel Lock" so the logs scroll inside a fixed space instead of stretching the display.
 
@@ -69,7 +69,7 @@ Task: Hardened Aerodynamics and Fixed Temporal Syncing.
 
 Tech: Thrust Spooling (LERP), Y-Axis Inversion, Frame-Rate Clamping.
 
-Note: I refactored the physics to feel like a real simulation. Engines don't just hit max thrust instantly, so I added "spooling." I also fixed a Y-coordinate bug where climbing actually looked like falling on the screen—fixed that mapping real quick.
+Note: I refactored the physics to feel like a real simulation. Engines don't just hit max thrust instantly, so I added "spooling." I also fixed a Y-coordinate bug where climbing actually looked like falling on the screen, fixed that mapping real quick.
 
 P.S (The Bug): This one took over 3 hours. The altitude tapes were "vibrating" or stuttering during the climb even though the math was right. It was "Temporal Aliasing"—the UI and Physics threads weren't perfectly in sync. I fixed it by using LERP (Linear Interpolation) to smooth out the bars between data packets. It finally looks like a pro HUD.
 
@@ -150,7 +150,7 @@ Task: Telemetry Stream Integration, Global State Synchronization, and Physics St
 
 Tech: JavaScript (Modules & Global Scope), CSS (Glass Cockpit UI), ARINC-style Hex Serialization.
 
-Note: Today was a brutal lesson in "State Management." I spent 2 hours fighting with the lattice-engine; it turns red via the console but was refusing to sync with the main mission logic. I thought if I bridged the gap using a global window override, the UI would reflect the security state in real-time. (It didn't. Still gotta fix that) I also finally got the Persistent Hex Stream working—it's now dumping raw ARINC-429 style data words into the sidebar. It looks incredibly industrial, but the sizing was a nightmare; had to hard-code container heights and force the font scale just to make it readable on the flight deck.
+Note: Today was a brutal lesson in "State Management." I spent 2 hours fighting with the lattice-engine; it turns red via the console but was refusing to sync with the main mission logic. I thought if I bridged the gap using a global window override, the UI would reflect the security state in real-time. (It didn't. Still gotta fix that) I also finally got the Persistent Hex Stream working, it's now dumping raw ARINC-429 style data words into the sidebar. It looks incredibly industrial, but the sizing was a nightmare; had to hard-code container heights and force the font scale just to make it readable on the flight deck.
 
 On the physics side, I tried to implement the "Climb to Ceiling" throttled ascent logic, but it's a mess. The craft is currently moving like a snail—literally crawling through the air—because my drag coefficients or phase-logic timing is completely off. It's better than the suicide-dives from yesterday, but now it feels like flying through molasses.
 
@@ -162,6 +162,6 @@ Task: Phase-Logic Synchronization & Visual State Recovery.
 
 Tech: Decoupled Main-Thread Execution, State-Driven UI Synchronicity, and NIST-Standardized ML-KEM Visual Feedback.
 
-Note: Refined the "Aviation Green" recovery logic to ensure the PFD and Lattice Shield revert to nominal colors after a security event. Implemented a triggerAttack(false) hook tied to the 72-second mission milestone (Glideslope). This ensures the UI doesn't remain "stuck" in a critical alert state once the Lattice-Based handshake has successfully neutralized the packet injection. Finally fixed the lattice dots bug. The architecture now uses a centralized body.under attack CSS class toggle, ensuring that all modular components—from the Telemetry Stream to the Physics Canvas stay synchronized without manual color overrides in every function. This type of approach is critical for reducing computational overhead during high-velocity simulation phases.
+Note: Refined the "Aviation Green" recovery logic to ensure the PFD and Lattice Shield revert to nominal colors after a security event. Implemented a triggerAttack(false) hook tied to the 72-second mission milestone (Glideslope). This ensures the UI doesn't remain "stuck" in a critical alert state once the Lattice-Based handshake has successfully neutralized the packet injection. Finally fixed the lattice dots bug. The architecture now uses a centralized body.under attack CSS class toggle, ensuring that all modular components from the Telemetry Stream to the Physics Canvas stay synchronized without manual color overrides in every function. This type of approach is critical for reducing computational overhead during high velocity simulation phases.
 
 P.S: I spent a good few hours playing around with the physics engine the entire last 2 weeks, but the telemetry is still going absolutely haywire at high velocities. The integration is drifting way too much. I'm realizing that standard RK-4 (Runge-Kutta) might not be good enough for this simulation. I need to move toward something more calculus-heavy and numerically stable for the aerodynamic vectors. maybe a Velocity Verlet or a higher-order symplectic integrator to keep the flight path from collapsing.
