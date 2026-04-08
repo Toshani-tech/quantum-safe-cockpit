@@ -1,115 +1,94 @@
-/**
- * aerodynamics.js - V12.1 
- */
-
 import { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
 
+let actualPitch = 0; 
+
 export function calculateFlightDynamics(state, deltaTime, elapsed) {
-    // 1. Telemetry 
     let alt = parseFloat(state.altitude) || 0;
     let v_ias = parseFloat(state.airspeed) || 0;
-    const dt = deltaTime; 
     
-    // Timeline Constants 
-    const T_END = 90.0;
-    // UPDATED: Started descent earlier to allow for a realistic glide path
-    const T_LANDING = 60.0; 
+    if (isNaN(alt)) alt = 0;
+    if (isNaN(v_ias)) v_ias = 0;
 
-    // 2. Mission Phase State Machine
+    const dt = Math.min(deltaTime, 0.03); 
+    
+    const T_END = 90.0;
+    const T_APPROACH = 60.0; 
+    const T_ENGAGEMENT = 35.0; 
+    const T_CLIMB = 8.0;     
+
     let phase = 'PRE_FLIGHT';
     if (elapsed >= T_END) phase = 'MISSION_COMPLETE';
-    else if (elapsed >= T_LANDING) phase = 'FINAL_APPROACH';
-    else if (elapsed >= 25.0) phase = 'ENGAGEMENT_ZONE';
-    else if (elapsed >= 5.0) phase = 'STEADY_CLIMB';
+    else if (elapsed >= T_APPROACH) phase = 'FINAL_APPROACH';
+    else if (elapsed >= T_ENGAGEMENT) phase = 'ENGAGEMENT_ZONE';
+    else if (elapsed >= T_CLIMB) phase = 'STEADY_CLIMB';
     else if (elapsed > 0) phase = 'STARTUP_TAXI';
 
     if (phase === 'MISSION_COMPLETE') {
         return { altitude: 0, airspeed: 0, verticalVelocity: 0, missionPhase: 'MISSION_COMPLETE' };
     }
 
-    // 3. ISA Atmospheric Model
-    const rho0 = 1.225; 
-    const rho = rho0 * Math.exp(-alt / 8500); 
-
-    // 4. Flight Control Logic 
+    const rho = 1.225 * Math.exp(-alt / 8500); 
     let targetPitch = 0; 
     let thrust = 0;
 
     switch (phase) {
         case 'STARTUP_TAXI':
-            thrust = 150; 
+            thrust = 2800;
             targetPitch = 0;
             break;
-
         case 'STEADY_CLIMB':
-            thrust = 550; 
-            targetPitch = v_ias > 140 ? 15.0 : 8.0; 
+            thrust = 2400; 
+            targetPitch = (alt < 1000) ? 15.0 : 7.0; 
             break;
-
         case 'ENGAGEMENT_ZONE':
-            thrust = 350; 
-           
-            const altError = 5000 - alt;
-            targetPitch = altError * 0.002; 
-            targetPitch = Math.max(-3, Math.min(10, targetPitch)); 
+            thrust = 1100; 
+            targetPitch = Math.max(-8, Math.min(8, (1400 - alt) * 0.008)); 
             break;
-
         case 'FINAL_APPROACH':
-            thrust = 60; 
-            const secondsToImpact = Math.max(0.1, T_END - elapsed);
-            // Glideslope calculation
-            const reqVVI = -(alt / (secondsToImpact / 60)); 
-            let correlatedPitch = ((reqVVI / 60) / (Math.max(1, v_ias) * 1.68781)) * (180 / Math.PI);
-            
-            // Standard Landing logic
-            targetPitch = (alt < 50) ? 3.0 : Math.max(-12, Math.min(-1, correlatedPitch)); 
+            thrust = 30; 
+            const timeRem = Math.max(0.1, T_END - elapsed);
+            const reqVVI = -(alt / (timeRem / 60)) * 1.05; 
+            let pitchCmd = (reqVVI / (Math.max(40, v_ias) * 101.2)); 
+            if (alt < 10 && alt > 0) {
+                targetPitch = 2.0; 
+                thrust = 0;
+            } else {
+                targetPitch = Math.max(-18.0, Math.min(2, pitchCmd * 57.3)); 
+            }
             break;
     }
 
-    // 5. Velocity Verlet Implementation
-    const mass = 150;
-    const dragCoeff = 0.025;
-    
-    // Calculate Forces 
-    let q = 0.5 * rho * Math.pow(v_ias, 2); 
-    let totalDrag = (q * dragCoeff) + (Math.abs(targetPitch) * 2.1);
-    
-    // a = F/m
-    let accel_t = (thrust - totalDrag) / mass;
+    const maxDelta = 8.0 * dt; 
+    actualPitch += Math.max(-maxDelta, Math.min(maxDelta, targetPitch - actualPitch));
 
-    // Verlet Integration Start 
+    const mass = 150;
+    let q = 0.5 * rho * Math.pow(v_ias, 2); 
+    let accel_t = (thrust - ((q * 0.038) + (Math.abs(actualPitch) * 5.2))) / mass;
     let v_mid = v_ias + (accel_t * (dt * 0.5));
     
-    const rustResult = rk4_step(alt, v_mid, targetPitch, dt);
-
-    if (!rustResult || rustResult.length < 4) return { ...state, missionPhase: phase };
+    const rustResult = rk4_step(alt, v_mid, actualPitch, dt);
+    if (!rustResult || isNaN(rustResult[0])) return { ...state, missionPhase: phase };
 
     let newAlt = rustResult[0];
-    let vvi_fpm = rustResult[3];
-    
-    // Calculate new acceleration for velocity 
-    let new_q = 0.5 * rho * Math.pow(v_mid, 2);
-    let accel_next = (thrust - ((new_q * dragCoeff) + (Math.abs(targetPitch) * 2.1))) / mass;
-    
-    // Final Velocity Step
+    let vvi_fpm = rustResult[3]; 
+    let accel_next = (thrust - ((0.5 * rho * Math.pow(Math.max(0, v_mid), 2) * 0.038) + (Math.abs(actualPitch) * 5.2))) / mass;
     let newVel = v_mid + (accel_next * (dt * 0.5));
     
-    // 6. Ground  Safety
-    if (newAlt <= 0) {
+    if (newAlt <= 10.0 && phase === 'FINAL_APPROACH' && elapsed > 88.0) {
         newAlt = 0;
-        vvi_fpm = Math.max(0, vvi_fpm);
-        //  friction
-        if (phase === 'FINAL_APPROACH' || phase === 'MISSION_COMPLETE') {
-            newVel = Math.max(0, newVel - (50 * dt)); 
-        }
+        newVel = Math.max(0, newVel - (120 * dt));
+        vvi_fpm = 0;
+    } else if (newAlt <= 0.1) {
+        newAlt = 0;
+        vvi_fpm = 0;
     }
 
     return {
-        altitude: newAlt, 
-        airspeed: newVel,
+        altitude: isNaN(newAlt) ? 0 : newAlt, 
+        airspeed: isNaN(newVel) ? 0 : newVel,
         verticalVelocity: vvi_fpm,
         missionPhase: phase,
-        vviStatus: (vvi_fpm < -5000) ? 'CRITICAL' : (vvi_fpm < -3500) ? 'CAUTION' : 'NORMAL',
+        vviStatus: (vvi_fpm < -2500) ? 'CRITICAL' : (vvi_fpm < -1500) ? 'CAUTION' : 'NORMAL',
         vviDirection: vvi_fpm > 100 ? 'UP' : vvi_fpm < -100 ? 'DOWN' : 'LEVEL'
     };
 }
