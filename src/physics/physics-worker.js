@@ -1,4 +1,4 @@
-/* physics-worker.js - V12.1 */
+/* physics-worker.js - V12.5  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
 import init from '../../security-kernel/pkg/security_kernel.js'; 
@@ -12,7 +12,6 @@ let dpr = 1;
 let latestSentTime = 0; 
 let physicsLoopActive = false;
 
-// PFD 
 let state = {
     altitude: 0,
     airspeed: 0,
@@ -35,7 +34,6 @@ self.onmessage = async function(e) {
         canvasW = canvas.width;
         canvasH = canvas.height;
         
-      
         canvasCtx = canvas.getContext('2d', { 
             alpha: false, 
             desynchronized: true 
@@ -79,30 +77,29 @@ self.onmessage = async function(e) {
     }
 };
 
-/* MASTER AVIONICS LOOP  */
 function runMasterLoop() {
     if (!physicsLoopActive || state.isTerminated) return;
 
     const now = performance.now();
-    // Delta Time calculation 
-    const dt = (now - lastFrameTime) / 1000;
+    let dt = (now - lastFrameTime) / 1000;
     lastFrameTime = now;
 
     const elapsed = (now - missionStartTime) / 1000;
 
-    // 1. Physics Step (Calculus Governor)
+    const stepSize = 0.01; 
+    let accumulatedTime = dt;
     
-    const cappedDt = Math.min(dt, 0.033); 
-    updatePhysics(cappedDt, elapsed);
+    while (accumulatedTime > 0) {
+        let step = Math.min(accumulatedTime, stepSize);
+        updatePhysics(step, elapsed - accumulatedTime + step);
+        accumulatedTime -= step;
+    }
 
-    // 2. Render Step 
     if (canvasCtx) drawPFD();
 
-    // 3. Telemetry Broadcast 
     broadcastTelemetry(elapsed);
 
-    // 4. Mission Termination Control
-    if (elapsed >= 90.0 || state.missionPhase === 'MISSION_COMPLETE') {
+    if (elapsed >= 90.0) {
         terminateMission();
     } else {
         requestAnimationFrame(runMasterLoop);
@@ -120,8 +117,7 @@ function updatePhysics(dt, elapsed) {
             state.vviStatus = result.vviStatus;
             state.vviDirection = result.vviDirection;
             
-            // Industrial Damping
-            state.verticalVelocity = (state.verticalVelocity * 0.9) + (result.verticalVelocity * 0.1); 
+            state.verticalVelocity = (state.verticalVelocity * 0.90) + (result.verticalVelocity * 0.10); 
         }
     } catch (err) {
         console.error("PHYSICS_CORE_EXCEPTION", err);
@@ -138,6 +134,9 @@ function broadcastTelemetry(elapsed) {
 }
 
 function terminateMission() {
+    state.altitude = 0;
+    state.verticalVelocity = 0;
+    state.airspeed = 0;
     physicsLoopActive = false;
     state.isRunning = false;
     state.isTerminated = true; 
@@ -146,7 +145,7 @@ function terminateMission() {
     self.postMessage({ type: 'BUS_IDLE' });
 }
 
-/** GLASS COCKPIT - RENDERING ENGINE **/ 
+/* GLASS COCKPIT RENDERING */ 
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
@@ -155,23 +154,22 @@ function drawPFD() {
     ctx.fillStyle = "#050505"; 
     ctx.fillRect(0, 0, w, h);
 
-    // Pixels scaling 
-    const altPPU = h / 800; 
-    const spdPPU = h / 250;  
+    const altPPU = h / 850; 
+    const spdPPU = h / 280;  
 
     drawStaticHorizon(ctx, w, h);
     
-    // Primary Flight Tapes
     drawVerticalTape(ctx, state.airspeed, 10, 70, "SPD", 20, "#00FF41", spdPPU);
     drawVerticalTape(ctx, state.altitude, w - 80, 70, "ALT", 100, "#00FF41", altPPU);
     
-    // Status Overlays
-ctx.save();
-ctx.fillStyle = "rgba(255, 180, 0, 0.95)"; 
-ctx.font = "bold 10px 'Share Tech Mono'";
-ctx.textAlign = "center";
-ctx.fillText("IFF_MODE_5: CRYPTO_ID_0x8842", w/2, 35); 
-ctx.restore();
+    // AUTH HEADER
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 255, 65, 0.9)"; 
+    ctx.font = "bold 10px 'Share Tech Mono'";
+    ctx.textAlign = "center";
+    ctx.fillText("IFF_MODE_5:CRYPTO_ID_0x8842", w / 2, 35);
+    ctx.restore();
+
     drawVVI(ctx, w, h, state.verticalVelocity, state.vviStatus, state.vviDirection);
 }
 
@@ -194,22 +192,20 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
 
     for (let i = firstTick; i <= lastTick; i += step) {
         const y = centerY - (i - value) * ppu;
-        // Fade ticks 
         ctx.globalAlpha = Math.max(0, 1 - (Math.abs(y - centerY) / (h / 2.5))); 
         
         ctx.beginPath();
         if (label === "SPD") {
             ctx.moveTo(x + width, y); ctx.lineTo(x + width - 10, y);
-            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + width - 15, y + 4);
+            if (i % (step * 2) === 0 && i >= 0) ctx.fillText(i.toString(), x + width - 15, y + 4);
         } else {
             ctx.moveTo(x, y); ctx.lineTo(x + 10, y); 
-            if (i % (step * 2) === 0) ctx.fillText(i.toString(), x + 15, y + 4);
+            if (i % (step * 2) === 0 && i >= 0) ctx.fillText(i.toString(), x + 15, y + 4);
         }
         ctx.stroke();
     }
     ctx.restore();
 
-    // Central Digital Readout
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
@@ -245,7 +241,6 @@ function drawStaticHorizon(ctx, w, h) {
     ctx.strokeStyle = "rgba(0, 255, 65, 0.2)";
     ctx.strokeRect(85, 15, w - 170, h - 30);
     
-    // Bore sight 
     ctx.strokeStyle = "#00FF41"; 
     ctx.lineWidth = 1.5;
     ctx.beginPath();
