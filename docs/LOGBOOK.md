@@ -176,3 +176,13 @@ Tech: Rust (Verlet Integration), JavaScript (Web Workers), HTML5 Canvas.
 Note: Today was focused entirely on Physics, which I finally managed to fix. I transitioned the core movement logic to a Velocity verlet Integrator in the Rust security kernel to ensure numerical stability during high-speed maneuvers. I ran multiple flight tests to verify the Energy Exchange ensuring that as the UAV climbs (increasing Potential Energy), the Airspeed (Kinetic Energy) reacts realistically based on thrust.
 
 P.S: Encountered a minor "energy leak" where the altitude would drift even at zero VVI; resolved this by tightening the Euler to Verlet integration delta and normalizing the dt (Delta-Time) governor to prevent frame rate induced physics spikes (Took over 2 hours). Final FDR logs finally show mathematical consistency across the 90-second mission profile. 
+
+Day 19: April 8, 2026 
+
+Task: Hardening Flight Dynamics and Precision Landing logic.
+
+Tech: Decoupled Main-Thread Execution, RK4 Integration (Rust Kernel), Slew-Rate Limited Pitch Control.
+
+Note: transformed the flight model from a discrete-state simulation to a continuous inertial model. The core focus was on resolving the "Physics Jerk" during phase transitions. By implementing a Slew-Rate Limited Pitch Controller, I forced the airframe to respect  inertia, limiting nose rotation. This ensured that the VVI curves naturally rather than jumping instantly.Additionally, I refined the FINAL_APPROACH phase with a "Ground Snap" logic to ensure the Flight Data Recorder (FDR) consistently logs a 0.00 FT touchdown at the 90-second mission mark.
+
+P.S: Discovered a "Square Wave" bug in the VVI telemetry where the sink rate was teleporting between values. Resolved this by decoupling the targetPitch (the goal) from the actualPitch (the physical state), preventing the drone from executing non-physical 10G maneuvers. (Took close to 3 hours) 
