@@ -1,7 +1,7 @@
 /**
  * main.js - V11.5 
  */
-import init, { encrypt_telemetry } from '../security-kernel/pkg/security_kernel.js';
+import init, { execute_pqc_handshake } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 
 const state = {
