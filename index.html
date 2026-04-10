@@ -35,9 +35,13 @@
             border-color: var(--av-red) !important;
         }
 
-        /* Added: Smooth transition for returning to nominal state */
+       
         body {
             transition: background-color 0.5s ease;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            overflow: hidden;
         }
 
         .overlay-layer {
@@ -203,7 +207,7 @@
                     </div>
                     <div id="safety-calc">
                         INTEGRITY_STAT: <span id="integrity-status" style="color: var(--av-green)">NOMINAL</span><br>
-                        ERR_RATE: 0.00000%
+                        BER_RATE: <span id="ber-value" style="color: var(--av-amber)">0.00e-00</span>
                     </div>
                 </div>
             </section>
