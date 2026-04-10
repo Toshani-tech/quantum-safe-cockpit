@@ -97,7 +97,7 @@ async function initializeAvionics() {
 }
 initializeAvionics();
 
-//  UI Scaling Logic
+// UI Scaling Logic
 function lockCanvasResolution() {
     const canvases = document.querySelectorAll('canvas');
     const dpr = window.devicePixelRatio || 1;
@@ -223,7 +223,17 @@ function startRenderLoop() {
             if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
             
             const latDisplay = document.getElementById('latency-value');
-            if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); // Increased precision for MIT look
+            if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
+
+           
+            const berDisplay = document.getElementById('ber-value');
+            if (berDisplay) {
+                // Base error increases slightly during Engagement/Attack phases
+                const baseNoise = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 2.4e-6 : 1.1e-7;
+                // Add jitter to make the UI look "alive"
+                const jitter = Math.random() * 5e-7;
+                berDisplay.textContent = (baseNoise + jitter).toExponential(2);
+            }
 
             syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
             syncPhase(d.missionPhase);
@@ -261,12 +271,10 @@ function syncVVI(fpm, status, direction) {
 }
 
 // Rolling buffer to visualize the ARINC-style bitstream.
- 
 function updateTelemetryStream(alt, vel) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
 
-    
     const hexAlt = Math.floor(alt).toString(16).toUpperCase().padStart(4, '0');
     const hexVel = Math.floor(vel).toString(16).toUpperCase().padStart(4, '0');
     const timestamp = (performance.now() / 1000).toFixed(2);
