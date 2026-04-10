@@ -186,3 +186,4 @@ Tech: Decoupled Main-Thread Execution, RK4 Integration (Rust Kernel), Slew-Rate 
 Note: transformed the flight model from a discrete-state simulation to a continuous inertial model. The core focus was on resolving the "Physics Jerk" during phase transitions. By implementing a Slew-Rate Limited Pitch Controller, I forced the airframe to respect  inertia, limiting nose rotation. This ensured that the VVI curves naturally rather than jumping instantly.Additionally, I refined the FINAL_APPROACH phase with a "Ground Snap" logic to ensure the Flight Data Recorder (FDR) consistently logs a 0.00 FT touchdown at the 90-second mission mark.
 
 P.S: Discovered a "Square Wave" bug in the VVI telemetry where the sink rate was teleporting between values. Resolved this by decoupling the targetPitch (the goal) from the actualPitch (the physical state), preventing the drone from executing non-physical 10G maneuvers. (Took close to 3 hours to resolve)
+
