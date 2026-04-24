@@ -86,6 +86,7 @@ function runMasterLoop() {
 
     const elapsed = (now - missionStartTime) / 1000;
 
+    // Fixed timestep logic to prevent "jumps" during lag
     const stepSize = 0.01; 
     let accumulatedTime = dt;
     
@@ -117,6 +118,7 @@ function updatePhysics(dt, elapsed) {
             state.vviStatus = result.vviStatus;
             state.vviDirection = result.vviDirection;
             
+            // Smoothed Vertical Velocity (Low-pass filter)
             state.verticalVelocity = (state.verticalVelocity * 0.90) + (result.verticalVelocity * 0.10); 
         }
     } catch (err) {
@@ -125,9 +127,15 @@ function updatePhysics(dt, elapsed) {
 }
 
 function broadcastTelemetry(elapsed) {
+    // Ensuring the message is a flat object for main thread consumption
     self.postMessage({ 
         type: 'TELEMETRY', 
-        ...state,
+        altitude: state.altitude,
+        airspeed: state.airspeed,
+        verticalVelocity: state.verticalVelocity,
+        missionPhase: state.missionPhase,
+        vviStatus: state.vviStatus,
+        vviDirection: state.vviDirection,
         elapsed: elapsed.toFixed(2),
         sentTime: latestSentTime 
     });
@@ -206,6 +214,7 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     }
     ctx.restore();
 
+    // Current Value Box
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
