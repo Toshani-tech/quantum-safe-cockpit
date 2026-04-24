@@ -190,3 +190,15 @@ Task: Fixing the "dead" Error Rate display and checking the flight logs.
 Tech: Web Workers (Multi-threading), NIST ML-KEM (Post-Quantum Cryptography), WebAssembly (Wasm).
 
 Note: The Bit Error Rate (BER) on the dashboard was looking super fake, just a static 0.00%. I fixed this by giving the HTML element a specific ID and writing a script to add a tiny bit of "noise" so the numbers actually move. I also switched it to scientific notation (like 1.10e-07) because it looks way more like a real flight computer. I checked the csv export and it looks sick; you can actually see the computer "struggling" for a split second at the start (260ms latency) while it loads the security kernel, then it levels out perfectly.
+
+Day 21: April 24, 2026
+
+Task: Hardening FDR (Flight Data Recorder) Determinism and Signal Fidelity.
+
+Tech: JavaScript (ES6+), Web Workers, Stochastic Modeling (Box-Muller Transform), Web Crypto API (SHA-256).
+
+Note: Today’s focus was on transforming the BER from a static element into a real Noise Model value. I implemented a Box-Muller Transform to generate a Gaussian Distribution, allowing the BER to change naturally based on aircraft velocity and mission phases. Also, implemented SHA-256 tags, something used by ARINC protocols.
+
+Also, I resolved a critical Race Condition between the Physics Worker and the Main Thread. Previously, the telemetry buffer experienced jitter causing the CSV export to skip or repeat timestamps. I implemented a Deterministic Logic Gate  to ensure the FDR logs data at a strict 0.5s frequency.
+
+P.S: So, today was my first time actually using SHA-256 tags to seal the flight data, and I immediately ran into a massive headache. At first, my CSV footer just said [object Promise] instead of the actual hash because I forgot that crypto.subtle.digest is asynchronous so basically, the code was trying to save the file before the math was even finished. I had to refactor the whole export button into an async function and use a Uint8Array to turn the raw binary buffer into a hex string that humans can actually read. It’s super cool now though; if anyone tries to go into the CSV and fake their altitude or speed, the signature won’t match, and the "seal" is officially broken. Took over 2 hours to implement though.
