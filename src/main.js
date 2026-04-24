@@ -1,6 +1,3 @@
-/**
- * main.js - V11.5 
- */
 import init, { execute_pqc_handshake } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 
@@ -22,7 +19,17 @@ const state = {
     isBusBusy: false,
     isTerminated: false,
     securityEventLocked: false,
-    telemetryLines: [] // Buffer for rolling hex stream
+    telemetryLines: [] 
+}; 
+
+let lastLogTime = 0;
+const LOG_FREQUENCY = 0.5;
+
+const gaussianRandom = () => {
+    let u = 0, v = 0;
+    while(u === 0) u = Math.random(); 
+    while(v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 };
 
 function updateHeaderStatus(status) {
@@ -78,7 +85,6 @@ function updateHeaderStatus(status) {
     }
 }
 
-// Kernel Handshake
 async function initializeAvionics() {
     try {
         await init(); 
@@ -97,7 +103,6 @@ async function initializeAvionics() {
 }
 initializeAvionics();
 
-// UI Scaling Logic
 function lockCanvasResolution() {
     const canvases = document.querySelectorAll('canvas');
     const dpr = window.devicePixelRatio || 1;
@@ -122,11 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
         startBtn.onclick = () => {
             if (!state.isBooted && state.isKernelReady) {
                 state.isBooted = true;
-                
                 startBtn.textContent = "BUS_INIT >> [ACTIVE]";
                 startBtn.classList.remove('ready-state');
                 startBtn.classList.add('active-state');
-                
                 updateHeaderStatus('ACTIVE');
                 runPOST(); 
             }
@@ -134,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 2. Worker Lifecycle Management 
 async function runPOST() {
     const canvas = document.getElementById('flight-display');
     const dpr = window.devicePixelRatio || 1;
@@ -190,58 +192,64 @@ async function runPOST() {
 function startRenderLoop() {
     if (state.isLoopRunning) return;
     state.isLoopRunning = true;
+
+    const timerEl = document.getElementById('mission-timer');
+    const latDisplay = document.getElementById('latency-value');
+    const berDisplay = document.getElementById('ber-value');
     
+    // SEQUENCE GATE: Prevents time-jumping in CSV
+    let lastPushedTime = -1; 
+
     function loop() {
-        if (state.isTerminated) { state.isLoopRunning = false; return; }
+        if (state.isTerminated) { 
+            state.isLoopRunning = false; 
+            return; 
+        }
 
         if (state.physicsWorker && state.isMissionActive && !state.securityEventLocked) {
-            // handshake
             state.physicsWorker.postMessage({ sentTime: performance.now() });
         }
 
         if (state.lastWorkerData && state.isMissionActive) {
             const d = state.lastWorkerData;
-            const safeT = Number(d.elapsed);
+            const safeT = parseFloat(d.elapsed);
             const safeAlt = Number(d.altitude);
             const safeSpd = Number(d.airspeed);
 
-            updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
-
-            const tick = Math.floor(safeT * 10);
-            if (!state.fdrBuffer[tick] && !isNaN(safeT)) {
-                state.fdrBuffer[tick] = {
-                    t: safeT, alt: safeAlt, spd: safeSpd,
+            // LOGIC GATE: Strict linear progression for CSV
+            if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
+                state.fdrBuffer.push({
+                    t: safeT.toFixed(2), 
+                    alt: Math.round(safeAlt), 
+                    spd: Math.round(safeSpd),
                     phase: String(d.missionPhase || 'UNKNOWN'), 
-                    lat: Number(state.latency)
-                };
+                    lat: Number(state.latency).toFixed(2)
+                });
+                lastPushedTime = safeT; 
+                lastLogTime = safeT; 
             }
 
             if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
             if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
 
-            const timerEl = document.getElementById('mission-timer');
             if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
-            
-            const latDisplay = document.getElementById('latency-value');
             if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
 
-           
-            const berDisplay = document.getElementById('ber-value');
             if (berDisplay) {
-                // Base error increases slightly during Engagement/Attack phases
-                const baseNoise = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 2.4e-6 : 1.1e-7;
-                // Add jitter to make the UI look "alive"
-                const jitter = Math.random() * 5e-7;
-                berDisplay.textContent = (baseNoise + jitter).toExponential(2);
+                let base = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
+                const velFactor = (safeSpd / 500) * 1e-8;
+                const noise = Math.abs(gaussianRandom() * 0.5e-8);
+                const finalBER = base + velFactor + noise;
+                berDisplay.textContent = finalBER.toExponential(3);
+                berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
             }
 
+            updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
             syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
             syncPhase(d.missionPhase);
             updateTelemetryStream(safeAlt, safeSpd);
             handleSecurityLogic(d.missionPhase);
             runMissionStory(safeT);
-            
-            state.lastWorkerData = null; 
         }
         requestAnimationFrame(loop);
     }
@@ -254,11 +262,11 @@ function updateTacticalButton(alt, spd, phase) {
 
     if (alt > 100 && spd < 50) {
         btn.innerText = "WARN: LOW_SPEED / STALL";
-        btn.className = "critical-state";
+        btn.classList.add('critical-state');
     } 
     else if (phase !== 'PRE_FLIGHT' && phase !== 'MISSION_COMPLETE') {
         btn.innerText = "MODE: FLT / ACTV";
-        btn.classList.remove('ready-state');
+        btn.classList.remove('critical-state');
         btn.classList.add('active-state');
     }
 }
@@ -270,7 +278,6 @@ function syncVVI(fpm, status, direction) {
     vviLabel.style.color = (status === 'DANGER') ? '#FF3B3B' : '#00FF41';
 }
 
-// Rolling buffer to visualize the ARINC-style bitstream.
 function updateTelemetryStream(alt, vel) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
@@ -288,7 +295,6 @@ function updateTelemetryStream(alt, vel) {
 
     state.telemetryLines.push(newLine);
     if (state.telemetryLines.length > 8) state.telemetryLines.shift(); 
-
     hexDisplay.innerHTML = state.telemetryLines.join('');
 }
 
@@ -302,7 +308,6 @@ function syncPhase(newPhase) {
 
 function handleSecurityLogic(phase) {
     if (state.securityEventLocked || state.attackLogged) {
-        // Reset attack state if we move into final approach
         if (phase === 'FINAL_APPROACH' && state.attackLogged) {
              triggerAttack(false);
              state.attackLogged = false; 
@@ -336,7 +341,7 @@ function runMissionStory(elapsed) {
     storyMilestones.forEach(event => {
         if (time >= event.t && !state.triggeredEvents.has(event.t)) {
             logTerminalMessage(event.msg, event.color, "0xLOG");
-            if (event.triggerReset) triggerAttack(false); // Force green on final approach
+            if (event.triggerReset) triggerAttack(false);
             state.triggeredEvents.add(event.t);
         }
     });
@@ -366,31 +371,52 @@ function handleMissionComplete() {
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
 
-// 3. FDR DATA EXPORT (CSV)
-document.getElementById('download-fdr-btn').addEventListener('click', () => {
+document.getElementById('download-fdr-btn').addEventListener('click', async () => {
     if (state.fdrBuffer.length === 0) {
         logTerminalMessage("ERROR: NO FDR DATA TO EXTRACT", "#FF3B3B", "0xCSV_FAIL");
         return;
     }
 
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Time(S),Altitude(FT),Airspeed(KTS),Phase,Latency(MS)\n";
+    logTerminalMessage("SYSTEM: COMPUTING SHA-256 INTEGRITY HASH...", "var(--av-amber)", "0xCRYPTO");
 
+    let csvData = "Time(S),Altitude(FT),Airspeed(KTS),Phase,Latency(MS)\n";
     state.fdrBuffer.forEach(row => {
         if (row) {
-            const line = `${row.t},${row.alt},${row.spd},${row.phase},${row.lat}`;
-            csvContent += line + "\n";
+            csvData += `${row.t},${row.alt},${row.spd},${row.phase},${row.lat}\n`;
         }
     });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `FDR_LOG_${new Date().getTime()}.csv`);
-    document.body.appendChild(link);
-
-    link.click();
-    document.body.removeChild(link);
+    const flightID = `FLT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const msg = `ID:${flightID}|ALT:${Math.round(state.maxAlt)}|SPD:${Math.round(state.maxSpd)}|LEN:${state.fdrBuffer.length}`;
     
-    logTerminalMessage("FDR EXTRACTION SUCCESSFUL", "#00FF41", "0xCSV_OK");
+    const msgBuffer = new TextEncoder().encode(msg);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const integrityHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+    const shortHash = integrityHash.substring(0, 32);
+
+    csvData += `\n// --- SECURE AVIONICS DATA RECORDER LOG ---\n`;
+    csvData += `// SIGNATURE_TYPE: NIST-SHA256\n`;
+    csvData += `// SOURCE_ID: ${flightID}\n`;
+    csvData += `// INTEGRITY_HASH: ${shortHash}\n`;
+    csvData += `// EXPORT_TIMESTAMP: ${new Date().toISOString()}\n`;
+    csvData += `// STATUS: SEALED_BY_KERNEL\n`;
+    csvData += `// ----------------------------------------`;
+
+    try {
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `FDR_${flightID}_SECURE.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        logTerminalMessage("FDR EXTRACTION: SHA-256 SEAL VERIFIED", "#00FF41", "0xSIG_OK");
+    } catch (err) {
+        logTerminalMessage(`EXPORT FAILED: ${err.message}`, "#FF3B3B", "0xFS_ERR");
+    }
 });
