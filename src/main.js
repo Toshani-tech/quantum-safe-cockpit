@@ -197,7 +197,6 @@ function startRenderLoop() {
     const latDisplay = document.getElementById('latency-value');
     const berDisplay = document.getElementById('ber-value');
     
-    // SEQUENCE GATE: Prevents time-jumping in CSV
     let lastPushedTime = -1; 
 
     function loop() {
@@ -216,7 +215,6 @@ function startRenderLoop() {
             const safeAlt = Number(d.altitude);
             const safeSpd = Number(d.airspeed);
 
-            // LOGIC GATE: Strict linear progression for CSV
             if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
                 state.fdrBuffer.push({
                     t: safeT.toFixed(2), 
@@ -387,19 +385,16 @@ document.getElementById('download-fdr-btn').addEventListener('click', async () =
     });
 
     const flightID = `FLT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const msg = `ID:${flightID}|ALT:${Math.round(state.maxAlt)}|SPD:${Math.round(state.maxSpd)}|LEN:${state.fdrBuffer.length}`;
     
-    const msgBuffer = new TextEncoder().encode(msg);
+    const msgBuffer = new TextEncoder().encode(csvData);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const integrityHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-
-    const shortHash = integrityHash.substring(0, 32);
+    const integrityHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     csvData += `\n// --- SECURE AVIONICS DATA RECORDER LOG ---\n`;
     csvData += `// SIGNATURE_TYPE: NIST-SHA256\n`;
     csvData += `// SOURCE_ID: ${flightID}\n`;
-    csvData += `// INTEGRITY_HASH: ${shortHash}\n`;
+    csvData += `// INTEGRITY_HASH: ${integrityHash}\n`;
     csvData += `// EXPORT_TIMESTAMP: ${new Date().toISOString()}\n`;
     csvData += `// STATUS: SEALED_BY_KERNEL\n`;
     csvData += `// ----------------------------------------`;
