@@ -202,3 +202,14 @@ Note: Today’s focus was on transforming the BER from a static element into a r
 Also, I resolved a critical Race Condition between the Physics Worker and the Main Thread. Previously, the telemetry buffer experienced jitter causing the CSV export to skip or repeat timestamps. I implemented a Deterministic Logic Gate  to ensure the FDR logs data at a strict 0.5s frequency.
 
 P.S: So, today was my first time actually using SHA-256 tags to seal the flight data, and I immediately ran into a massive headache. At first, my CSV footer just said [object Promise] instead of the actual hash because I forgot that crypto.subtle.digest is asynchronous so basically, the code was trying to save the file before the math was even finished. I had to refactor the whole export button into an async function and use a Uint8Array to turn the raw binary buffer into a hex string that humans can actually read. It’s super cool now though; if anyone tries to go into the CSV and fake their altitude or speed, the signature won’t match, and the "seal" is officially broken. Took over 2 hours to implement though.
+
+Day 22: May 15, 2026
+
+Task: Implement automated cryptographic security signature appending for outbound flight logging.
+
+Tech: Web Crypto API (crypto.subtle.digest), NIST-SHA256 Hashing, JavaScript File Blob API.
+
+Note: I upgraded the flight data recorder download loop so nobody can edit the final CSV file. Now, the system takes all the raw telemetry rows from the 90-second flight, maps them into a clean string, and converts that text into a raw byte buffer. Then, it uses the browser's built-in Web Crypto API to run a hardware-accelerated SHA-256 hash. The final 64 character hash gets slapped onto the bottom of the file as a comment footer along with a unique flight ID and a timestamp, basically acting like a digital lock that breaks if anyone changes even a single decimal point.
+
+P.S: I originally tried hashing just a tiny summary string mixed with a random number generator, but that totally broke up the independent validation because the signature changed every single time you clicked download. I fixed it by feeding the exact, finished csvData text block directly into the crypto engine instead. Now, the signature is 100% predictable, so anyone can drop the CSV into an online hash checker and verify that the data is real and hasn't been tampered with, I did think of having such a function in-built into my app but it wouldn't really serve the purpose of the sim.
+
