@@ -1,3 +1,5 @@
+/* main.js - V12.4 */
+
 import init, { execute_pqc_handshake } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 
@@ -233,7 +235,10 @@ function startRenderLoop() {
             if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
             if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
 
-            if (berDisplay) {
+            if (berDisplay && d.simulatedBER !== undefined) {
+                berDisplay.textContent = d.simulatedBER.toExponential(3);
+                berDisplay.style.color = (d.simulatedBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
+            } else if (berDisplay) {
                 let base = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
                 const velFactor = (safeSpd / 500) * 1e-8;
                 const noise = Math.abs(gaussianRandom() * 0.5e-8);
@@ -245,7 +250,7 @@ function startRenderLoop() {
             updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
             syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
             syncPhase(d.missionPhase);
-            updateTelemetryStream(safeAlt, safeSpd);
+            updateTelemetryStream(d.arincWords);
             handleSecurityLogic(d.missionPhase);
             runMissionStory(safeT);
         }
@@ -276,23 +281,44 @@ function syncVVI(fpm, status, direction) {
     vviLabel.style.color = (status === 'DANGER') ? '#FF3B3B' : '#00FF41';
 }
 
-function updateTelemetryStream(alt, vel) {
+function verifyARINC429Parity(word) {
+    let parityCount = 0;
+    let tempWord = word;
+    while (tempWord) {
+        parityCount ^= (tempWord & 1);
+        tempWord >>>= 1;
+    }
+    return parityCount === 1;
+}
+
+function updateTelemetryStream(arincWords) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
 
-    const hexAlt = Math.floor(alt).toString(16).toUpperCase().padStart(4, '0');
-    const hexVel = Math.floor(vel).toString(16).toUpperCase().padStart(4, '0');
-    const timestamp = (performance.now() / 1000).toFixed(2);
-    
-    const newLine = `<div style="margin-bottom: 2px;">
-        <span style="color: #666">[${timestamp}]</span> 
-        <span style="color: #888">RX_PACKET:</span> 
-        <span style="color: var(--av-green)">0x${hexAlt}${hexVel}</span> 
-        <span style="color: var(--av-amber)">[AUTH_OK]</span>
-    </div>`;
+    if (!arincWords || !(arincWords instanceof Uint32Array)) return;
 
-    state.telemetryLines.push(newLine);
-    if (state.telemetryLines.length > 8) state.telemetryLines.shift(); 
+    const timestamp = (performance.now() / 1000).toFixed(2);
+    let outputHTML = '';
+
+    for (let index = 0; index < arincWords.length; index++) {
+        let word = arincWords[index];
+        let hexString = word.toString(16).toUpperCase().padStart(8, '0');
+        let label = word & 0xFF;
+        let isParityValid = verifyARINC429Parity(word);
+
+        let statusText = isParityValid ? '[AUTH_OK]' : '[PARITY_ERR]';
+        let statusColor = isParityValid ? 'var(--av-green)' : '#FF3B3B';
+
+        outputHTML += `<div style="margin-bottom: 2px; font-size: 11px;">
+            <span style="color: #666">[${timestamp}]</span> 
+            <span style="color: #888">RX_WORD[${label.toString(8).padStart(3, '0')}]:</span> 
+            <span style="color: var(--av-green)">0x${hexString}</span> 
+            <span style="color: ${statusColor}">${statusText}</span>
+        </div>`;
+    }
+
+    state.telemetryLines.push(outputHTML);
+    if (state.telemetryLines.length > 4) state.telemetryLines.shift(); 
     hexDisplay.innerHTML = state.telemetryLines.join('');
 }
 
