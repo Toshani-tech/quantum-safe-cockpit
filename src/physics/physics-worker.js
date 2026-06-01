@@ -25,6 +25,61 @@ let state = {
     vviDirection: 'LEVEL'
 };
 
+function getPhaseCode(phaseString) {
+    switch (phaseString) {
+        case 'STARTUP_TAXI': return 1;
+        case 'STEADY_CLIMB': return 2;
+        case 'ENGAGEMENT_ZONE': return 3;
+        case 'FINAL_APPROACH': return 4;
+        case 'MISSION_COMPLETE': return 5;
+        default: return 0;
+    }
+}
+
+function calculateGaussianRandom() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random(); 
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function packARINC429(label, sdi, payload, ssm) {
+    let word = 0;
+    word |= (label & 0xFF);
+    word |= ((sdi & 0x03) << 8);
+    word |= ((payload & 0x7FFFF) << 10);
+    word |= ((ssm & 0x03) << 29);
+    
+    let parityCount = 0;
+    let tempWord = word;
+    while (tempWord) {
+        parityCount ^= (tempWord & 1);
+        tempWord >>>= 1;
+    }
+    if (parityCount === 0) {
+        word |= (1 << 31);
+    }
+    return word >>> 0;
+}
+
+function applyBERCorruption(arrayBuffer, phaseString, speedValue) {
+    let baseRate = (phaseString === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
+    let velocityImpact = (speedValue / 500) * 1e-8;
+    let atmosphericNoise = Math.abs(calculateGaussianRandom() * 0.5e-8);
+    let derivedBER = baseRate + velocityImpact + atmosphericNoise;
+
+    for (let index = 0; index < arrayBuffer.length; index++) {
+        let bitfield = arrayBuffer[index];
+        for (let bitPosition = 0; bitPosition < 32; bitPosition++) {
+            if (Math.random() < derivedBER) {
+                bitfield ^= (1 << bitPosition);
+            }
+        }
+        arrayBuffer[index] = bitfield;
+    }
+    return derivedBER;
+}
+
 self.onmessage = async function(e) {
     if (e.data.sentTime) latestSentTime = e.data.sentTime;
 
@@ -86,7 +141,6 @@ function runMasterLoop() {
 
     const elapsed = (now - missionStartTime) / 1000;
 
-    // Fixed timestep logic to prevent "jumps" during lag
     const stepSize = 0.01; 
     let accumulatedTime = dt;
     
@@ -118,7 +172,6 @@ function updatePhysics(dt, elapsed) {
             state.vviStatus = result.vviStatus;
             state.vviDirection = result.vviDirection;
             
-            // Smoothed Vertical Velocity (Low-pass filter)
             state.verticalVelocity = (state.verticalVelocity * 0.90) + (result.verticalVelocity * 0.10); 
         }
     } catch (err) {
@@ -127,7 +180,13 @@ function updatePhysics(dt, elapsed) {
 }
 
 function broadcastTelemetry(elapsed) {
-    // Ensuring the message is a flat object for main thread consumption
+    let serializedBuffer = new Uint32Array(3);
+    serializedBuffer[0] = packARINC429(0o036, 0, Math.floor(state.altitude), 0);
+    serializedBuffer[1] = packARINC429(0o037, 0, Math.floor(state.airspeed), 0);
+    serializedBuffer[2] = packARINC429(0o027, 0, getPhaseCode(state.missionPhase), 0);
+
+    let activeBER = applyBERCorruption(serializedBuffer, state.missionPhase, state.airspeed);
+
     self.postMessage({ 
         type: 'TELEMETRY', 
         altitude: state.altitude,
@@ -137,8 +196,10 @@ function broadcastTelemetry(elapsed) {
         vviStatus: state.vviStatus,
         vviDirection: state.vviDirection,
         elapsed: elapsed.toFixed(2),
-        sentTime: latestSentTime 
-    });
+        sentTime: latestSentTime,
+        arincWords: serializedBuffer,
+        simulatedBER: activeBER
+    }, [serializedBuffer.buffer]);
 }
 
 function terminateMission() {
@@ -153,7 +214,6 @@ function terminateMission() {
     self.postMessage({ type: 'BUS_IDLE' });
 }
 
-/* GLASS COCKPIT RENDERING */ 
 function drawPFD() {
     const ctx = canvasCtx;
     const w = canvasW / dpr; 
@@ -170,7 +230,6 @@ function drawPFD() {
     drawVerticalTape(ctx, state.airspeed, 10, 70, "SPD", 20, "#00FF41", spdPPU);
     drawVerticalTape(ctx, state.altitude, w - 80, 70, "ALT", 100, "#00FF41", altPPU);
     
-    // AUTH HEADER
     ctx.save();
     ctx.fillStyle = "rgba(0, 255, 65, 0.9)"; 
     ctx.font = "bold 10px 'Share Tech Mono'";
@@ -214,7 +273,6 @@ function drawVerticalTape(ctx, value, x, width, label, step, themeColor, ppu) {
     }
     ctx.restore();
 
-    // Current Value Box
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#000";
     ctx.strokeStyle = "#fff";
