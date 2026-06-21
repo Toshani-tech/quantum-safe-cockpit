@@ -1,4 +1,4 @@
-/* main.js - V12.4 */
+/* main.js - V13.2 */
 
 import init, { execute_pqc_handshake } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
@@ -21,7 +21,10 @@ const state = {
     isBusBusy: false,
     isTerminated: false,
     securityEventLocked: false,
-    telemetryLines: [] 
+    telemetryLines: [],
+
+
+    isMitMAttackActive: false
 }; 
 
 let lastLogTime = 0;
@@ -299,6 +302,7 @@ function updateTelemetryStream(arincWords) {
 
     const timestamp = (performance.now() / 1000).toFixed(2);
     let outputHTML = '';
+    const groundTruth = state.lastWorkerData;
 
     for (let index = 0; index < arincWords.length; index++) {
         let word = arincWords[index];
@@ -306,14 +310,44 @@ function updateTelemetryStream(arincWords) {
         let label = word & 0xFF;
         let isParityValid = verifyARINC429Parity(word);
 
-        let statusText = isParityValid ? '[AUTH_OK]' : '[PARITY_ERR]';
-        let statusColor = isParityValid ? 'var(--av-green)' : '#FF3B3B';
+        // Advanced MitM Divergence Check Against Ground Truth Physics
+        let isContentAltered = false;
+        let deltaText = '';
+
+        if (label === 0o036 && groundTruth) { 
+            const transmittedAlt = (word >>> 10) & 0x7FFFF;
+            const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
+            
+            // If the values drift outside computational fixed-point margins, flag it
+            if (precisionDelta > 50) {
+                isContentAltered = true;
+            } else if (precisionDelta > 0) {
+                deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(4)} FT]</span>`;
+            }
+        }
+
+        let statusText = '[AUTH_OK]';
+        let statusColor = 'var(--av-green)';
+
+        if (!isParityValid) {
+            statusText = '[PARITY_ERR]';
+            statusColor = '#FF3B3B';
+        } else if (isContentAltered) {
+            statusText = '[SPOOF_ALERT]';
+            statusColor = '#FF3B3B';
+            if (!state.attackLogged) {
+                triggerAttack(true); 
+                logTerminalMessage("MALICIOUS BUS CORRUPTION: PARITY VALID BUT DATA MUTATED", "#FF3B3B", "0xMITM");
+                state.attackLogged = true;
+            }
+        }
 
         outputHTML += `<div style="margin-bottom: 2px; font-size: 11px;">
             <span style="color: #666">[${timestamp}]</span> 
             <span style="color: #888">RX_WORD[${label.toString(8).padStart(3, '0')}]:</span> 
-            <span style="color: var(--av-green)">0x${hexString}</span> 
+            <span style="color: ${isContentAltered ? '#FF3B3B' : 'var(--av-green)'}">0x${hexString}</span> 
             <span style="color: ${statusColor}">${statusText}</span>
+            ${deltaText}
         </div>`;
     }
 
@@ -439,5 +473,48 @@ document.getElementById('download-fdr-btn').addEventListener('click', async () =
         logTerminalMessage("FDR EXTRACTION: SHA-256 SEAL VERIFIED", "#00FF41", "0xSIG_OK");
     } catch (err) {
         logTerminalMessage(`EXPORT FAILED: ${err.message}`, "#FF3B3B", "0xFS_ERR");
+    }
+});
+
+// Dev Shortcut Vector Trigger: Intercepts the ARINC-429 Serial Stream 
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'a' || e.key === 'A') {
+        if (!state.isMissionActive) return;
+        
+        state.isMitMAttackActive = !state.isMitMAttackActive;
+        
+        const panels = document.querySelectorAll('.panel');
+        const hexDisplay = document.getElementById('fdr-hex-display');
+        const securityTag = document.getElementById('security-tag');
+
+        if (state.physicsWorker) {
+            state.physicsWorker.postMessage({
+                type: 'INJECT_FAULT',
+                active: state.isMitMAttackActive,
+                faultType: 'SPOOF_ALTITUDE'
+            });
+        }
+        
+        if (state.isMitMAttackActive) {
+            panels.forEach(p => p.classList.add('compromised-state'));
+            if (hexDisplay) hexDisplay.classList.add('intercepted');
+            if (securityTag) {
+                securityTag.textContent = "ALARM: TELEMETRY_MUTATION_DETECTED";
+                securityTag.style.color = "var(--av-red)";
+            }
+            document.body.classList.add('under-attack');
+        } else {
+            state.attackLogged = false;
+            triggerAttack(false); 
+            
+            panels.forEach(p => p.classList.remove('compromised-state'));
+            if (hexDisplay) hexDisplay.classList.remove('intercepted');
+            if (securityTag) {
+                securityTag.textContent = "MODE: ML-KEM-1024 [SECURE]";
+                securityTag.style.color = "var(--av-green)";
+            }
+            document.body.classList.remove('under-attack');
+            logTerminalMessage("MITM ATTACK VECTOR DISENGAGED. CORES CLEAN.", "#00FF41", "0xSYS");
+        }
     }
 });
