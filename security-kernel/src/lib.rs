@@ -34,3 +34,21 @@ pub extern "C" fn fp_sub(a: Fixed32, b: Fixed32) -> Fixed32 {
 pub extern "C" fn fp_from_int(val: i32) -> Fixed32 {
     val << FRACTIONAL_BITS
 }
+
+#[no_mangle]
+pub extern "C" fn fp_mul(a: Fixed32, b: Fixed32) -> Fixed32 {
+    
+    let product = (a as i64) * (b as i64);
+    
+    (product >> FRACTIONAL_BITS) as Fixed32
+}
+
+#[no_mangle]
+pub extern "C" fn fp_div(a: Fixed32, b: Fixed32) -> Fixed32 {
+    if b == 0 {
+        return i32::MAX; 
+    }
+   
+    let numerator = (a as i64) << FRACTIONAL_BITS;
+    (numerator / (b as i64)) as Fixed32
+}
