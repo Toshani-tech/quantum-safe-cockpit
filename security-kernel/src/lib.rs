@@ -73,3 +73,25 @@ pub extern "C" fn fp_exp(x: Fixed32) -> Fixed32 {
     
     sum
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct FlightStateFP {
+    pub altitude: Fixed32,
+    pub airspeed: Fixed32,
+    pub vertical_velocity: Fixed32,
+}
+
+static mut SYSTEM_STATE: FlightStateFP = FlightStateFP {
+    altitude: 0,
+    airspeed: 0,
+    vertical_velocity: 0,
+};
+
+#[no_mangle]
+pub extern "C" fn set_initial_state(alt: i32, spd: i32) {
+    unsafe {
+        SYSTEM_STATE.altitude = fp_from_int(alt);
+        SYSTEM_STATE.airspeed = fp_from_int(spd);
+        SYSTEM_STATE.vertical_velocity = 0;
+    }
+}
