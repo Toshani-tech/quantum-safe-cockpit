@@ -93,3 +93,20 @@ function updateHeaderStatus(status) {
 async function initializeAvionics() {
     try {
         await init();
+        init_panic_hook();
+        telemetryBufferPtr = get_telemetry_buffer_ptr();
+        
+        state.isKernelReady = true;
+        logTerminalMessage("SECURITY KERNEL LINK ESTABLISHED [NIST_L5]", "#00FF41", "0xBOOT");
+        
+        const startBtn = document.getElementById('init-btn');
+        if (startBtn) {
+            startBtn.classList.add('ready-state');
+            startBtn.textContent = "SYSTEM_READY: ENGAGE MISSION BUS";
+        }
+        updateHeaderStatus('STANDBY');
+    } catch (error) {
+        logTerminalMessage("CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B", "0xFAIL");
+    }
+}
+initializeAvionics();
