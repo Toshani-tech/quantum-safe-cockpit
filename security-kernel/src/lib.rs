@@ -86,3 +86,26 @@ static mut SYSTEM_STATE: FlightStateFP = FlightStateFP {
     airspeed: 0,
     vertical_velocity: 0,
 };
+
+static mut TELEMETRY_BUFFER: [u32; 4] = [0; 4];
+
+#[no_mangle]
+pub extern "C" fn set_initial_state(alt: i32, spd: i32) {
+    unsafe {
+        SYSTEM_STATE.altitude = fp_from_int(alt);
+        SYSTEM_STATE.airspeed = fp_from_int(spd);
+        SYSTEM_STATE.vertical_velocity = 0;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn step_physics_fp(dt_raw: i32) -> i32 {
+    unsafe {
+        let dt = dt_raw;
+        let climb_rate = fp_from_int(15);
+        let delta_alt = fp_mul(climb_rate, dt);
+        SYSTEM_STATE.altitude = fp_add(SYSTEM_STATE.altitude, delta_alt);
+        
+        SYSTEM_STATE.altitude
+    }
+}
