@@ -23,7 +23,7 @@ const state = {
     securityEventLocked: false,
     telemetryLines: [],
 
-
+    
     isMitMAttackActive: false
 }; 
 
@@ -310,7 +310,7 @@ function updateTelemetryStream(arincWords) {
         let label = word & 0xFF;
         let isParityValid = verifyARINC429Parity(word);
 
-        // Advanced MitM Divergence Check Against Ground Truth Physics
+        
         let isContentAltered = false;
         let deltaText = '';
 
@@ -318,7 +318,7 @@ function updateTelemetryStream(arincWords) {
             const transmittedAlt = (word >>> 10) & 0x7FFFF;
             const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
             
-            // If the values drift outside computational fixed-point margins, flag it
+           
             if (precisionDelta > 50) {
                 isContentAltered = true;
             } else if (precisionDelta > 0) {
@@ -365,10 +365,24 @@ function syncPhase(newPhase) {
 }
 
 function handleSecurityLogic(phase) {
-    if (state.securityEventLocked || state.attackLogged) {
-        if (phase === 'FINAL_APPROACH' && state.attackLogged) {
-             triggerAttack(false);
-             state.attackLogged = false; 
+    if (state.securityEventLocked || state.isMitMAttackActive) {
+        if (phase === 'FINAL_APPROACH' && state.isMitMAttackActive) {
+             state.isMitMAttackActive = false;
+             state.attackLogged = false;
+             triggerAttack(false); 
+             
+             const panels = document.querySelectorAll('.panel');
+             const hexDisplay = document.getElementById('fdr-hex-display');
+             const securityTag = document.getElementById('security-tag');
+             
+             panels.forEach(p => p.classList.remove('compromised-state'));
+             if (hexDisplay) hexDisplay.classList.remove('intercepted');
+             if (securityTag) {
+                 securityTag.textContent = "MODE: ML-KEM-1024 [SECURE]";
+                 securityTag.style.color = "var(--av-green)";
+             }
+             document.body.classList.remove('under-attack');
+             logTerminalMessage("MITM ATTACK PURGED BY KERNEL. APPROACH VECTOR CLEAR.", "#00FF41", "0xCLEAN");
         }
         return;
     }
@@ -380,11 +394,32 @@ function handleSecurityLogic(phase) {
 
         document.getElementById('auth-crypto-btn').onclick = () => {
             document.getElementById('security-modal').style.display = 'none';
-            state.attackLogged = true;
             state.securityEventLocked = false; 
-            triggerAttack(true); 
+            
+            state.isMitMAttackActive = true;
+            
+            const panels = document.querySelectorAll('.panel');
+            const hexDisplay = document.getElementById('fdr-hex-display');
+            const securityTag = document.getElementById('security-tag');
+
+            if (state.physicsWorker) {
+                state.physicsWorker.postMessage({
+                    type: 'INJECT_FAULT',
+                    active: true,
+                    faultType: 'SPOOF_ALTITUDE'
+                });
+            }
+            
+            panels.forEach(p => p.classList.add('compromised-state'));
+            if (hexDisplay) hexDisplay.classList.add('intercepted');
+            if (securityTag) {
+                securityTag.textContent = "ALARM: TELEMETRY_MUTATION_DETECTED";
+                securityTag.style.color = "var(--av-red)";
+            }
+            document.body.classList.add('under-attack');
+
             state.physicsWorker.postMessage({ type: 'RESUME_FLIGHT' });
-            logTerminalMessage("SECURITY: ML-KEM_SHIELD_L5_ACTIVE", "#00FF41", "0xSAFE");
+            logTerminalMessage("SECURITY: FLIGHT RESUMED under ACTIVE BUS AUDIT", "var(--av-amber)", "0xWARN");
         };
     }
 }
@@ -473,48 +508,5 @@ document.getElementById('download-fdr-btn').addEventListener('click', async () =
         logTerminalMessage("FDR EXTRACTION: SHA-256 SEAL VERIFIED", "#00FF41", "0xSIG_OK");
     } catch (err) {
         logTerminalMessage(`EXPORT FAILED: ${err.message}`, "#FF3B3B", "0xFS_ERR");
-    }
-});
-
-// Dev Shortcut Vector Trigger: Intercepts the ARINC-429 Serial Stream 
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'a' || e.key === 'A') {
-        if (!state.isMissionActive) return;
-        
-        state.isMitMAttackActive = !state.isMitMAttackActive;
-        
-        const panels = document.querySelectorAll('.panel');
-        const hexDisplay = document.getElementById('fdr-hex-display');
-        const securityTag = document.getElementById('security-tag');
-
-        if (state.physicsWorker) {
-            state.physicsWorker.postMessage({
-                type: 'INJECT_FAULT',
-                active: state.isMitMAttackActive,
-                faultType: 'SPOOF_ALTITUDE'
-            });
-        }
-        
-        if (state.isMitMAttackActive) {
-            panels.forEach(p => p.classList.add('compromised-state'));
-            if (hexDisplay) hexDisplay.classList.add('intercepted');
-            if (securityTag) {
-                securityTag.textContent = "ALARM: TELEMETRY_MUTATION_DETECTED";
-                securityTag.style.color = "var(--av-red)";
-            }
-            document.body.classList.add('under-attack');
-        } else {
-            state.attackLogged = false;
-            triggerAttack(false); 
-            
-            panels.forEach(p => p.classList.remove('compromised-state'));
-            if (hexDisplay) hexDisplay.classList.remove('intercepted');
-            if (securityTag) {
-                securityTag.textContent = "MODE: ML-KEM-1024 [SECURE]";
-                securityTag.style.color = "var(--av-green)";
-            }
-            document.body.classList.remove('under-attack');
-            logTerminalMessage("MITM ATTACK VECTOR DISENGAGED. CORES CLEAN.", "#00FF41", "0xSYS");
-        }
     }
 });
