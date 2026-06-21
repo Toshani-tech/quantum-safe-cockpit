@@ -232,3 +232,13 @@ Tech: Web Workers, Bitwise JavaScript (Uint32Array), ARINC-429 Protocol Simulati
 Note: Today was all about fixing the flow of the attack simulation so it feels like a real story. Instead of pressing the "A" key like a developer cheat code( so basically I thought of this feature that I'd press A when the attack happens and screen will transition to an in-attack state), the MitM (Man-in-the-Middle) attack now triggers completely on its own the exact second you close the security pop-up modal inside the Engagement Zone(much more professional). I also wired up code to auto clean the cockpit layout once the plane hits the Final Approach phase, resetting all the warning signs back to normal.
 
 P.S: Ran into a super annoying bug where ghost [SPOOF_ALERT] tags were still flashing in the scrolling hex display even after entering the landing phase. Turned out to be an asynchronous race condition, the background Web Worker was still flushing out a couple of older corrupted data frames right during the phase transition. Fixed it by adding a strict phase gate guard inside the telemetry stream parser to ignore numerical jumps during Final Approach and Mission Complete. Everything runs super smooth now.
+
+Day 25: June 21, 2026
+
+Task: Upgrading telemetry to actual ARINC-429 bit and tweaking the Rust security kernel.
+
+Tech: Rust, Cargo, WebAssembly (WASM), JS (Uint32Array), ARINC-429 protocol.
+
+Note: Worked on connecting the main frontend to the security-kernel folder (src/lib.rs) to get ready for the heavy lattice-based crypto stuff. In Cargo.toml & lib.rs I set up the architectural scaffolding in Rust so the app can eventually stream raw flight data straight into a WebAssembly ready structure for true NIST ML-KEM integration. In main.js I built the data pipeline to offload high overhead postquantum key encapsulation into a sandboxed, low level linear memory space. This decouples the cryptographic execution via WebAssembly binary bridges, which keeps the heavy math from starving or freezing our real time flight control telemetry thread.
+
+P.S: Right now the whole app is completely black screen and won't load because of a stupid console error. I tried fixing it for over 2 hours today but it isn't budging. It's totally blocking the simulation, so fixing this line (which basically means debugging a couple of my files) is the first thing on the menu tomorrow. 
