@@ -52,3 +52,24 @@ pub extern "C" fn fp_div(a: Fixed32, b: Fixed32) -> Fixed32 {
     let numerator = (a as i64) << FRACTIONAL_BITS;
     (numerator / (b as i64)) as Fixed32
 }
+
+
+#[no_mangle]
+pub extern "C" fn fp_exp(x: Fixed32) -> Fixed32 {
+    
+    if x < -to_fixed!(10) { return 0; }
+    
+    let one = to_fixed!(1);
+    let mut term = one;
+    let mut sum = one;
+    
+  
+    for i in 1..=5 {
+        let i_fp = fp_from_int(i as i32);
+        // term = term * x / i
+        term = fp_div(fp_mul(term, x), i_fp);
+        sum = fp_add(sum, term);
+    }
+    
+    sum
+}
