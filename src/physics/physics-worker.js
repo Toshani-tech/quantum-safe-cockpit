@@ -1,4 +1,6 @@
-/* physics-worker.js - V12.5  */
+/**
+ * physics-worker.js - V13.0
+ */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
 import init from '../../security-kernel/pkg/security_kernel.js'; 
@@ -11,6 +13,12 @@ let canvasH = 0;
 let dpr = 1; 
 let latestSentTime = 0; 
 let physicsLoopActive = false;
+let wasmExports = null;
+
+const FRACTIONAL_BITS = 16;
+const FIXED_SCALE = 65536; // 1 << 16
+
+let isMitMAttackActive = false;
 
 let state = {
     altitude: 0,
@@ -24,6 +32,14 @@ let state = {
     vviStatus: 'NORMAL',
     vviDirection: 'LEVEL'
 };
+
+function toFixed32(floatValue) {
+    return Math.round(floatValue * FIXED_SCALE) | 0;
+}
+
+function toFloat32(fixed32Value) {
+    return fixed32Value / FIXED_SCALE;
+}
 
 function getPhaseCode(phaseString) {
     switch (phaseString) {
@@ -98,8 +114,14 @@ self.onmessage = async function(e) {
         canvasCtx.scale(dpr, dpr);
 
         try {
-            await init();
-            console.log("AVIONICS_KERNEL: NIST-PQC ML-KEM ACTIVE");
+            const wasmInstance = await init();
+            wasmExports = wasmInstance;
+            
+            if (wasmExports.set_initial_state) {
+                wasmExports.set_initial_state(0, 0);
+            }
+            
+            console.log("AVIONICS_KERNEL: NIST-PQC ML-KEM & FIXED-POINT COMPLIANCE ACTIVE");
             self.postMessage({ type: 'KERNEL_READY' });
         } catch (err) {
             console.error("SYSTEM_FAULT: WASM Kernel Failure", err);
@@ -129,6 +151,12 @@ self.onmessage = async function(e) {
         state.isPaused = false;
         physicsLoopActive = true;
         runMasterLoop();
+    }
+
+    if (e.data.type === 'INJECT_FAULT') {
+        if (e.data.faultType === 'SPOOF_ALTITUDE') {
+            isMitMAttackActive = e.data.active;
+        }
     }
 };
 
@@ -163,16 +191,31 @@ function runMasterLoop() {
 
 function updatePhysics(dt, elapsed) {
     try {
-        const result = calculateFlightDynamics(state, dt, elapsed);
-        
-        if (result) {
-            state.altitude = result.altitude; 
-            state.airspeed = result.airspeed;
-            state.missionPhase = result.missionPhase;
-            state.vviStatus = result.vviStatus;
-            state.vviDirection = result.vviDirection;
+        if (wasmExports && wasmExports.step_physics_fp) {
+            const dtFixed = toFixed32(dt);
+            const rawAltitude = wasmExports.step_physics_fp(dtFixed);
             
-            state.verticalVelocity = (state.verticalVelocity * 0.90) + (result.verticalVelocity * 0.10); 
+            state.altitude = toFloat32(rawAltitude);
+            
+            const dynamics = calculateFlightDynamics(state, dt, elapsed);
+            if (dynamics) {
+                state.airspeed = dynamics.airspeed;
+                state.missionPhase = dynamics.missionPhase;
+                state.vviStatus = dynamics.vviStatus;
+                state.vviDirection = dynamics.vviDirection;
+                state.verticalVelocity = (state.verticalVelocity * 0.90) + (dynamics.verticalVelocity * 0.10);
+            }
+        } else {
+            
+            const result = calculateFlightDynamics(state, dt, elapsed);
+            if (result) {
+                state.altitude = result.altitude; 
+                state.airspeed = result.airspeed;
+                state.missionPhase = result.missionPhase;
+                state.vviStatus = result.vviStatus;
+                state.vviDirection = result.vviDirection;
+                state.verticalVelocity = (state.verticalVelocity * 0.90) + (result.verticalVelocity * 0.10); 
+            }
         }
     } catch (err) {
         console.error("PHYSICS_CORE_EXCEPTION", err);
@@ -181,7 +224,14 @@ function updatePhysics(dt, elapsed) {
 
 function broadcastTelemetry(elapsed) {
     let serializedBuffer = new Uint32Array(3);
-    serializedBuffer[0] = packARINC429(0o036, 0, Math.floor(state.altitude), 0);
+    
+   
+    let wireAltitude = state.altitude;
+    if (isMitMAttackActive) {
+        wireAltitude = 420.0; 
+    }
+
+    serializedBuffer[0] = packARINC429(0o036, 0, Math.floor(wireAltitude), 0);
     serializedBuffer[1] = packARINC429(0o037, 0, Math.floor(state.airspeed), 0);
     serializedBuffer[2] = packARINC429(0o027, 0, getPhaseCode(state.missionPhase), 0);
 
@@ -189,7 +239,7 @@ function broadcastTelemetry(elapsed) {
 
     self.postMessage({ 
         type: 'TELEMETRY', 
-        altitude: state.altitude,
+        altitude: state.altitude, 
         airspeed: state.airspeed,
         verticalVelocity: state.verticalVelocity,
         missionPhase: state.missionPhase,
