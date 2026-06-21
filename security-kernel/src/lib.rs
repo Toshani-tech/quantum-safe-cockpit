@@ -17,3 +17,20 @@ macro_rules! to_float {
         ($x as f64) / (FIXED_SCALE as f64)
     };
 }
+
+
+#[no_mangle]
+pub extern "C" fn fp_add(a: Fixed32, b: Fixed32) -> Fixed32 {
+    
+    a.checked_add(b).unwrap_or(i32::MAX)
+}
+
+#[no_mangle]
+pub extern "C" fn fp_sub(a: Fixed32, b: Fixed32) -> Fixed32 {
+    a.checked_sub(b).unwrap_or(i32::MIN)
+}
+
+#[no_mangle]
+pub extern "C" fn fp_from_int(val: i32) -> Fixed32 {
+    val << FRACTIONAL_BITS
+}
