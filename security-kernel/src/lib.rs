@@ -109,3 +109,7 @@ pub extern "C" fn step_physics_fp(dt_raw: i32) -> i32 {
         SYSTEM_STATE.altitude
     }
 }
+#[wasm_bindgen]
+pub fn get_telemetry_buffer_ptr() -> *const u32 {
+    unsafe { TELEMETRY_BUFFER.as_ptr() }
+}
