@@ -1,6 +1,4 @@
-/* main.js - V13.2 */
-
-import init, { init_panic_hook, get_telemetry_buffer_ptr, memory } from '../security-kernel/pkg/security_kernel.js';
+import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 
 const state = {
@@ -26,6 +24,7 @@ const state = {
 };
 
 let telemetryBufferPtr = null;
+let wasmMemory = null; 
 
 let lastLogTime = 0;
 const LOG_FREQUENCY = 0.5;
@@ -92,7 +91,9 @@ function updateHeaderStatus(status) {
 
 async function initializeAvionics() {
     try {
-        await init();
+        const wasmInstance = await init();
+        wasmMemory = wasmInstance.memory; 
+        
         init_panic_hook();
         telemetryBufferPtr = get_telemetry_buffer_ptr();
         
@@ -106,15 +107,17 @@ async function initializeAvionics() {
         }
         updateHeaderStatus('STANDBY');
     } catch (error) {
+        console.error(error);
         logTerminalMessage("CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B", "0xFAIL");
     }
 }
 initializeAvionics();
 
 function readWasmTelemetryBuffer() {
-    if (!state.isKernelReady || !telemetryBufferPtr) return null;
+    if (!state.isKernelReady || !telemetryBufferPtr || !wasmMemory) return null;
    
-    return new Uint32Array(memory.buffer, telemetryBufferPtr, 4);
+    
+    return new Uint32Array(wasmMemory.buffer, telemetryBufferPtr, 4);
 }
 
 function lockCanvasResolution() {
@@ -179,7 +182,6 @@ async function runPOST() {
             if (e.data.type === 'KERNEL_READY') {
                 logTerminalMessage("WORKER_BUS: NIST_L5_MODULE_LOADED", "#00FF41", "0xBUS");
                 
-            
                 state.physicsWorker.postMessage({ 
                     type: 'START_FLIGHT',
                     sentTime: performance.now(),
@@ -265,7 +267,6 @@ function startRenderLoop() {
             updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
             syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
             syncPhase(d.missionPhase);
-            
             
             const liveWasmBuffer = readWasmTelemetryBuffer();
             updateTelemetryStream(liveWasmBuffer || d.arincWords);
