@@ -1,4 +1,7 @@
-import { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
+import init, { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
+
+let wasmReady = false;
+let actualPitch = 0;
 
 let actualPitch = 0; 
 
