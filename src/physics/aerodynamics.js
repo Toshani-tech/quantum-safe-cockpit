@@ -3,6 +3,13 @@ import init, { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
 let wasmReady = false;
 let actualPitch = 0;
 
+init().then(() => {
+    wasmReady = true;
+    console.log(">> SECURITY_KERNEL: FIXED-POINT RK4 ENGINE INITIALIZED");
+}).catch(err => {
+    console.error(">> SECURITY_KERNEL_CRITICAL: WASM INIT FAILED", err);
+});
+
 let actualPitch = 0; 
 
 export function calculateFlightDynamics(state, deltaTime, elapsed) {
