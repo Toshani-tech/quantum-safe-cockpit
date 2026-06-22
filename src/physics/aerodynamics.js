@@ -10,9 +10,17 @@ init().then(() => {
     console.error(">> SECURITY_KERNEL_CRITICAL: WASM INIT FAILED", err);
 });
 
-let actualPitch = 0; 
-
 export function calculateFlightDynamics(state, deltaTime, elapsed) {
+    if (!wasmReady) {
+        return { 
+            ...state, 
+            missionPhase: 'INITIALIZING',
+            verticalVelocity: 0,
+            vviStatus: 'NORMAL',
+            vviDirection: 'LEVEL'
+        };
+    }
+
     let alt = parseFloat(state.altitude) || 0;
     let v_ias = parseFloat(state.airspeed) || 0;
     
