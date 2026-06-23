@@ -144,13 +144,25 @@ export function drawLattice(canvasId) {
                     errorY *= 2.5;
                 }
              } else {
-                
+
                 errorX = Math.sin(time + n.phase) * 1.5;
                 errorY = Math.cos(time + n.phase) * 1.5;
             }
             
             n.currentX = n.originX + errorX;
             n.currentY = n.originY + errorY;
+            
+            if (i % cols < cols - 1) { 
+                ctx.moveTo(n.currentX, n.currentY);
+                ctx.lineTo(nodes[i+1].currentX || nodes[i+1].originX, nodes[i+1].currentY || nodes[i+1].originY);
+            }
+            
+            if (i < nodes.length - cols) { 
+                ctx.moveTo(n.currentX, n.currentY);
+                ctx.lineTo(nodes[i+cols].currentX || nodes[i+cols].originX, nodes[i+cols].currentY || nodes[i+cols].originY);
+            }
+        }
+        ctx.stroke();
 
     
 
