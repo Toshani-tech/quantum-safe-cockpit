@@ -1,3 +1,5 @@
+// main.js - V16.5
+ 
 import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 
@@ -161,7 +163,6 @@ async function runPOST() {
     try {
         await initHandshake(); 
         
-    
      state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
        state.physicsWorker.onerror = function(error) {
        console.error("!!! CRITICAL WORKER THREAD ERROR !!!", error.message, "at", error.filename, "line", error.lineno);
@@ -391,7 +392,7 @@ function syncPhase(newPhase) {
 function handleSecurityLogic(phase) {
     if (phase === 'FINAL_APPROACH' && (state.isMitMAttackActive || state.attackLogged)) {
          state.isMitMAttackActive = false;
-         state.attackLogged = false;
+         state.attackLogged = false; 
          state.securityEventLocked = true; 
          triggerAttack(false); 
          
