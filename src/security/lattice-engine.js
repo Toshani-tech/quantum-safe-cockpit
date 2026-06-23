@@ -164,6 +164,20 @@ export function drawLattice(canvasId) {
         }
         ctx.stroke();
 
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            
+            if (isUnderAttack) {
+                
+                ctx.fillStyle = Math.random() > 0.90 ? "#FFFFFF" : "#FF3B3B";
+                ctx.fillRect(n.currentX - 1.5, n.currentY - 1.5, 3, 3);
+            } else {
+               
+                ctx.fillStyle = isSystemArmed ? "#00FF41" : "#FFBF00";
+                ctx.fillRect(n.currentX - 1, n.currentY - 1, 2, 2);
+            }
+        }
+
     
 
 
