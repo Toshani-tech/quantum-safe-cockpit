@@ -3,7 +3,7 @@
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
-import init from '../../security-kernel/pkg/security_kernel.js'; 
+import init from '../../security-kernel/pkg/security_kernel.js';
 
 let canvasCtx;
 let missionStartTime = 0;
@@ -16,7 +16,7 @@ let physicsLoopActive = false;
 let wasmExports = null;
 
 const FRACTIONAL_BITS = 16;
-const FIXED_SCALE = 65536; // 1 << 16
+const FIXED_SCALE = 65536; 
 
 let isMitMAttackActive = false;
 
@@ -96,6 +96,25 @@ function applyBERCorruption(arrayBuffer, phaseString, speedValue) {
     return derivedBER;
 }
 
+const wasmPromise = init().then(instance => {
+    wasmExports = instance;
+    
+    try {
+        if (wasmExports && typeof wasmExports.set_initial_state === 'function') {
+            wasmExports.set_initial_state(0, 0);
+        } else if (instance && typeof instance.set_initial_state === 'function') {
+            wasmExports = instance;
+            instance.set_initial_state(0, 0);
+        }
+    } catch (e) {
+        console.warn(">> WASM Export Warning (set_initial_state skipped):", e);
+    }
+    
+    console.log("AVIONICS_KERNEL: NIST-PQC ML-KEM & FIXED-POINT COMPLIANCE ACTIVE");
+}).catch(err => {
+    console.error("SYSTEM_FAULT: WASM Kernel Failure on Worker Startup", err);
+});
+
 self.onmessage = async function(e) {
     if (e.data.sentTime) latestSentTime = e.data.sentTime;
 
@@ -113,19 +132,12 @@ self.onmessage = async function(e) {
         canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         canvasCtx.scale(dpr, dpr);
 
-        try {
-            const wasmInstance = await init();
-            wasmExports = wasmInstance;
-            
-            if (wasmExports.set_initial_state) {
-                wasmExports.set_initial_state(0, 0);
-            }
-            
-            console.log("AVIONICS_KERNEL: NIST-PQC ML-KEM & FIXED-POINT COMPLIANCE ACTIVE");
-            self.postMessage({ type: 'KERNEL_READY' });
-        } catch (err) {
-            console.error("SYSTEM_FAULT: WASM Kernel Failure", err);
-        }
+       
+        await wasmPromise;
+        
+        
+        self.postMessage({ type: 'KERNEL_READY' });
+        return;
     }
     
     if (e.data.type === 'START_FLIGHT') {
@@ -136,12 +148,14 @@ self.onmessage = async function(e) {
         lastFrameTime = performance.now();
         physicsLoopActive = true;
         runMasterLoop(); 
+        return;
     }
 
     if (e.data.type === 'PAUSE_FLIGHT') {
         state.isPaused = true;
         state.pausedAt = performance.now();
         physicsLoopActive = false;
+        return;
     }
 
     if (e.data.type === 'RESUME_FLIGHT') {
@@ -151,12 +165,14 @@ self.onmessage = async function(e) {
         state.isPaused = false;
         physicsLoopActive = true;
         runMasterLoop();
+        return;
     }
 
     if (e.data.type === 'INJECT_FAULT') {
         if (e.data.faultType === 'SPOOF_ALTITUDE') {
             isMitMAttackActive = e.data.active;
         }
+        return;
     }
 };
 
