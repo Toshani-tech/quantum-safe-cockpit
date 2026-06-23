@@ -20,9 +20,7 @@ export function triggerAttack(status) {
                         status ? "#FF3B3B" : "#00FF41", "0xSHIELD");
 }
 
-/**
- * terminal logger
- */
+
 export function logTerminalMessage(msg, color = "#00FF41", tag = null) {
     const term = document.getElementById('terminal-box');
     if (!term) return;
@@ -50,9 +48,6 @@ export function logTerminalMessage(msg, color = "#00FF41", tag = null) {
     }
 }
 
-/**
- * Synchronize with Rust Kernel NIST Level 5
- */
 
 export async function initHandshake() {
     if (isSystemArmed) return;
@@ -67,8 +62,6 @@ export async function initHandshake() {
     isSystemArmed = true; 
     logTerminalMessage("CRYPTO: KYBER_1024_KEY_EXCHANGE: BUS_SECURE.", "#00FF41");
 }
-
-// Lattice Geometry Renderer
  
 export function drawLattice(canvasId) {
     if (animationRunning) return; 
@@ -115,7 +108,8 @@ export function drawLattice(canvasId) {
 
     animationRunning = true;
 
-    function animate() {
+
+        function animate() {
         if (killSwitch) {
             animationRunning = false;
             return;
@@ -130,48 +124,27 @@ export function drawLattice(canvasId) {
         ctx.fillRect(0, 0, w, h);
 
         const themeColor = isUnderAttack ? "255, 59, 59" : (isSystemArmed ? "0, 255, 65" : "255, 191, 0");
-        const noiseAmplitude = isUnderAttack ? 15 : 1.5; // Level 5 higher error margin
 
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(${themeColor}, 0.12)`;
+        ctx.strokeStyle = `rgba(${themeColor}, 0.15)`;
         ctx.lineWidth = 0.5;
 
         for (let i = 0; i < nodes.length; i++) {
             const n = nodes[i];
-            const noiseX = Math.sin(time + n.phase) * noiseAmplitude;
-            const noiseY = Math.cos(time + n.phase) * noiseAmplitude;
-            
-            n.currentX = n.originX + noiseX;
-            n.currentY = n.originY + noiseY;
+            let errorX = 0;
+            let errorY = 0;
 
-            if (i % cols < cols - 1) { 
-                ctx.moveTo(n.currentX, n.currentY);
-                const nextNode = nodes[i+1];
-                ctx.lineTo(nextNode.originX + (Math.sin(time + nextNode.phase) * noiseAmplitude), 
-                           nextNode.originY + (Math.cos(time + nextNode.phase) * noiseAmplitude));
-            }
-            if (i < nodes.length - cols) { 
-                ctx.moveTo(n.currentX, n.currentY);
-                const downNode = nodes[i+cols];
-                ctx.lineTo(downNode.originX + (Math.sin(time + downNode.phase) * noiseAmplitude), 
-                           downNode.originY + (Math.cos(time + downNode.phase) * noiseAmplitude));
-            }
-        }
-        ctx.stroke();
+            if (isUnderAttack) {
+                const discreteGaussianSample = () => (Math.random() + Math.random() + Math.random() - 1.5) * 14;
+                
 
-        for (let i = 0; i < nodes.length; i++) {
-            const n = nodes[i];
-            ctx.fillStyle = isUnderAttack ? "#FF3B3B" : (isSystemArmed ? "#00FF41" : "#FFBF00");
-            
-            if (isUnderAttack && Math.random() > 0.98) {
-                ctx.fillStyle = "#FFF";
-                ctx.fillRect(n.currentX - 2, n.currentY - 2, 4, 4);
-            } else {
-                ctx.fillRect(n.currentX - 1, n.currentY - 1, 2, 2);
-            }
-        }
-        
-        requestAnimationFrame(animate);
-    }
+    
+
+
+
+
+
+
+
     animate();
 }
