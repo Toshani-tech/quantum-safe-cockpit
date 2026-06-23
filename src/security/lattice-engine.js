@@ -1,5 +1,5 @@
 /**
- * lattice-engine.js - V7.3
+ * lattice-engine.js - V7.4
  */
 
 let isUnderAttack = false;
@@ -177,14 +177,20 @@ export function drawLattice(canvasId) {
                 ctx.fillRect(n.currentX - 1, n.currentY - 1, 2, 2);
             }
         }
-
-    
-
-
-
-
-
-
+        if (isUnderAttack) {
+            ctx.font = "10px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "rgba(255, 59, 59, 0.85)";
+            
+            const randomHex = () => Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, '0');
+            
+            ctx.fillText(`LWE THREAT ENGAGED: b = A·s + e (mod 3329)`, 15, 25);
+            ctx.fillText(`ERROR VECTOR e 🪕 𝒳^n [BOUND EXCEEDED]`, 15, 40);
+            ctx.fillText(`VECTOR DEVIATION: Δx:[${randomHex()}] Δy:[${randomHex()}]`, 15, 55);
+            ctx.fillText(`DECRYPTION STABILITY: FAILURE_RISK_SHIELDED`, 15, 70);
+        }
+        
+        requestAnimationFrame(animate);
+    }
 
     animate();
 }
