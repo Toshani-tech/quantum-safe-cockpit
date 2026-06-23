@@ -390,10 +390,11 @@ function syncPhase(newPhase) {
 }
 
 function handleSecurityLogic(phase) {
+    
     if (phase === 'FINAL_APPROACH' && (state.isMitMAttackActive || state.attackLogged)) {
          state.isMitMAttackActive = false;
          state.attackLogged = false; 
-         state.securityEventLocked = true; 
+         state.securityEventLocked = false; 
          triggerAttack(false); 
          
          if (state.physicsWorker) {
