@@ -160,7 +160,16 @@ async function runPOST() {
 
     try {
         await initHandshake(); 
-        state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
+        
+    
+     state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
+       state.physicsWorker.onerror = function(error) {
+       console.error("!!! CRITICAL WORKER THREAD ERROR !!!", error.message, "at", error.filename, "line", error.lineno);
+};
+
+state.physicsWorker.onmessageerror = function(error) {
+    console.error("!!! WORKER SERIALIZATION ERROR !!!", error);
+};
 
         if (!state.canvasTransferred) {
             const rect = canvas.parentElement.getBoundingClientRect();
