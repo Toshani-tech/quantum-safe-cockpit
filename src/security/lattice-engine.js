@@ -144,6 +144,13 @@ export function drawLattice(canvasId) {
                     errorY *= 2.5;
                 }
              } else {
+                
+                errorX = Math.sin(time + n.phase) * 1.5;
+                errorY = Math.cos(time + n.phase) * 1.5;
+            }
+            
+            n.currentX = n.originX + errorX;
+            n.currentY = n.originY + errorY;
 
     
 
