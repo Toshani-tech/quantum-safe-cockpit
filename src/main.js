@@ -468,7 +468,10 @@ function runMissionStory(elapsed) {
     storyMilestones.forEach(event => {
         if (time >= event.t && !state.triggeredEvents.has(event.t)) {
             logTerminalMessage(event.msg, event.color, "0xLOG");
-            if (event.triggerReset) triggerAttack(false);
+            if (event.triggerReset) {
+                triggerAttack(false);
+                state.attackLogged = false; 
+            }
             state.triggeredEvents.add(event.t);
         }
     });
