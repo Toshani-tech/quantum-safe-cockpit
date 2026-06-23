@@ -117,8 +117,6 @@ initializeAvionics();
 
 function readWasmTelemetryBuffer() {
     if (!state.isKernelReady || !telemetryBufferPtr || !wasmMemory) return null;
-   
-    
     return new Uint32Array(wasmMemory.buffer, telemetryBufferPtr, 4);
 }
 
@@ -163,14 +161,14 @@ async function runPOST() {
     try {
         await initHandshake(); 
         
-     state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
-       state.physicsWorker.onerror = function(error) {
-       console.error("!!! CRITICAL WORKER THREAD ERROR !!!", error.message, "at", error.filename, "line", error.lineno);
-};
+        state.physicsWorker = new Worker('./src/physics/physics-worker.js', { type: 'module' });
+        state.physicsWorker.onerror = function(error) {
+            console.error("!!! CRITICAL WORKER THREAD ERROR !!!", error.message, "at", error.filename, "line", error.lineno);
+        };
 
-state.physicsWorker.onmessageerror = function(error) {
-    console.error("!!! WORKER SERIALIZATION ERROR !!!", error);
-};
+        state.physicsWorker.onmessageerror = function(error) {
+            console.error("!!! WORKER SERIALIZATION ERROR !!!", error);
+        };
 
         if (!state.canvasTransferred) {
             const rect = canvas.parentElement.getBoundingClientRect();
@@ -390,7 +388,6 @@ function syncPhase(newPhase) {
 }
 
 function handleSecurityLogic(phase) {
-    
     if (phase === 'FINAL_APPROACH' && (state.isMitMAttackActive || state.attackLogged)) {
          state.isMitMAttackActive = false;
          state.attackLogged = false; 
@@ -432,7 +429,9 @@ function handleSecurityLogic(phase) {
         document.getElementById('auth-crypto-btn').onclick = () => {
             document.getElementById('security-modal').style.display = 'none';
             state.isMitMAttackActive = true;
-            
+            state.attackLogged = true; 
+            triggerAttack(true);
+
             const panels = document.querySelectorAll('.panel');
             const hexDisplay = document.getElementById('fdr-hex-display');
             const securityTag = document.getElementById('security-tag');

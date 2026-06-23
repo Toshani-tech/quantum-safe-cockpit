@@ -251,14 +251,15 @@ Tech: WebAssembly, Rust (wasm-pack), JavaScript Web Workers
 
 Note: Spent a massive chunk of time chasing down a brutal, silent console crash (CRITICAL WORKER THREAD ERROR: undefined ). The simulation was totally frozen at ignition. It turns out that when I updated Cargo.toml and lib.rs yesterday, the generated JS bindings inside pkg/ got compiled with an incorrect environment configuration. Because the browser couldn't handle the raw export structures inside the Web Worker thread so it threw a silent syntax error that wiped out all line numbers.
 
-P.S: I still have some heavy troubleshooting left to do for other parts of this simulation, tomorrow have to find out what went wrong and where.
+P.S: I still have some heavy troubleshooting left to do for other parts of this simulation.
 
 Day 27: June 23, 2026 
 
-Task: 
+Task: Refined Post-Quantum Security Kernel HUD parameters 
 
-Tech:
+Tech: HTML5 Canvas API, ARINC-429 Bit-Level Serialization Protocol, NIST-Standardized ML-KEM Cryptographic Math.
 
-Note:
+Note: In main.js I fixed a race condition causing the telemetry stream to misfire fake alerts. Added triggerAttack(true) directly to the modal button so the lattice grid distorts instantly upon acknowledgement. In lattice engine.js had to fix the high DPI blurriness as high res screens stretch standard canvases across fractional coordinates, bleeding vector lines across grid lines. Fixed this by snapping container dimensions to integer boundaries with Math.floor(), applying a 0.5px stroke offset to center lines perfectly within a single hardware pixel row, and forcing ctx.textBaseline = "top" to lock typographic bounds. Upgraded the HUD overlay text to crisp white for contrast, displaying hard math metrics right inside the lattice grid and now it depicts texts to show exactly how the post-quantum keys are handled.
 
-P.S: 
+P.S: I spent almost the entire session trying to get the lattice grid to jitter during the attack phase to show the LWE (Learning With Errors) problem in action. It wasn't working at first, but after doing some troubleshooting, I realized that two separate code blocks in main.js were running at the exact same time and fighting over the state variables, which completely blocked the animation from triggering. (Funny thing, had a bango emoji in my code for a while as I was tryna write the proper mathematical sampling notation) Everything looks sharp now! 
+
