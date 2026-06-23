@@ -136,7 +136,14 @@ export function drawLattice(canvasId) {
 
             if (isUnderAttack) {
                 const discreteGaussianSample = () => (Math.random() + Math.random() + Math.random() - 1.5) * 14;
-                
+                errorX = discreteGaussianSample();
+                errorY = discreteGaussianSample();
+            
+                if (Math.random() > 0.98) {
+                    errorX *= 2.5;
+                    errorY *= 2.5;
+                }
+             } else {
 
     
 
