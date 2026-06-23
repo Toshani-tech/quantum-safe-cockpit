@@ -237,8 +237,28 @@ Day 25: June 21, 2026
 
 Task: Upgrading telemetry to actual ARINC-429 bit and tweaking the Rust security kernel.
 
-Tech: Rust, Cargo, WebAssembly (WASM), JS (Uint32Array), ARINC-429 protocol.
+Tech: Rust, Cargo, WebAssembly (WASM)
 
-Note: Worked on connecting the main frontend to the security-kernel folder (src/lib.rs) to get ready for the heavy lattice-based crypto stuff. In Cargo.toml & lib.rs I set up the architectural scaffolding in Rust so the app can eventually stream raw flight data straight into a WebAssembly ready structure for true NIST ML-KEM integration. In main.js I built the data pipeline to offload high overhead postquantum key encapsulation into a sandboxed, low level linear memory space. This decouples the cryptographic execution via WebAssembly binary bridges, which keeps the heavy math from starving or freezing our real time flight control telemetry thread.
+Note: Worked on connecting the main frontend to the security kernel folder (src/lib.rs) to get ready for the heavy lattice based crypto stuff. In Cargo.toml & lib.rs I set up the architectural scaffolding in Rust so the app can eventually stream raw flight data straight into a WebAssembly ready structure for true NIST ML-KEM integration. In main.js I built the data pipeline to offload high overhead postquantum key encapsulation into a sandboxed, low level linear memory space. This decouples the cryptographic execution via WebAssembly binary bridges, which keeps the heavy math from starving or freezing our real time flight control telemetry thread.
 
 P.S: Right now the whole app is completely black screen and won't load because of a stupid console error. I tried fixing it for over 2 hours today but it isn't budging. It's totally blocking the simulation, so fixing this line (which basically means debugging a couple of my files) is the first thing on the menu tomorrow. 
+
+Day 26: June 22, 2026
+
+Task: Debugging Avionics Web Worker Pipeline & Fixing WASM Compilation Stalls
+
+Tech: WebAssembly, Rust (wasm-pack), JavaScript Web Workers
+
+Note: Spent a massive chunk of time chasing down a brutal, silent console crash (CRITICAL WORKER THREAD ERROR: undefined ). The simulation was totally frozen at ignition. It turns out that when I updated Cargo.toml and lib.rs yesterday, the generated JS bindings inside pkg/ got compiled with an incorrect environment configuration. Because the browser couldn't handle the raw export structures inside the Web Worker thread so it threw a silent syntax error that wiped out all line numbers.
+
+P.S: I still have some heavy troubleshooting left to do for other parts of this simulation, tomorrow have to find out what went wrong and where.
+
+Day 27: June 23, 2026 
+
+Task: 
+
+Tech:
+
+Note:
+
+P.S: 
