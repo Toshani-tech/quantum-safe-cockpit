@@ -206,7 +206,6 @@ function updatePhysics(dt, elapsed) {
                 state.verticalVelocity = (state.verticalVelocity * 0.90) + (dynamics.verticalVelocity * 0.10);
             }
         } else {
-            
             const result = calculateFlightDynamics(state, dt, elapsed);
             if (result) {
                 state.altitude = result.altitude; 
@@ -225,7 +224,6 @@ function updatePhysics(dt, elapsed) {
 function broadcastTelemetry(elapsed) {
     let serializedBuffer = new Uint32Array(3);
     
-   
     let wireAltitude = state.altitude;
     if (isMitMAttackActive) {
         wireAltitude = 420.0; 
@@ -237,6 +235,9 @@ function broadcastTelemetry(elapsed) {
 
     let activeBER = applyBERCorruption(serializedBuffer, state.missionPhase, state.airspeed);
 
+    
+    let transmissionBuffer = new Uint32Array(serializedBuffer);
+
     self.postMessage({ 
         type: 'TELEMETRY', 
         altitude: state.altitude, 
@@ -247,9 +248,9 @@ function broadcastTelemetry(elapsed) {
         vviDirection: state.vviDirection,
         elapsed: elapsed.toFixed(2),
         sentTime: latestSentTime,
-        arincWords: serializedBuffer,
+        arincWords: transmissionBuffer,
         simulatedBER: activeBER
-    }, [serializedBuffer.buffer]);
+    }, [transmissionBuffer.buffer]);
 }
 
 function terminateMission() {
