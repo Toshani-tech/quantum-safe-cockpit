@@ -1,3 +1,5 @@
+// physics-worker.js - V12.8
+
 import init, { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
 
 let wasmReady = false;
