@@ -1,0 +1,15 @@
+{
+  "name": "security-kernel",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "security_kernel_bg.wasm",
+    "security_kernel.js",
+    "security_kernel.d.ts"
+  ],
+  "main": "security_kernel.js",
+  "types": "security_kernel.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

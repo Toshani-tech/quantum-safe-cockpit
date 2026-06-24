@@ -1,0 +1,7 @@
+E:\desktop\quantum-safe-cockpit-main\security-kernel\target\wasm32-unknown-unknown\release\deps\cfg_if-8e205a86cae40a35.d: C:\Users\Beshara\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cfg-if-1.0.4\src\lib.rs
+
+E:\desktop\quantum-safe-cockpit-main\security-kernel\target\wasm32-unknown-unknown\release\deps\libcfg_if-8e205a86cae40a35.rlib: C:\Users\Beshara\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cfg-if-1.0.4\src\lib.rs
+
+E:\desktop\quantum-safe-cockpit-main\security-kernel\target\wasm32-unknown-unknown\release\deps\libcfg_if-8e205a86cae40a35.rmeta: C:\Users\Beshara\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cfg-if-1.0.4\src\lib.rs
+
+C:\Users\Beshara\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cfg-if-1.0.4\src\lib.rs:
