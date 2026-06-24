@@ -2,44 +2,254 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q-Safe Stealth Cockpit | Avionics v1.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AVIONICS_BUS_V16.9 </title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
+
+    <style>
+        :root {
+            --av-green: #00FF41;
+            --av-red: #FF3B3B;
+            --av-amber: #FFBF00;
+            --av-cyan: #00F0FF;
+            --lattice-theme: var(--av-green); 
+        }
+
+        /*GLOBAL ALERT STATE */
+        
+        body.under-attack {
+            --lattice-theme: var(--av-red);
+        }
+
+        body.under-attack #mission-timer {
+            color: var(--av-red) !important;
+            animation: pulse 0.5s infinite;
+        }
+
+        body.under-attack .panel {
+            border-color: var(--av-red) !important;
+        }
+
+       
+        body {
+            transition: background-color 0.5s ease;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .overlay-layer {
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.92); 
+            backdrop-filter: blur(4px);
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+            font-family: 'Share Tech Mono', monospace;
+            text-transform: uppercase;
+        }
+
+        .modal-content {
+            border: 2px solid var(--av-red); 
+            background: #000; 
+            padding: 30px; 
+            width: 90%;
+            max-width: 500px; 
+            text-align: left; 
+            box-shadow: 0 0 30px rgba(255, 59, 59, 0.2);
+        }
+
+        .threat-header {
+            background: var(--av-red); 
+            color: #000;
+            font-size: 20px;
+            padding: 5px 10px;
+            margin-bottom: 20px;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .report-content {
+            border: 1px solid #333; 
+            background: #000; 
+            padding: 40px; 
+            width: 90%;
+            max-width: 480px; 
+        }
+
+        .report-header {
+            color: #fff;
+            font-size: 18px;
+            border-bottom: 2px solid var(--av-green);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            color: #888;
+            line-height: 1.8;
+            font-size: 13px;
+        }
+
+        .stat-line { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 1px solid #111; 
+            padding: 4px 0;
+        }
+        
+        .stat-value { color: var(--av-green); font-weight: normal; }
+
+        .protocol-box {
+            background: #050505; 
+            padding: 15px; 
+            border: 1px solid #222; 
+            margin: 20px 0; 
+            font-size: 12px; 
+            color: var(--av-red);
+            line-height: 1.4;
+        }
+
+        #auth-crypto-btn, .report-btn {
+            width: 100%; 
+            padding: 15px; 
+            background: transparent; 
+            border: 1px solid var(--av-green); 
+            color: var(--av-green); 
+            cursor: crosshair;
+            font-family: 'Share Tech Mono'; 
+            letter-spacing: 2px;
+            transition: all 0.2s ease;
+        }
+
+        #auth-crypto-btn:hover, .report-btn:hover {
+            background: var(--av-green);
+            color: #000; 
+        }
+
+        .ready-state { border-color: var(--av-amber) !important; color: var(--av-amber) !important; }
+        .active-state { border-color: var(--av-green) !important; color: var(--av-green) !important; }
+        .critical-state { border-color: var(--av-red) !important; color: var(--av-red) !important; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
 </head>
-<body>
-    <div id="vfx-layer"></div>
+<body id="avionics-body">
 
     <div id="cockpit-container">
-        <header>
-            <div id="security-tag">SYSTEM: STANDBY [PQC-ACTIVE]</div>
+        <header id="status-bar">
+            <div class="status-matrix">
+                <div class="monitor-unit">
+                    <div class="status-light" id="hb-ui"></div>
+                    <span id="bus-status-text">BUS_MAIN: STANDBY</span>
+                </div>
+                
+                <div class="monitor-unit">
+                    <div class="status-light" id="fcc-status-light"></div>
+                    <span id="fcc-status-text">FCC_PROC: STANDBY</span>
+                </div>
+
+                <div class="monitor-unit security-divider">
+                    <span id="security-tag">MODE: ML-KEM [WAITING]</span>
+                </div>
+            </div>
+            
+            <div class="latency-monitor">
+                RTT: <span id="latency-value">0.0</span>MS
+            </div>
         </header>
 
         <main class="pfd-grid">
-            <section class="panel" id="air-data-panel">
-                <div class="label">PRIMARY FLIGHT DATA</div>
-                <canvas id="flight-display"></canvas>
+            <section class="panel">
+                <div class="panel-header">
+                    <span>PRIMARY_FLIGHT_DATA</span>
+                    <span id="current-phase" style="color: var(--av-amber)">STANDBY</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="flight-display"></canvas>
+                </div>
             </section>
 
-            <section class="panel center-panel" id="lattice-panel">
-                <div class="label">QUANTUM LATTICE CORE</div>
-                <canvas id="lattice-canvas"></canvas>
+            <section class="panel">
+                <div class="panel-header">LATTICE_ENTROPY_SHIELD</div>
+                <div class="canvas-wrapper">
+                    <canvas id="lattice-canvas"></canvas>
+                </div>
             </section>
 
-            <section class="panel" id="security-panel">
-                <div class="label">ENCRYPTED TELEMETRY LOG</div>
-                <div id="terminal-box"></div>
-                <div id="boot-terminal" style="display:none;"></div>
+            <section class="panel" id="telemetry-panel">
+                <div class="panel-header">BUS_TELEMETRY // ARINC_429</div>
+                <div id="terminal-box">
+                    <div class="sys-msg" style="color: var(--av-amber)">>> SYSTEM_INITIALIZING...</div>
+                </div>
+                
+                <div class="diagnostic-cluster">
+                    <div class="data-group">
+                        <div class="diag-label">HEX_DUMP_STREAM</div>
+                        <div id="fdr-hex-display">0x0000 0000 | NULL</div>
+                    </div>
+                    <div class="data-group">
+                        <div class="diag-label">MISSION_TIMER</div>
+                        <div id="mission-timer">T+ 0.00S</div>
+                    </div>
+                    <div id="safety-calc">
+                        INTEGRITY_STAT: <span id="integrity-status" style="color: var(--av-green)">NOMINAL</span><br>
+                        BER_RATE: <span id="ber-value" style="color: var(--av-amber)">0.00e-00</span>
+                    </div>
+                </div>
             </section>
         </main>
 
         <footer>
-            <button id="init-btn">INITIALIZE FLIGHT DECK</button>
+            <button id="init-btn" class="tactical-trigger">AWAITING_KERNEL...</button>
         </footer>
+    </div>
+
+    <div id="security-modal" class="overlay-layer">
+        <div class="modal-content">
+            <div class="threat-header">ALRT: PACKET_INJECTION</div>
+            <p style="font-size: 12px; color: #888; margin: 10px 0;">
+                UNTRUSTED DATA DETECTED ON BUS_A.<br>
+                SOURCE: EXTERNAL_INJECTION_NODE
+            </p>
+            <div class="protocol-box">
+                // CRYPTO_AUTH_REQUIRED<br>
+                // PROTOCOL: NIST_ML_KEM_L5<br>
+                // TARGET: KERNEL_MEMORY_SPACE
+            </div>
+            <button id="auth-crypto-btn">DEPLOY_CRYPTO_SHIELD</button>
+        </div>
+    </div>
+
+    <div id="mission-report" class="overlay-layer">
+        <div class="report-content">
+            <div class="report-header">FDR_BLACK_BOX_RECOVERY</div>
+            <div class="stats-grid">
+                <div class="stat-line"><span>OP_STATUS</span> <span class="stat-value">COMPLETE</span></div>
+                <div class="stat-line"><span>MAX_ALT</span> <span id="report-alt" class="stat-value">0</span> FT</div>
+                <div class="stat-line"><span>MAX_SPD</span> <span id="report-spd" class="stat-value">0</span> KTS</div>
+                <div class="stat-line"><span>CRYPTO_STATE</span> <span class="stat-value">SECURE</span></div>
+            </div>
+
+            <button id="download-fdr-btn" class="report-btn" style="border-color: var(--av-amber); color: var(--av-amber); margin: 20px 0 10px 0;">
+                EXTRACT_FDR_CSV
+            </button>
+
+            <button class="report-btn" onclick="location.reload()" style="border-color: #444; color: #444;">REBOOT_SYSTEM</button>
+        </div>
     </div>
 
     <script type="module" src="./src/main.js"></script>

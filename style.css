@@ -1,143 +1,186 @@
-/* style.css - Stealth Cockpit Tactical UI */
+/* style.css V17.5 */
+
 :root {
-    --bg: #05070a;
-    --panel-bg: #05070a; /* STEP 3: Pure solid background */
-    --cyan: #00e5ff;
-    --tactical-red: #ff3b3b;
+    --bg: #000000;
+    --av-green: #00FF41; 
+    --av-amber: #FFBF00;
+    --av-red: #FF3B3B; 
+    --industrial-border: #1a1a1a; 
     --font-main: 'Share Tech Mono', monospace;
-    --border-glow: rgba(0, 229, 255, 0.25);
+    --lattice-theme: var(--av-green); 
+}
+
+body.under-attack {
+    --lattice-theme: var(--av-red);
+    border: 2px solid var(--av-red);
 }
 
 * { 
     box-sizing: border-box; 
+    margin: 0; 
+    padding: 0;
 }
 
-body {
-    background: var(--bg);
-    color: #fff;
-    font-family: var(--font-main);
-    margin: 0;
+html, body {
     height: 100vh;
     width: 100vw;
-    display: flex;
-    flex-direction: column;
+    background: #000;
+    color: var(--av-green);
+    font-family: var(--font-main);
     overflow: hidden; 
+    transition: border 0.2s ease;
 }
 
-/* THE "FILM LOOK" SCANLINES */
-body::after {
-    content: " ";
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
-    background-size: 100% 4px;
-    z-index: 100;
-    pointer-events: none;
-    opacity: 0.4;
-}
-
+/* MASTER CONTAINER */
 #cockpit-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: 30px;
-    z-index: 10;
+    padding: 10px;
+    gap: 10px;
 }
 
-header {
-    margin-bottom: 20px;
-    text-align: center;
+/* STATUS BAR */
+#status-bar {
+    flex: 0 0 35px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    background: #0a0a0a;
+    border: 1px solid var(--industrial-border);
+    font-size: 11px;
+}
+
+.status-matrix { display: flex; gap: 20px; align-items: center; }
+.monitor-unit { display: flex; align-items: center; color: #555; }
+
+/* LED STYLE */
+.status-light {
+    width: 8px; height: 8px;
+    background: #1a1a1a; 
+    display: inline-block;
+    margin-right: 8px;
+    border: 1px solid #333;
+    transition: background 0.05s step-end, box-shadow 0.05s step-end;
+}
+
+#bus-status-text, #fcc-status-text, #security-tag {
+    transition: color 0.05s step-end;
+    font-weight: bold;
+    letter-spacing: 1px;
 }
 
 #security-tag {
-    display: inline-block;
-    padding: 5px 20px;
-    border: 1px solid var(--cyan);
-    color: var(--cyan);
-    font-size: 0.9rem;
-    letter-spacing: 3px;
-    text-shadow: 0 0 10px var(--cyan);
+    text-transform: uppercase;
 }
 
-/* THE GRID SYSTEM - Hard Locked */
+.latency-monitor { color: var(--av-amber); font-variant-numeric: tabular-nums; }
+
+/* LAYOUT GRID */
 .pfd-grid {
-    display: grid;
-    grid-template-columns: 350px 1fr 350px; 
-    gap: 25px;
-    flex-grow: 1;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important; 
+    gap: 10px;
+    flex: 1; 
     min-height: 0; 
 }
 
+/* PANEL  */
 .panel {
-    background: var(--panel-bg);
-    border: 1px solid var(--border-glow);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    padding: 0; /* Let canvas fill the edges */
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
-
-/* STEP 1 FIX: Removed the .telemetry class entirely to kill ghosting */
-
-/* CANVAS SIZING - Locked for Aspect Ratio */
-#lattice-canvas, #flight-display {
-    width: 100% !important;
-    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
     background: #000;
-    /* This makes the canvas look like a screen inside the panel */
-    object-fit: fill; 
+    border: 1px solid var(--industrial-border);
+    min-height: 0;
+    transition: border-color 0.3s ease;
 }
 
-/* HUD Labels - High-End Aesthetic */
-.label {
-    position: absolute;
-    top: 10px;
-    left: 15px;
-    color: var(--cyan);
-    font-size: 12px;
-    letter-spacing: 2px;
+.panel-header {
+    flex: 0 0 28px; 
+    line-height: 28px;
+    padding: 0 10px;
+    font-size: 10px;
+    background: #111;
     text-transform: uppercase;
-    z-index: 5;
-    background: var(--bg);
-    padding: 2px 8px;
-    border: 1px solid var(--border-glow);
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--industrial-border);
 }
 
-/* TERMINAL / LOGS - Ivy League Level Formatting */
+/* CANVAS HANDLING */
+.canvas-wrapper {
+    flex: 1; position: relative; background: #000;
+    min-height: 0; width: 100%; height: 100%;
+}
+canvas { object-fit: contain; width: 100%; height: 100%; display: block; }
+
+/* TELEMETRY & TERMINAL */
 #terminal-box {
-    flex-grow: 1;
-    overflow-y: auto;
-    font-family: var(--font-main);
-    font-size: 13px;
-    color: var(--cyan);
-    background: #020406;
-    padding: 40px 15px 15px 15px; /* Top padding to avoid label overlap */
-    scrollbar-width: none;
+    flex: 1; padding: 10px; font-size: 11px;
+    display: flex; flex-direction: column; justify-content: flex-end; 
+    color: var(--av-amber); background: #000; overflow: hidden;
+    font-variant-numeric: tabular-nums;
 }
 
-/* FOOTER & BUTTON */
-footer {
-    display: flex;
-    justify-content: center;
-    padding-top: 30px;
+#terminal-box div {
+    border-bottom: 1px solid #111;
+    padding: 2px 0; white-space: nowrap;
 }
+
+.diagnostic-cluster {
+    flex: 0 0 auto; background: #050505;
+    border-top: 1px solid var(--industrial-border); padding: 12px;
+}
+
+#mission-timer {
+    font-size: 28px; color: #fff; font-weight: normal;
+    font-variant-numeric: tabular-nums; margin-bottom: 5px;
+}
+
+footer { flex: 0 0 60px; }
 
 #init-btn {
-    background: transparent;
-    color: var(--cyan);
-    border: 1px solid var(--cyan);
-    padding: 18px 100px;
-    font-size: 1rem;
+    width: 100%; height: 100%;
+    background: #000;
+    border: 1px solid #1a1a1a; 
+    color: #222; 
+    letter-spacing: 4px;
     font-family: var(--font-main);
-    letter-spacing: 5px;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    text-transform: uppercase;
+    cursor: crosshair;
+    transition: none;
+    -webkit-font-smoothing: none;
 }
 
-#init-btn:hover {
-    background: rgba(0, 229, 255, 0.1);
-    box-shadow: 0 0 40px rgba(0, 229, 255, 0.2);
-    letter-spacing: 8px;
+#init-btn.ready-state {
+    border-color: var(--av-amber);
+    color: var(--av-amber);
+}
+
+#init-btn.active-state {
+    background: #000;
+    color: var(--av-green) !important;
+    font-weight: 900;
+    border: 2px solid var(--av-green) !important;
+}
+
+#init-btn.critical-state {
+    background: var(--av-red);
+    color: #000;
+    border: 2px solid var(--av-red);
+    animation: sharp-blink 0.4s step-end infinite;
+}
+
+/* ANIMATIONS */
+@keyframes sharp-blink {
+    0% { background: var(--av-red); color: #000; }
+    50% { background: #000; color: var(--av-red); }
+}
+
+/* VFX LAYER*/
+#vfx-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%);
+    background-size: 100% 4px;
+    z-index: 9998; pointer-events: none; opacity: 0.2;
 }

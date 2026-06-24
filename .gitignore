@@ -1,0 +1,4 @@
+/security-kernel/target/
+/security-kernel/pkg/
+node_modules/
+.DS_Store

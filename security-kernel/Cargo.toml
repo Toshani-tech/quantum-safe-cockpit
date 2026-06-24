@@ -1,0 +1,24 @@
+[package]
+name = "security-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# cdylib is required for compiling to a WebAssembly (.wasm) binary
+crate-type = ["cdylib"]
+
+[dependencies]
+# The core bridge between Rust and JavaScript
+wasm-bindgen = "0.2"
+
+# Allows us to manipulate high-performance JS types like Uint32Array directly in memory
+js-sys = "0.3"
+
+# Essential for avionics debugging: forwards Rust panics straight to the browser console
+console_error_panic_hook = "0.1.7"
+
+[profile.release]
+# Tells the compiler to optimize aggressively for performance ("s" optimizes for size/speed balance)
+opt-level = "s"
+# Enables Link-Time Optimization to strip out dead code across dependencies
+lto = true
