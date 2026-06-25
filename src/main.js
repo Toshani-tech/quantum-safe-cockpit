@@ -413,7 +413,7 @@ function updateTelemetryStream(arincWords) {
         let isContentAltered = false;
         let deltaText = '';
 
-        if (label === 0o036) { 
+        if (label === 0o036 && groundTruth) { 
             const transmittedAlt = (word >>> 10) & 0x7FFFF;
             const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
             
