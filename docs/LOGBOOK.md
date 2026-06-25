@@ -95,7 +95,7 @@ P.S: Found a 15-minute bug where the "Initialize" button stayed active during fl
 
 Day 11 : March 4, 2026
 
-Task: Environment Re-Provisioning & SDK Fighting.
+Task: Environment Re Provising and SDK fighting
 
 Tech: MSVC v14.44, Rust Toolchain, Windows SDK.
 
@@ -272,6 +272,17 @@ Tech: Decoupled Main Thread Execution, Type-Safe Data Serialization (ARINC-429 P
 Note: Spent today adding and fixing a nasty layout bug where longer terminal strings were completely blowing out the boundaries of the cockpit UI and messing up my layout. I rewrote the entire AVIONICS_LOG_POOL with short punchy, authentic flight deck phrases so the text spacing stays absolutely static and matches the original 0xBOOT format perfectly. I also realized the MISSION_COMPLETE pool array was basically total dead code because the animation loop drops out the second state.isTerminated hits. Since I already have a clean CSV data popup report that handles the flight summary perfectly, adding cluttering after flight logs there was useless anyway so I just stripped that block out entirely. Also spent quite a while today hunting down a race condition where the animation loop hit the 3 second logging timer a second too soon before the worker officially updated the flight phase, causing double logs. Tied the ambient logger directly to the synchronized state variables so everything stays perfectly aligned and without duplicates.
 
 P.S: Troubleshooting again...actually today Git got a bit messy after a pull, and my recent commits got detached from the main branch. I used git reflog to track down the exact commit hashes and cherry picked them back onto the timeline. Everything synced perfectly with GitHub. 
+
+Day 29: June 25, 2026
+
+Task: Rewrote and hardened the ARINC-429 telemetry stream engine 
+
+Tech: Decoupled Main Thread Execution (Web Workers), Type-Safe Data Serialization (ARINC-429 BitPacking via Uint32Array), Modular Component Based UI.
+
+Note: Spent the day restructuring the telemetry stream layout. I needed to ensure that higher frequency
+data from the physics worker didn't overload the main DOM loop, so I locked down a strict 10Hz throttle check (THROTTLE_INTERVAL_MS = 100). I also caught an issue where the ambient log engine was shuffling the tracking decks and accidentally spitting out identical strings back to back during phase transitions. By implementing a lookback variable (lastAmbientMessageText) right inside the injection loop, the system now forces a memory flush and immediate card redraw if a duplicate is pulled. The visual output looks incredibly clean now and behaves like a real avionics layout.
+
+P.S: Literally the log output looked like a broken record repeating lines. Found out I had left some loose duplicate code fragments floating right outside the scope of updateTelemetryStream from yesterday's rewrite. It was throwing a wild syntax error and almost bricked the display terminal initialization, but I scrubbed the orphan code and now it runs completely smooth.
 
 
 
