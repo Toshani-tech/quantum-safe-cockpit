@@ -1,4 +1,4 @@
-// physics-worker.js - V12.8
+// aerodynamics.js - V16.2
 
 import init, { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
 
