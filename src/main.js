@@ -391,65 +391,42 @@ function verifyARINC429Parity(word) {
     return parityCount === 1;
 }
 
+
+
 function updateTelemetryStream(arincWords) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
 
-    if (!arincWords || !(arincWords instanceof Uint32Array)) return;
+    const groundTruth = state.lastWorkerData;
+    if (!groundTruth || !groundTruth.arincWords) return;
 
+    const liveBuffer = groundTruth.arincWords; 
     const timestamp = (performance.now() / 1000).toFixed(2);
     let outputHTML = '';
-    const groundTruth = state.lastWorkerData;
 
-    for (let index = 0; index < arincWords.length; index++) {
-        let word = arincWords[index];
-        let hexString = word.toString(16).toUpperCase().padStart(8, '0');
-        let label = word & 0xFF;
-        let isParityValid = verifyARINC429Parity(word);
 
-        let isContentAltered = false;
-        let deltaText = '';
 
-        if (label === 0o036 && groundTruth) { 
-            const transmittedAlt = (word >>> 10) & 0x7FFFF;
-            const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
-            
-            if (precisionDelta > 50 && state.currentPhase !== 'FINAL_APPROACH' && state.currentPhase !== 'MISSION_COMPLETE') {
-                isContentAltered = true;
-            } else if (precisionDelta > 0) {
-                deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(4)} FT]</span>`;
-            }
-        }
 
-        let statusText = '[AUTH_OK]';
-        let statusColor = 'var(--av-green)';
 
-        if (!isParityValid) {
-            statusText = '[PARITY_ERR]';
-            statusColor = '#FF3B3B';
-        } else if (isContentAltered) {
-            statusText = '[SPOOF_ALERT]';
-            statusColor = '#FF3B3B';
-            if (!state.attackLogged) {
-                triggerAttack(true); 
-                logTerminalMessage("MALICIOUS BUS CORRUPTION: PARITY VALID BUT DATA MUTATED", "#FF3B3B", "0xMITM");
-                state.attackLogged = true;
-            }
-        }
 
-        outputHTML += `<div style="margin-bottom: 2px; font-size: 11px;">
-            <span style="color: #666">[${timestamp}]</span> 
-            <span style="color: #888">RX_WORD[${label.toString(8).padStart(3, '0')}]:</span> 
-            <span style="color: ${isContentAltered ? '#FF3B3B' : 'var(--av-green)'}">0x${hexString}</span> 
-            <span style="color: ${statusColor}">${statusText}</span>
-            ${deltaText}
-        </div>`;
-    }
 
-    state.telemetryLines.push(outputHTML);
-    if (state.telemetryLines.length > 4) state.telemetryLines.shift(); 
-    hexDisplay.innerHTML = state.telemetryLines.join('');
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function syncPhase(newPhase) {
     if (newPhase && newPhase !== state.currentPhase) {
