@@ -423,7 +423,36 @@ function updateTelemetryStream(arincWords) {
                 deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(4)} FT]</span>`;
             }
         }
-        
+
+        let statusText = '[AUTH_OK]';
+        let statusColor = 'var(--av-green)';
+
+        if (!isParityValid) {
+            statusText = '[PARITY_ERR]';
+            statusColor = '#FF3B3B';
+        } else if (isContentAltered) {
+            statusText = '[SPOOF_ALERT]';
+            statusColor = '#FF3B3B';
+            if (!state.attackLogged) {
+                triggerAttack(true); 
+                logTerminalMessage("MALICIOUS BUS CORRUPTION: PARITY VALID BUT DATA MUTATED", "#FF3B3B", "0xMITM");
+                state.attackLogged = true;
+            }
+        }
+
+        outputHTML += `<div style="margin-bottom: 2px; font-size: 11px;">
+            <span style="color: #666">[${timestamp}]</span> 
+            <span style="color: #888">RX_WORD[${label.toString(8).padStart(3, '0')}]:</span> 
+            <span style="color: ${isContentAltered ? '#FF3B3B' : 'var(--av-green)'}">0x${hexString}</span> 
+            <span style="color: ${statusColor}">${statusText}</span>
+            ${deltaText}
+        </div>`;
+    }
+
+    state.telemetryLines.push(outputHTML);
+    if (state.telemetryLines.length > 4) state.telemetryLines.shift(); 
+    hexDisplay.innerHTML = state.telemetryLines.join('');
+
 
 
 
