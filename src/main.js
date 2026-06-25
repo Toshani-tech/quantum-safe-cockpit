@@ -33,33 +33,47 @@ const LOG_FREQUENCY = 0.5;
 
 const AVIONICS_LOG_POOL = {
     PRE_FLIGHT: [
-        "[ARINC-429] INITIALIZING BUS COUPLER 0x01 // DATA RATE: 100KBPS",
-        "[SYS_CLK] GPS SYNC COMPLETED // DELTA: 0.0002ms",
-        "[SEC_KERN] ENFORCING NIST_L5 BOUNDS // GENERATING EPHEMERAL PUBLIC KEY"
+        "ARINC_429: INIT BUS_01",
+        "SYS_CLK: GPS SYNC OK",
+        "SEC_KERN: KEYGEN NIST_L5",
+        "BUS_MAIN: COUPLER NOMINAL",
+        "PWR_DIST: 28V DC STABLE",
+        "IMU: STATIC CALIBRATION"
     ],
     TAXI: [
-        "[PHYSICS] INITIALIZING AERODYNAMIC SURFACE COEFFICIENTS // GROUND STATE ACTIVE",
-        "[SYS_CLK] ALIGNING INERTIAL MEASUREMENT UNIT (IMU) // CALIBRATION PASS 1"
+        "AERO: SURF_COEFF LOADED",
+        "IMU: ALIGN PASS_1 OK",
+        "PROP_SYS: RPM IDLE TRK",
+        "BRAKE_SYS: TEMP NOMINAL",
+        "FDR: LOG_STREAM VERIFIED"
     ],
     CLIMB_TO_CEILING: [
-        "[PHYSICS] THROTTLED ASCENT ENGAGED // ALTITUDE TARGET: DELTA_H_MAX",
-        "[ARINC-429] SERIALIZING TELEMETRY PACKET // PACKING WORD 270 (FLIGHT PATH ANGLE)",
-        "[SEC_KERN] RE-KEYING EVENT TRIGGERS // RE-ENCAPSULATION IN PROGRESS",
-        "[SYS_CLK] CONCURRENCY DRIFT DETECTED // DECOUPLED MAIN-THREAD ADJUSTMENT: -0.04ms"
+        "PHYS: THR_ASCENT ACTV",
+        "ARINC: PACKING WORD_270",
+        "SEC_KERN: LATTICE RE_KEY",
+        "SYS_CLK: SYNC DRIFT ADJ",
+        "ALT_HOLD: TARGET CAPT",
+        "VVI_MON: CLIMB RATE STBL",
+        "FDR: BUFFER WRITE OK"
     ],
     ENGAGEMENT_ZONE: [
-        "[SEC_KERN] CRYPTO-ENGINE: THREAD 2 (ACTIVE) // PROCESSING LATTICE-BASED HANDSHAKE",
-        "[BER_MONITOR] CALCULATING CURRENT BIT ERROR RATE // BER: 1.2e-7 (NOMINAL)",
-        "[PHYSICS] DYNAMIC PRESSURE (Q) MONITOR ACTIVE // STRUCTURAL MARGIN: 42%"
+        "SEC_KERN: CRYPTO_TH2 ACTV",
+        "BER_MON: BER 1.2e-7 NOM",
+        "AUDIT: FRAME INTR CHECK",
+        "ARINC: BUS_STRS MON ACTV",
+        "ML-KEM: ENTROPY PASS",
+        "SIG_MON: NOISE LEVEL HIGH",
+        "SEC_KERN: INTEGRITY LCKD"
     ],
     FINAL_APPROACH: [
-        "[PHYSICS] DESCENT PHASE INITIATED // GLIDESLOPE CAPTURED",
-        "[ARINC-429] BUS SHUTDOWN SEQUENCE ARMED // TOTAL SERIALIZED WORDS PROCESSED",
-        "[SEC_KERN] DESTROYING EPHEMERAL KEY MATERIAL // ZEROIZING CRYPTO-REGISTERS"
+        "PHYS: GLIDESLOPE CAPT",
+        "ARINC: SHUTDOWN ARMED",
+        "SEC_KERN: ZERO_REG ACTV",
+        "AERO: FLAPS CONFIG_FULL",
+        "IMU: DESCENT VECTOR OK",
+        "SYS_CLK: FINAL SYNC LCKD"
     ]
 };
-
-
 const gaussianRandom = () => {
     let u = 0, v = 0;
     while(u === 0) u = Math.random(); 
@@ -257,7 +271,7 @@ function startRenderLoop() {
     let lastAmbientLogTime = 0; 
 
     function loop() {
-        if (state.isTerminated) { 
+        if (state.isTerminated && state.currentPhase !== 'MISSION_COMPLETE') { 
             state.isLoopRunning = false; 
             return; 
         }
@@ -266,56 +280,60 @@ function startRenderLoop() {
             state.physicsWorker.postMessage({ sentTime: performance.now() });
         }
 
-        if (state.lastWorkerData && state.isMissionActive) {
+        if (state.lastWorkerData) {
             const d = state.lastWorkerData;
             const safeT = parseFloat(d.elapsed);
             const safeAlt = Number(d.altitude);
             const safeSpd = Number(d.airspeed);
 
-            if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
-                state.fdrBuffer.push({
-                    t: safeT.toFixed(2), 
-                    alt: Math.round(safeAlt), 
-                    spd: Math.round(safeSpd),
-                    phase: String(d.missionPhase || 'UNKNOWN'), 
-                    lat: Number(state.latency).toFixed(2)
-                });
-                lastPushedTime = safeT; 
-                lastLogTime = safeT; 
+            if (state.isMissionActive) {
+                if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
+                    state.fdrBuffer.push({
+                        t: safeT.toFixed(2), 
+                        alt: Math.round(safeAlt), 
+                        spd: Math.round(safeSpd),
+                        phase: String(d.missionPhase || 'UNKNOWN'), 
+                        lat: Number(state.latency).toFixed(2)
+                    });
+                    lastPushedTime = safeT; 
+                    lastLogTime = safeT; 
+                }
+
+                if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
+                if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
+
+                if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
+                if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
+
+                if (berDisplay && d.simulatedBER !== undefined) {
+                    berDisplay.textContent = d.simulatedBER.toExponential(3);
+                    berDisplay.style.color = (d.simulatedBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
+                } else if (berDisplay) {
+                    let base = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
+                    const velFactor = (safeSpd / 500) * 1e-8;
+                    const noise = Math.abs(gaussianRandom() * 0.5e-8);
+                    const finalBER = base + velFactor + noise;
+                    berDisplay.textContent = finalBER.toExponential(3);
+                    berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
+                }
+
+                updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
+                syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
+                syncPhase(d.missionPhase);
+                
+                const liveWasmBuffer = readWasmTelemetryBuffer();
+                updateTelemetryStream(liveWasmBuffer || d.arincWords);
+                
+                handleSecurityLogic(d.missionPhase);
+                runMissionStory(safeT);
             }
 
-            if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
-            if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
-
-            if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
-            if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
-
-            if (berDisplay && d.simulatedBER !== undefined) {
-                berDisplay.textContent = d.simulatedBER.toExponential(3);
-                berDisplay.style.color = (d.simulatedBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
-            } else if (berDisplay) {
-                let base = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
-                const velFactor = (safeSpd / 500) * 1e-8;
-                const noise = Math.abs(gaussianRandom() * 0.5e-8);
-                const finalBER = base + velFactor + noise;
-                berDisplay.textContent = finalBER.toExponential(3);
-                berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
+         
+            const activeTime = state.isMissionActive ? safeT : (performance.now() / 1000);
+            if (activeTime >= lastAmbientLogTime + 3.0) {
+                injectAmbientLog(state.currentPhase);
+                lastAmbientLogTime = activeTime;
             }
-
-            updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
-            syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
-            syncPhase(d.missionPhase);
-
-            if (safeT >= lastAmbientLogTime + 3.0) {
-                injectAmbientLog(d.missionPhase);
-                lastAmbientLogTime = safeT;
-            }
-            
-            const liveWasmBuffer = readWasmTelemetryBuffer();
-            updateTelemetryStream(liveWasmBuffer || d.arincWords);
-            
-            handleSecurityLogic(d.missionPhase);
-            runMissionStory(safeT);
         }
         requestAnimationFrame(loop);
     }
@@ -511,22 +529,28 @@ function runMissionStory(elapsed) {
         }
     });
 }
-
 function injectAmbientLog(phase) {
     const activePool = AVIONICS_LOG_POOL[phase] || AVIONICS_LOG_POOL.PRE_FLIGHT;
-    
     if (activePool && activePool.length > 0) {
         const randomIndex = Math.floor(Math.random() * activePool.length);
         const logMessage = activePool[randomIndex];
         
-        logTerminalMessage(logMessage, "var(--av-green)", "0xBUS_AMB");
+        let logColor = "var(--av-green)";
+        let tag = "0xBUS_AMB";
+        
+        if (phase === 'ENGAGEMENT_ZONE') {
+            logColor = "var(--av-amber)";
+            tag = "0xSEC_AUDIT";
+        }
+
+        logTerminalMessage(logMessage, logColor, tag);
     }
 }
-
 function handleMissionComplete() {
     if (state.isTerminated) return;
     state.isTerminated = true;
     state.isMissionActive = false;
+    state.currentPhase = 'MISSION_COMPLETE'; 
     triggerAttack(false); 
     stopLattice();
     
