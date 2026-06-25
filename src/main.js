@@ -31,6 +31,35 @@ let wasmMemory = null;
 let lastLogTime = 0;
 const LOG_FREQUENCY = 0.5;
 
+const AVIONICS_LOG_POOL = {
+    PRE_FLIGHT: [
+        "[ARINC-429] INITIALIZING BUS COUPLER 0x01 // DATA RATE: 100KBPS",
+        "[SYS_CLK] GPS SYNC COMPLETED // DELTA: 0.0002ms",
+        "[SEC_KERN] ENFORCING NIST_L5 BOUNDS // GENERATING EPHEMERAL PUBLIC KEY"
+    ],
+    TAXI: [
+        "[PHYSICS] INITIALIZING AERODYNAMIC SURFACE COEFFICIENTS // GROUND STATE ACTIVE",
+        "[SYS_CLK] ALIGNING INERTIAL MEASUREMENT UNIT (IMU) // CALIBRATION PASS 1"
+    ],
+    CLIMB_TO_CEILING: [
+        "[PHYSICS] THROTTLED ASCENT ENGAGED // ALTITUDE TARGET: DELTA_H_MAX",
+        "[ARINC-429] SERIALIZING TELEMETRY PACKET // PACKING WORD 270 (FLIGHT PATH ANGLE)",
+        "[SEC_KERN] RE-KEYING EVENT TRIGGERS // RE-ENCAPSULATION IN PROGRESS",
+        "[SYS_CLK] CONCURRENCY DRIFT DETECTED // DECOUPLED MAIN-THREAD ADJUSTMENT: -0.04ms"
+    ],
+    ENGAGEMENT_ZONE: [
+        "[SEC_KERN] CRYPTO-ENGINE: THREAD 2 (ACTIVE) // PROCESSING LATTICE-BASED HANDSHAKE",
+        "[BER_MONITOR] CALCULATING CURRENT BIT ERROR RATE // BER: 1.2e-7 (NOMINAL)",
+        "[PHYSICS] DYNAMIC PRESSURE (Q) MONITOR ACTIVE // STRUCTURAL MARGIN: 42%"
+    ],
+    FINAL_APPROACH: [
+        "[PHYSICS] DESCENT PHASE INITIATED // GLIDESLOPE CAPTURED",
+        "[ARINC-429] BUS SHUTDOWN SEQUENCE ARMED // TOTAL SERIALIZED WORDS PROCESSED",
+        "[SEC_KERN] DESTROYING EPHEMERAL KEY MATERIAL // ZEROIZING CRYPTO-REGISTERS"
+    ]
+};
+
+
 const gaussianRandom = () => {
     let u = 0, v = 0;
     while(u === 0) u = Math.random(); 
@@ -225,6 +254,7 @@ function startRenderLoop() {
     const berDisplay = document.getElementById('ber-value');
     
     let lastPushedTime = -1; 
+    let lastAmbientLogTime = 0; 
 
     function loop() {
         if (state.isTerminated) { 
@@ -275,6 +305,11 @@ function startRenderLoop() {
             updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
             syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
             syncPhase(d.missionPhase);
+
+            if (safeT >= lastAmbientLogTime + 3.0) {
+                injectAmbientLog(d.missionPhase);
+                lastAmbientLogTime = safeT;
+            }
             
             const liveWasmBuffer = readWasmTelemetryBuffer();
             updateTelemetryStream(liveWasmBuffer || d.arincWords);
@@ -475,6 +510,17 @@ function runMissionStory(elapsed) {
             state.triggeredEvents.add(event.t);
         }
     });
+}
+
+function injectAmbientLog(phase) {
+    const activePool = AVIONICS_LOG_POOL[phase] || AVIONICS_LOG_POOL.PRE_FLIGHT;
+    
+    if (activePool && activePool.length > 0) {
+        const randomIndex = Math.floor(Math.random() * activePool.length);
+        const logMessage = activePool[randomIndex];
+        
+        logTerminalMessage(logMessage, "var(--av-green)", "0xBUS_AMB");
+    }
 }
 
 function handleMissionComplete() {
