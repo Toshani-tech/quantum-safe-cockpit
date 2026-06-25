@@ -263,3 +263,13 @@ Note: In main.js I fixed a race condition causing the telemetry stream to misfir
 
 P.S: I spent almost the entire session trying to get the lattice grid to jitter during the attack phase to show the LWE (Learning With Errors) problem in action. It wasn't working at first, but after doing some troubleshooting, I realized that two separate code blocks in main.js were running at the exact same time and fighting over the state variables, which completely blocked the animation from triggering. (Funny thing, had a bango emoji in my code for a while as I was tryna write the proper mathematical sampling notation) Everything looks sharp now! 
 
+Day 28: June 24, 2026 
+
+Task: To refactor avionics terminal message delivery
+
+Tech: Decoupled Main Thread Execution, Type-Safe Data Serialization (ARINC-429 Protocol Emulation), Modular Component Architecture.
+
+Note: Spent today adding and fixing a nasty layout bug where longer terminal strings were completely blowing out the boundaries of the cockpit UI and messing up my layout. I rewrote the entire AVIONICS_LOG_POOL with short punchy, authentic flight deck phrases so the text spacing stays absolutely static and matches the original 0xBOOT format perfectly. I also realized the MISSION_COMPLETE pool array was basically total dead code because the animation loop drops out the second state.isTerminated hits. Since I already have a clean CSV data popup report that handles the flight summary perfectly, adding cluttering after flight logs there was useless anyway so I just stripped that block out entirely. 
+
+P.S: Actually today Git got a bit messy after a pull, and my recent commits got detached from the main branch. I used git reflog to track down the exact commit hashes and cherry picked them back onto the timeline. Everything synced perfectly with GitHub. 
+
