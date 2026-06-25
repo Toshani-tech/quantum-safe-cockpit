@@ -404,6 +404,27 @@ function updateTelemetryStream(arincWords) {
     const timestamp = (performance.now() / 1000).toFixed(2);
     let outputHTML = '';
 
+    for (let index = 0; index < liveBuffer.length; index++) {
+        let word = liveBuffer[index];
+        let hexString = word.toString(16).toUpperCase().padStart(8, '0');
+        let label = word & 0xFF;
+        let isParityValid = verifyARINC429Parity(word);
+
+        let isContentAltered = false;
+        let deltaText = '';
+
+        if (label === 0o036) { 
+            const transmittedAlt = (word >>> 10) & 0x7FFFF;
+            const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
+            
+            if (precisionDelta > 50 && state.currentPhase !== 'FINAL_APPROACH' && state.currentPhase !== 'MISSION_COMPLETE') {
+                isContentAltered = true;
+            } else if (precisionDelta > 0) {
+                deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(4)} FT]</span>`;
+            }
+        }
+        
+
 
 
 
