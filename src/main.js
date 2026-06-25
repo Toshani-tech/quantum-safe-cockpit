@@ -391,15 +391,23 @@ function verifyARINC429Parity(word) {
     return (v & 1) === 1;
 }
 
+let lastTelemetryUpdate = 0;
+const THROTTLE_INTERVAL_MS = 100; 
+
 function updateTelemetryStream(arincWords) {
+    const now = performance.now();
+    if (now - lastTelemetryUpdate < THROTTLE_INTERVAL_MS) return;
+    lastTelemetryUpdate = now;
+
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
+
 
     const groundTruth = state.lastWorkerData;
     if (!groundTruth || !groundTruth.arincWords) return;
 
     const liveBuffer = groundTruth.arincWords; 
-    const timestamp = (performance.now() / 1000).toFixed(2);
+    const timestamp = (now / 1000).toFixed(2);
     let outputHTML = '';
 
     for (let index = 0; index < liveBuffer.length; index++) {
@@ -414,6 +422,7 @@ function updateTelemetryStream(arincWords) {
         if (label === 0o036 && groundTruth) { 
             const transmittedAlt = (word >>> 10) & 0x7FFFF;
             const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
+            
             
             if (precisionDelta > 50 && (state.isMitMAttackActive || state.attackLogged)) {
                 isContentAltered = true;
@@ -445,12 +454,13 @@ function updateTelemetryStream(arincWords) {
             <span style="color: ${statusColor}">${statusText}</span>
             ${deltaText}
         </div>`;
-    } 
+    }
 
     state.telemetryLines.push(outputHTML);
     if (state.telemetryLines.length > 4) state.telemetryLines.shift(); 
     hexDisplay.innerHTML = state.telemetryLines.join('');
-} 
+}
+
 
 function syncPhase(newPhase) {
     if (newPhase && newPhase !== state.currentPhase) {
@@ -577,6 +587,7 @@ function injectAmbientLog(phase) {
     logTerminalMessage(logMessage, logColor, tag);
 }
 
+
 function handleMissionComplete() {
     if (state.isTerminated) return;
     state.isTerminated = true;
@@ -584,6 +595,13 @@ function handleMissionComplete() {
     state.currentPhase = 'MISSION_COMPLETE'; 
     triggerAttack(false); 
     stopLattice();
+    
+    state.telemetryLines = []; 
+    if (state.lastWorkerData) {
+       
+        state.lastWorkerData.arincWords = new Uint32Array(4);
+    }
+    logTerminalMessage("SECURE_KERNEL: TRANSITIONAL MEMORY VOLATILITY PURGED [0x00]", "#00FF41", "0xSCRUB");
     
     updateHeaderStatus('IDLE');
 
@@ -601,6 +619,7 @@ function handleMissionComplete() {
     document.getElementById('report-alt').textContent = Math.round(state.maxAlt);
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
+
 
 document.getElementById('download-fdr-btn').addEventListener('click', async () => {
     if (state.fdrBuffer.length === 0) {
