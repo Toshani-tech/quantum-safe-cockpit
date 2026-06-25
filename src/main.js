@@ -411,7 +411,7 @@ function updateTelemetryStream(arincWords) {
     let outputHTML = '';
 
     for (let index = 0; index < liveBuffer.length; index++) {
-        let word = liveBuffer[index];
+        let word = liveBuffer[index] >>> 0;
         let hexString = word.toString(16).toUpperCase().padStart(8, '0');
         let label = word & 0xFF;
         let isParityValid = verifyARINC429Parity(word);
