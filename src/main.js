@@ -38,14 +38,23 @@ const AVIONICS_LOG_POOL = {
         "SEC_KERN: KEYGEN NIST_L5",
         "BUS_MAIN: COUPLER NOMINAL",
         "PWR_DIST: 28V DC STABLE",
-        "IMU: STATIC CALIBRATION"
+        "IMU: STATIC CALIBRATION",
+        "A429: RX_CH1 OPEN_OK",
+        "ADC: BARO REF SET_2992",
+        "FDR: MEM_STAT CLEAR_OK",
+        "SEC_KERN: SEED_ENTROPY"
     ],
     TAXI: [
         "AERO: SURF_COEFF LOADED",
         "IMU: ALIGN PASS_1 OK",
         "PROP_SYS: RPM IDLE TRK",
         "BRAKE_SYS: TEMP NOMINAL",
-        "FDR: LOG_STREAM VERIFIED"
+        "FDR: LOG_STREAM VERIFIED",
+        "A429: TX_WORD 032 OK",
+        "STEER: NOSE_GEAR ACTIVE",
+        "NAV: MAG_VAR COMPUTE",
+        "PWR_DIST: APU BUS ACTIVE",
+        "SYS_CLK: RTC SYNC PASS"
     ],
     CLIMB_TO_CEILING: [
         "PHYS: THR_ASCENT ACTV",
@@ -54,7 +63,10 @@ const AVIONICS_LOG_POOL = {
         "SYS_CLK: SYNC DRIFT ADJ",
         "ALT_HOLD: TARGET CAPT",
         "VVI_MON: CLIMB RATE STBL",
-        "FDR: BUFFER WRITE OK"
+        "FDR: BUFFER WRITE OK",
+        "AERO: PITCH_TRIM COMP",
+        "ADC: TAS VALUE COMPUTE",
+        "A429: SIG_SRC_IND VALID"
     ],
     ENGAGEMENT_ZONE: [
         "SEC_KERN: CRYPTO_TH2 ACTV",
@@ -63,7 +75,10 @@ const AVIONICS_LOG_POOL = {
         "ARINC: BUS_STRS MON ACTV",
         "ML-KEM: ENTROPY PASS",
         "SIG_MON: NOISE LEVEL HIGH",
-        "SEC_KERN: INTEGRITY LCKD"
+        "SEC_KERN: INTEGRITY LCKD",
+        "A429: LABEL 247 ACTIVE",
+        "FDR: HIGH_RATE STREAM",
+        "SYS_CLK: PL_WARN IGNORE"
     ],
     FINAL_APPROACH: [
         "PHYS: GLIDESLOPE CAPT",
@@ -71,7 +86,11 @@ const AVIONICS_LOG_POOL = {
         "SEC_KERN: ZERO_REG ACTV",
         "AERO: FLAPS CONFIG_FULL",
         "IMU: DESCENT VECTOR OK",
-        "SYS_CLK: FINAL SYNC LCKD"
+        "SYS_CLK: FINAL SYNC LCKD",
+        "ADC: RAD_ALT ACQUISITION",
+        "A429: PARITY CHK_PASS",
+        "BRAKE_SYS: ARM AUTO_BRK",
+        "FDR: FLUSHING CACHE_OK"
     ]
 };
 const gaussianRandom = () => {
@@ -328,9 +347,9 @@ function startRenderLoop() {
                 runMissionStory(safeT);
             }
 
-         
             const activeTime = state.isMissionActive ? safeT : (performance.now() / 1000);
             if (activeTime >= lastAmbientLogTime + 3.0) {
+             
                 injectAmbientLog(state.currentPhase);
                 lastAmbientLogTime = activeTime;
             }
@@ -529,23 +548,34 @@ function runMissionStory(elapsed) {
         }
     });
 }
+
+const trackingDecks = {};
+
 function injectAmbientLog(phase) {
     const activePool = AVIONICS_LOG_POOL[phase] || AVIONICS_LOG_POOL.PRE_FLIGHT;
-    if (activePool && activePool.length > 0) {
-        const randomIndex = Math.floor(Math.random() * activePool.length);
-        const logMessage = activePool[randomIndex];
-        
-        let logColor = "var(--av-green)";
-        let tag = "0xBUS_AMB";
-        
-        if (phase === 'ENGAGEMENT_ZONE') {
-            logColor = "var(--av-amber)";
-            tag = "0xSEC_AUDIT";
-        }
+    if (!activePool || activePool.length === 0) return;
 
-        logTerminalMessage(logMessage, logColor, tag);
+    if (!trackingDecks[phase] || trackingDecks[phase].length === 0) {
+        trackingDecks[phase] = [...activePool];
+        for (let i = trackingDecks[phase].length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [trackingDecks[phase][i], trackingDecks[phase][j]] = [trackingDecks[phase][j], trackingDecks[phase][i]];
+        }
     }
+
+    const logMessage = trackingDecks[phase].pop();
+
+    let logColor = "var(--av-green)";
+    let tag = "0xBUS_AMB";
+    
+    if (phase === 'ENGAGEMENT_ZONE') {
+        logColor = "var(--av-amber)";
+        tag = "0xSEC_AUDIT";
+    }
+
+    logTerminalMessage(logMessage, logColor, tag);
 }
+
 function handleMissionComplete() {
     if (state.isTerminated) return;
     state.isTerminated = true;
