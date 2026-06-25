@@ -20,7 +20,6 @@ export function triggerAttack(status) {
                         status ? "#FF3B3B" : "#00FF41", "0xSHIELD");
 }
 
-
 export function logTerminalMessage(msg, color = "#00FF41", tag = null) {
     const term = document.getElementById('terminal-box');
     if (!term) return;
