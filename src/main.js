@@ -391,8 +391,6 @@ function verifyARINC429Parity(word) {
     return parityCount === 1;
 }
 
-
-
 function updateTelemetryStream(arincWords) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
@@ -417,7 +415,7 @@ function updateTelemetryStream(arincWords) {
             const transmittedAlt = (word >>> 10) & 0x7FFFF;
             const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
             
-           if (precisionDelta > 50 && (state.isMitMAttackActive || state.attackLogged)) {
+            if (precisionDelta > 50 && (state.isMitMAttackActive || state.attackLogged)) {
                 isContentAltered = true;
             } else if (precisionDelta > 0) {
                 deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(4)} FT]</span>`;
@@ -447,36 +445,12 @@ function updateTelemetryStream(arincWords) {
             <span style="color: ${statusColor}">${statusText}</span>
             ${deltaText}
         </div>`;
-    }
+    } 
 
     state.telemetryLines.push(outputHTML);
     if (state.telemetryLines.length > 4) state.telemetryLines.shift(); 
     hexDisplay.innerHTML = state.telemetryLines.join('');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} 
 
 function syncPhase(newPhase) {
     if (newPhase && newPhase !== state.currentPhase) {
