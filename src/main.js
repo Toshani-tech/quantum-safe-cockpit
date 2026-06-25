@@ -382,13 +382,13 @@ function syncVVI(fpm, status, direction) {
 }
 
 function verifyARINC429Parity(word) {
-    let parityCount = 0;
-    let tempWord = word;
-    while (tempWord) {
-        parityCount ^= (tempWord & 1);
-        tempWord >>>= 1;
-    }
-    return parityCount === 1;
+    let v = word;
+    v ^= v >>> 16;
+    v ^= v >>> 8;
+    v ^= v >>> 4;
+    v ^= v >>> 2;
+    v ^= v >>> 1;
+    return (v & 1) === 1;
 }
 
 function updateTelemetryStream(arincWords) {
