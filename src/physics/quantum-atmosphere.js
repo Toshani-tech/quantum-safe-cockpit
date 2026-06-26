@@ -24,7 +24,7 @@ export class QuantumAtmosphereLink {
         const transmittance = Math.exp(-opticalDepth * airmass);
         return Math.max(0.01, Math.min(1.0, transmittance));
     }
-    
+
     computeQuantumMetrics(aircraftAltitudeFt, airspeedKts, isUnderAttack) {
         this.satElevation += this.orbitalSpeed * 0.016; 
         if (this.satElevation > 90) this.satElevation = 90; 
@@ -35,3 +35,12 @@ export class QuantumAtmosphereLink {
         let baseNoise = 0.015; 
         const boundaryLayerTurbulence = (airspeedKts / 600) * 0.008;
         let qber = baseNoise + boundaryLayerTurbulence;
+        
+        if (isUnderAttack) {
+            
+            qber += 0.22 + (Math.random() * 0.05); 
+        } else {
+           
+            qber += Math.abs(Math.sin(performance.now() * 0.002) * 0.003);
+        }
+    
