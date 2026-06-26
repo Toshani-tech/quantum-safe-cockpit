@@ -1,11 +1,12 @@
-
-Day 1 : Feb 21, 2026
+Day 1: Feb 21, 2026
 
 Task: Built the basic cockpit layout and integrated the PQC security status bar.
 
-Tech: HTML/CSS, "Glass Cockpit" aesthetic.
+Tech: HTML, CSS.
 
-Note: I spent today just trying to get the "vibe" right. I want it to look like a high-tech flight display, not a basic website. I focused on the security bar first because I want the user to see that "AI-monitoring" state as soon as they boot it up.
+Note: I spent today just trying to get the general look right. I want it to have a PFD instead of serving as a standard website. I focused on the top security bar first because I want the user to see the encryption monitoring state as soon as the sim boots up.
+
+P.S: I spent almost three hours tonight reading raw research papers on the "ARINC 429" aviation protocol and the new NIST standards for "ML-KEM" lattice cryptography. The math behind Learning With Errors (LWE) looks interesting with all the high dimensional matrix equations (It's way harder than highschool, but I suppose that's where the fun is) However, I realised my original plan of just using basic text strings for data passing isn't going to cut it if I want this to simulate real avionics. I decided to just get the visual HTML panels mapped out first while I figure out how to translate that heavy math into code. 
 
 Day 2: Feb 22, 2026
 
@@ -13,15 +14,20 @@ Task: Developed the "System Boot" logic and live telemetry numbers.
 
 Tech: JavaScript (DOM manipulation, setInterval).
 
-Note: I finally got the numbers moving! It felt weird starting at 35,000 FT, so I changed it to 0 FT to simulate a "cold start" takeoff. I had some duplicate functions that were breaking the boot sequence, but I cleared those out. Also tuned the climb rate so you can actually get into the air in under 10 seconds.
+Note: I finally got the numbers moving! It felt weird having the simulation start way up at 35,000 feet, so I changed it to 0 feet to simulate a cold start takeoff from the ground. I had some duplicate functions that were breaking the boot sequence, but I cleared those out. I also tuned the climb rate so the plane actually gets into the air in under 10 seconds.
 
-Day 3 : Feb 23, 2026
+P.S: I ran into a massive roadblock trying to make the telemetry scaling look realistic. My initial velocity loops made the aircraft accelerate faster than an F-22 on afterburners, which looked ridiculous. I had to look up actual flight profile data and read about atmospheric attenuation and "Bit Error Rates" (BER) in radio links. Trying to figure out how to program random background noise into a basic JavaScript setInterval loop without causing massive frame drops or rounding errors was a huge pain. I ended up having to map out a rough data budget on paper before touching the script again.
+
+
+Day 3: Feb 23, 2026
 
 Task: Re-engineered the UI into a 3-column PFD and built the Security Terminal.
 
-Tech: CSS Grid, JavaScript (setTimeout, DOM injection).
+Tech: CSS Grid, JavaScript (setTimeout).
 
-Note: The 3-column layout makes it look way more professional, more like a real Primary Flight Display (PFD). I added a "Safety Amber" log to show the lattice handshake happening. I also made sure the airspeed actually matches the altitude gain, capping it at 450 KTS so it feels like a real jet and not a rocket ship.
+Note: The new 3-column layout makes the interface look way more like a real primary flight display (PFD). I added an orange amber text log to show when the lattice security handshake happens. I also made sure the airspeed actually matches the altitude gain, capping it at 450 knots so it feels like a real jet and not a rocket ship.
+
+P.S: : I had to completely scrap and rewrite my visual log stream today. I spent a long time looking into how real flight computers handle "bus lag" and text serialization over a shared data pathway. I wanted my terminal to mimic a real postquantum cryptographic handshake, which meant I had to figure out how to visually simulate a key exchange glitch. Trying to take the concept of a lattice-based public key mechanism and turn it into a high-speed, 3-column CSS layout with precise setTimeout triggers took way longer than I care to admit, mostly because the browser kept dropping frames when the text rendering spiked.
 
 Day 4: Feb 24, 2026
 
@@ -29,260 +35,266 @@ Task: Migrated to Modules and built the "Red Alert" Quantum Stress Test.
 
 Tech: ES6 Modules (import/export), HTML5 Canvas, Git/GitHub.
 
-Note: I refactored my giant messy script into smaller modules because it was getting impossible to manage. I also built a "Lattice Visualizer" that starts glitching out between 20k and 25k feet. It triggers this high-visibility "Red Alert" to show the system detecting a quantum attack.
+Note: I split up my giant, messy script file into smaller JS modules because it was getting impossible to manage. I also built a lattice visualizer box that starts glitching out on purpose between 20,000 and 25,000 feet. It triggers a flashing red alert state to show the user that the system detected an incoming data attack.
 
-P.S: Spent over 2 hours losing my mind because GitHub wasn't showing my work. Turns out my files were stuck in a weird subfolder and my Git email didn't match my VS Code email. I had to flatten the whole repo and force sync everything. Git is a nightmare sometimes.
+P.S: Spent over two hours losing my mind because GitHub wasn't showing my work. Turns out my files were stuck in a weird subfolder and my global Git email didn't match my VS Code profile email. I had to flatten the folder structure and force sync everything. Git is a nightmare sometimes. (Gained skills of persistence I'd say.)
 
-Day 5 : Feb 25, 2026
+Day 5: Feb 25, 2026
 
 Task: Multithreaded System Init (POST) and Binary "Black Box" Recording.
 
-Tech: Web Workers API, ArrayBuffer & DataView, OffscreenCanvas.
+Tech: Web Workers API, ArrayBuffer, DataView.
 
-Note: I decided to kill the "kid-coded" look and go full industrial. I moved the physics and rendering to a Web Worker so the UI has zero lag. I also built a "Black Box" using raw ArrayBuffers; it stores data as bits instead of normal arrays, which is exactly how real flight recorders in a Boeing or Airbus work.
+Note: I decided to clean up the basic layout and make it look much more industrial. I moved the physics and rendering engine over to a separate Web Worker thread so the main UI runs with zero lag. I also started building a flight data recorder using raw binary buffers; it stores telemetry as bits instead of standard arrays, mimicking how real black boxes work.
 
-P.S: Took an hour to find a "Race Condition." I tried to draw on the canvas from the main thread after I already gave control to the worker. Now I have a "handshake" where the main thread knows it's locked out of the pixels. True hardware separation!
+P.S: Took an hour to find a race condition bug. I tried to draw on the canvas from the main script after I had already handed control over to the background worker thread. I had to set up a quick message handshake so the main thread knows it's locked out of those pixels.
 
 Day 6: Feb 26, 2026
 
 Task: Developed Industrial PFD Tapes and Diagnostic Logging.
 
-Tech: HTML5 Canvas (Linear Interpolation), CSS Grid, NIST ML-KEM Logic.
+Tech: HTML5 Canvas, CSS Grid.
 
-Note: Finally replaced the static text with scrolling Altitude and Airspeed Tapes. It makes the pilot much more aware of the "trend" of the flight. I also added annotations so you can actually tell why the screen is flickering; it's not a glitch, it's the system re-keying in response to a breach.
+Note: I finally replaced the static text readouts with actual scrolling canvas tapes for altitude and airspeed. This makes it way easier to see the trend of the flight path. I also added text notes to the sidebar terminal so you can tell why the screen is flickering; it's not a bug, it's just the background code rolling over encryption keys because of the simulated data breach.
 
-P.S: Fixed a "Visual Hallucination" in 35 minutes. The terminal logs were getting so long they pushed my footer off the screen and made the whole UI "bounce." I forced a "Hard Bezel Lock" so the logs scroll inside a fixed space instead of stretching the display.
+P.S: Fixed a layout glitch in 35 minutes. The terminal logs were getting so long that they literally pushed my footer off the bottom of the page and made the whole screen bounce. I added a fixed height and scroll settings to the box container so the text stays inside its designated boundary.
 
 Day 7: Feb 27, 2026
 
 Task: Implemented Decoupled Execution and OffscreenCanvas Logic.
 
-Tech: Web Workers, transferControlToOffscreen(), Arinc-429 Serialization.
+Tech: JavaScript Web Workers, transferControlToOffscreen().
 
-Note: I moved the Aerodynamics engine to its own thread to keep things "safety-critical." If the UI thread gets busy, the physics won't stop. It’s like real avionics where the display processor is separate from the flight computer. I even added a "Heartbeat" light to show the threads working.
+Note: I completely separated the flight dynamics math into its own thread to keep things stable. Now, even if the main UI thread gets bogged down rendering text, the physics integration won't stutter. I also added a small green status indicator light that blinks to show the background worker thread is actively ticking.
 
-P.S: Fixed the "Constellation Cluster" mess. My lattice dots were initializing in a tiny 300x150 box before the CSS grid even loaded. I added a "Resolution Guard" that checks the container size first so the lattice scales to the screen properly on boot.
+P.S: Fixed a canvas sizing issue. My lattice canvas dots were initializing inside a tiny default 300x150 box before the CSS grid had even finished scaling on page load. I added a check that looks at the actual container size first so the canvas elements scale properly right at boot up.
 
 Day 8: Feb 28, 2026
 
 Task: Hardened Aerodynamics and Fixed Temporal Syncing.
 
-Tech: Thrust Spooling (LERP), Y-Axis Inversion, Frame-Rate Clamping.
+Tech: JavaScript Math (LERP), Frame-Rate Clamping.
 
-Note: I refactored the physics to feel like a real simulation. Engines don't just hit max thrust instantly, so I added "spooling." I also fixed a Y-coordinate bug where climbing actually looked like falling on the screen.
+Note: I updated the physics math so the simulation behaves a bit more realistically. The jet engines don't just jump to full power instantly anymore; instead, I added a simple smoothing factor to simulate them spooling up. I also fixed a basic coordinate calculation bug where climbing was making the display tape scroll downward instead of upward.
 
-P.S: This one took over 3 hours. The altitude tapes were "vibrating" or stuttering during the climb even though the math was right. It was "Temporal Aliasing"—the UI and Physics threads weren't perfectly in sync. I fixed it by using LERP (Linear Interpolation) to smooth out the bars between data packets. It finally looks like a pro HUD.
+P.S: This took over 3 hours to figure out. The altitude tapes were vibrating and stuttering during climbs even though the raw numbers were perfectly fine. It was an alignment issue because the UI thread and the physics thread weren't ticking at the exact same rate. I used linear interpolation (LERP) to smooth out the values between data updates, and now the rolling movement looks super clean.
 
 Day 9: March 1, 2026
 
 Task: Fixing the UI symmetry so it looks like a real flight deck.
 
-Tech: CSS Grid (repeat(3, 1fr)), Grid-Cell Containment (min-width: 0), NIST ML-KEM Scaling.
+Tech: CSS Grid (repeat(3, 1fr)), Grid-Cell Containment (min-width: 0).
 
-Note: I spent today trying to get that "Triple-Glass" cockpit look where everything stays perfectly in its own lane. I wanted the PFD, the Lattice map, and the logs to stay in identical thirds of the screen. I had to force the grid columns to stop "bullying" each other for space, which actually makes it feel like an industrial flight tool.
+Note: I spent today tweaking the layout to get a balanced, multi-screen cockpit look. The goal is to keep the PFD panel, the lattice visualizer, and the data log terminal locked into identical thirds of the screen. I had to force the grid columns to stay put so they stop shrinking and growing when text lengths change.
 
-P.S: Spent 45 mins wondering why the PFD was stretching its panel and pushing the Telemetry logs off-screen. Turns out the browser’s default behavior for grid items is to expand to fit a "wide" child (the canvas). I had to override it with min-width: 0 to "harden" the containers and keep the layout balanced.
+P.S: Spent 45 minutes wondering why the canvas panel was stretching out and pushing the telemetry log stream completely off the screen. Turns out browsers make grid items expand to fit wide canvas drawings by default. (I should have figured it out sooner) Overriding this by setting min-width: 0 on the containers kept the layout locked in place.
 
 Day 10: March 3, 2026
 
 Task: Building the "Black Box" (FDR) and Mission Report system.
 
-Tech: ARINC-429 Mimicry, CSV Serialization, State Persistence.
+Tech: JavaScript Array Parsing, CSV Blob Generation.
 
-Note: Finally closed the simulation loop. Now, at the end of a flight, a report pops up showing your max altitude and speed. I also added a "Black Box" feature that captures data every second into a buffer. You can actually export it as a CSV file for real analysis. It proves the simulation is running on real data and isn't just a canned animation.
+Note: I finally closed the core simulation loop. Now, when the 90-second flight ends, an overlay panel pops up showing summary stats like your maximum altitude and peak airspeed. I also hooked up the black box recorder array so it captures telemetry every half-second and lets you download it as a real CSV file.
 
-P.S: Found a 15-minute bug where the "Initialize" button stayed active during flight. I added some isBooted guarding to stop the user from accidentally spawning 10 different workers and crashing the entire data bus.
+P.S: Fixed a 15-minute bug where the "Initialize" button stayed clickable during flight. I added some simple boolean flags to disable it so you can't spam click it, spawn multiple background worker threads, and crash the whole app.
 
-Day 11 : March 4, 2026
+Day 11: March 4, 2026
 
-Task: Environment Re Provising and SDK fighting
+Task: Environment Re-Provisioning and SDK fighting.
 
-Tech: MSVC v14.44, Rust Toolchain, Windows SDK.
+Tech: Rust Compiler, Windows SDK.
 
-Note: I had to redo my version control because things got messy. I spent most of the day fighting with the Windows SDK because the Rust compiler couldn't link to the right memory libraries. It was a massive headache just to get the "Security Kernel" to talk to the hardware properly.
+Note: I had to completely redo my project version control directories because things were getting messy. I spent most of the afternoon fighting with my local environment setup because the compiler couldn't find the right system libraries to build the backend security folder. It was a massive headache just to get things to link up.
 
-P.S: My laptop was screaming with high CPU usage during the SDK install. I had to set up a global .gitignore fast because the Rust build artifacts were basically trying to eat my SSD.
+P.S: My laptop fans were going crazy while installing the build tools. I had to write a quick .gitignore file because the temporary compiler folders were generating thousands of junk files and cluttering my repository tracking.
 
 Day 12: March 5, 2026
 
 Task: Rust-to-WASM Compilation & Repo Hardening.
 
-Tech: Rust, wasm-pack, WebAssembly, Git.
+Tech: Rust, wasm-pack, WebAssembly.
 
-Note: Finally got the Security Kernel to compile to WASM! I hit a weird "OS Error 112" while getting the toolchain, but I figured it out in 15 minutes. I also cleaned up the GitHub repo so the UI code and the Crypto code are totally separate. It’s a "Polyglot" setup now—JS for the HUD and Rust for the encryption math.
+Note: I finally got my Rust security file (lib.rs) to successfully compile down into a WebAssembly binary. I ran into a weird file lock error mid-build, but I managed to sort it out pretty quickly. The project folder is split up cleanly now—standard JavaScript handles the frontend cockpit, and the compiled WASM handles the heavy encryption math.
 
-P.S: Spent an hour chasing a bug that turned out to be Windows pathing issues. I had to switch to absolute directory paths to get the compiler to actually find the source files.
+P.S: Spent an hour chasing a bug that turned out to be a classic Windows file pathing issue. I had to change the build commands to use absolute directory paths so the packager could actually find where the source folders were hidden.
 
 Day 13: March 6, 2026
 
 Task: Telemetry Sync & "Bus Lag" (RTT) Calibration.
 
-Tech: Web Workers, RTT Latency Reflection, ARINC-429 Logic.
+Tech: JavaScript Web Workers, Timestamp Messaging.
 
-Note: Finished the Master Engine today. I had this weird "Silent Zero" bug where my lag was showing as 0ms, which is impossible. I built an RTT (Round-Trip Time) Reflection Protocol—the main thread pings the worker with a timestamp, and it mirrors it back. Now I can actually see the real-world micro-lag of the data bus.
+Note: I finished setting up the main telemetry data pipe. I noticed a bug where my network lag counter was showing a hard 0ms, which didn't make sense. I fixed it by creating a basic ping pong loop: the main script sends a timestamp to the background thread, and the thread mirrors it right back so I can calculate the exact processing delay.
 
-P.S: Fixed a 15-minute "ghost update" where a DOM ID in the JS didn't match the HTML, so the latency wasn't showing. I also had to move a variable to the global worker scope to prevent "shadowing" from losing my data packets.
+P.S: Fixed a quick 15 minute bug where a text ID in my script didn't match my HTML file, which is why the latency text wasn't updating on screen. I also had to move a message counter out of a local loop so it wouldn't get overwritten every time a new packet arrived.
 
 Day 14: March 7, 2026
 
 Task: UI Refit, Lattice Clipping Fix, and "Emergency" Modal.
 
-Tech: CSS Grid, HTML5 Canvas, NIST ML-KEM-L5 (Kyber-1024).
+Tech: CSS Grid, HTML5 Canvas, Script State Toggles.
 
-Note: Fixed the bug where the Lattice dots were getting cut off at the edges of the canvas. I also redesigned the Kyber security popup to look like a high-threat "Emergency Override." It feels way more intense now when the attack triggers.
+Note: Fixed an annoying bug where the outer edge of my security lattice dots was getting cropped out by the canvas borders. I also redesigned the alert modal that pops up when a hack is detected to look like a red flashing system override panel. It looks a lot cooler and more alarming now.
 
-P.S: The Rust environment is solid and the WASM kernel is linked. I'm spending Day 15 focusing purely on the physics engine to stop the 90-second stability issues that have been a mess for a while. Decided to keep my GitHub messages strictly professional (feat/fix) so I can stay organized.
+P.S: Now that the Rust files compile and link up perfectly, I'm going to spend tomorrow focusing entirely on stabilizing the flight physics model because the drone keeps losing control around the 90-second mark. I am also keeping my Git commit messages clean and simple from now on to stay organized. (Took AI's help in writing the names professionally).
 
 Day 15: March 8, 2026
 
 Task: Global UI Sync, Rust Kernel Link, and Physics Hardening.
 
-Tech: WASM, Rust (security-kernel), CSS Transitions, ARINC-429.
+Tech: WebAssembly, Rust Backend, JavaScript UI.
 
-Note: Spent the entire day buried in the Rust environment. Got the WASM kernel fully linked for the ML-KEM-1024 handshake, so the security side is rock solid. But the physics was absolute trash, I was seeing VVI spikes of 17,000+ FT/M. I tried using the Rust core for some of the RK (Runge-Kutta) integration to stabilize the flight path, but the math is still tripling over itself.
+Note: I spent today connecting the compiled WebAssembly file to the frontend code so it can handle the encryption handshakes. The security side works fine now, but the flight physics went completely haywire. My rate of climb monitor was jumping up to 17,000 feet per minute out of nowhere. I tried moving some of the delta math variables around to smooth it out, but the calculations are still tripping over themselves.
 
-P.S: Fixed the "visual weight" issue. The Mode and FCC buttons weren't matching the Main Bus. Now all three snap from Amber to Green at the exact same millisecond. Also patched the Init button so it turns Green the instant you click it.
+P.S: Fixed a styling alignment issue. The mode indicator and the flight computer lights weren't changing colors at the exact same time as the main bus. I synced them up so they all snap from amber to green together. I also patched the init button so it highlights green the second you click it.
 
 Day 16: March 11, 2026
 
 Task: Telemetry Stream Integration, Global State Synchronization, and Physics Stress Testing.
 
-Tech: JavaScript Modules, CSS Glass Cockpit UI, ARINC-style Hex Serialization.
+Tech: JavaScript Modules, UI Layout Containers, Hex Data Formatting.
 
-Note: Today was a brutal lesson in State Management. I spent 2 hours fighting with the lattice-engine; it turns red via the console but was refusing to sync with the main mission logic. I finally got the Persistent Hex Stream working, it's now dumping raw ARINC-429 style data words into the sidebar. It looks incredibly industrial, but the sizing was a nightmare; had to hard-code container heights to make it readable.
+Note: Today was a rough lesson in tracking data variables across different files. I spent two hours trying to get the security canvas to turn red when the main simulation logic flagged an attack, but the two files wouldn't talk to each other. I finally got the raw hex stream working, so now it dumps scrolling data codes directly into the sidebar panel. It looks super authentic, but managing the layout container heights to make it look right was a pain.
 
-P.S: The craft is currently moving like a snail because my drag coefficients are completely off. Better than the suicide-dives from yesterday, but now it feels like flying through molasses.
+P.S: The drone is moving like an absolute snail right now because my drag variables are completely messed up. It's better than the nose dives it was doing yesterday, but right now it feels like flying through molasses.
 
 Day 17: March 21, 2026
 
 Task: Phase-Logic Synchronization & Visual State Recovery.
 
-Tech: Decoupled Main-Thread Execution, State-Driven UI Synchronicity, NIST ML-KEM Visuals.
+Tech: JavaScript Events, CSS State Classes.
 
-Note: Refined the "Aviation Green" recovery logic to ensure the PFD and Lattice Shield revert to nominal colors after a security event. Implemented a triggerAttack(false) hook tied to the 72-second mission milestone. Finally fixed the lattice dots bug by using a centralized body.under-attack CSS class toggle. This keeps all components synchronized without manual color overrides in every function.
+Note: I worked on the color reset logic to make sure the flight display and security grid switch back to standard green once an attack phase ends. I hooked up an attack cutoff trigger tied to the 72-second mark of the flight. I also fixed a bug with the lattice colors by moving the visual swap to a single body.under-attack CSS class toggle instead of changing colors line-by-line in JavaScript.
 
-P.S: The telemetry is still going absolutely haywire at high velocities. I'm realizing that standard RK-4 might not be good enough for this simulation. I need to move toward something more numerically stable like a Velocity Verlet integrator to keep the flight path from collapsing.
+P.S: The speed telemetry numbers are still glitching out completely whenever the plane goes too fast. I'm starting to think my simple physics update loop isn't stable enough for this. I probably need to change how the velocity steps are calculated so the math doesn't blow up.
 
 Day 18: April 7, 2026
 
 Task: Refinement of Aero-Physics Engine and Integration of High-Contrast Avionics Telemetry.
 
-Tech: Rust (Verlet Integration), JavaScript (Web Workers), HTML5 Canvas.
+Tech: JavaScript, Web Workers, Canvas Drawing Loops.
 
-Note: Today was focused entirely on Physics, which I finally managed to fix. I transitioned the core movement logic to a Velocity Verlet Integrator in the Rust security kernel to ensure numerical stability during high-speed maneuvers. I ran multiple flight tests to verify the Energy Exchange ensuring that as the UAV climbs, the Airspeed reacts realistically based on thrust.
+Note: Today was focused entirely on fixing the broken physics engine, and I finally got it working. I rewrote the velocity stepping logic inside the background thread so the math stays completely stable even during sudden maneuvers. I ran a bunch of test flights to make sure the trading off of speed for altitude feels right when the drone climbs.
 
-P.S: Encountered a minor "energy leak" where the altitude would drift even at zero VVI. Resolved this by tightening the Euler to Verlet integration delta and normalizing the dt governor to prevent frame rate induced physics spikes. This took over 2 hours but the logs finally look consistent.
+P.S: Ran into a weird bug where the altitude would slowly float upward on its own even when the vertical velocity was zero. I fixed it by tightening the time-step calculations and capping the frame rate variations so the physics updates don't spike randomly. This took two hours but the data logs are finally flat.
 
 Day 19: April 8, 2026
 
 Task: Hardening Flight Dynamics and Precision Landing logic.
 
-Tech: Decoupled Main-Thread Execution, RK4 Integration (Rust Kernel), Slew-Rate Limited Pitch Control.
+Tech: Web Workers, Math Smoothing Functions.
 
-Note: Transformed the flight model from a discrete-state simulation to a continuous inertial model. By implementing a Slew-Rate Limited Pitch Controller, I forced the airframe to respect inertia, limiting nose rotation. This ensured that the VVI curves naturally rather than jumping instantly. Also refined the FINAL_APPROACH phase with a "Ground Snap" logic for the 90-second touchdown.
+Note: I changed the movement code from basic jumpy state values to a continuous layout. By adding a limit to how fast the nose pitch can rotate, the plane is forced to respect weight and inertia. This makes the vertical rate climb indicator curve smoothly instead of teleporting to high numbers. I also adjusted the final landing phase logic so it snaps nicely to the runway at the 90-second mark.
 
-P.S: Discovered a "Square Wave" bug in the VVI telemetry where the sink rate was teleporting between values. Resolved this by decoupling the targetPitch from the actualPitch, preventing the drone from executing non-physical 10G maneuvers. Took close to 3 hours to resolve.
+P.S: Found a bug where the vertical speed numbers were jumping back and forth like a square wave. I fixed it by separating the actual pitch angle from the target pitch angle, which stops the drone from doing impossible 90 degree turns instantly. Took almost 3 hours to trace down.
 
 Day 20: April 10, 2026
 
 Task: Fixing the "dead" Error Rate display and checking the flight logs.
 
-Tech: Web Workers (Multi-threading), NIST ML-KEM (Post-Quantum Cryptography), WebAssembly (Wasm).
+Tech: HTML Text Updates, JavaScript Randomization.
 
-Note: The Bit Error Rate (BER) on the dashboard was looking super fake, just a static 0.00%. I fixed this by giving the HTML element a specific ID and writing a script to add a tiny bit of "noise" so the numbers actually move. I also switched it to scientific notation (like 1.10e-07) because it looks way more like a real flight computer. I checked the csv export and it looks sick; you can actually see the computer "struggling" for a split second at the start (260ms latency) while it loads the security kernel, then it levels out perfectly.
+Note: The bit error rate (BER) percentage text on the panel looked totally fake because it just sat at a hard 0.00%. I fixed this by giving the element a unique ID and writing a quick math function to inject tiny, moving decimal noise so the numbers flutter naturally. I also formatted it to use scientific notation (like 1.10e-07) because it looks way more like an authentic readout. The CSV logs look awesome; you can see a quick lag spike right at boot up while the scripts load, and then it goes completely flat and stable.
+
+P.S: I'm gonna spend a few days reading about how to secure the flight logs because right now, anyone could just open the exported CSV in Notepad and change the altitude numbers to whatever they want. I started researching cryptographic verification methods, specifically how SHA-256 hashing works. The concept makes sense, you run the text through an algorithm and it spits out a unique 64-character string but figuring out how to actually implement hardware accelerated crypto inside a browser environment looks tuff, but again that's where the fun is. I’m going to spend the next few days digging into the documentation for the Web Crypto API before I try writing the actual code. ( I assume the implementaion may span a few days).
 
 Day 21: April 24, 2026
 
 Task: Hardening FDR (Flight Data Recorder) Determinism and Signal Fidelity.
 
-Tech: JavaScript (ES6+), Web Workers, Stochastic Modeling (Box-Muller Transform), Web Crypto API (SHA-256).
+Tech: JavaScript Web Workers, Basic Hashing, Random Data Generators.
 
-Note: Today’s focus was on transforming the BER from a static element into a real Noise Model value. I implemented a Box-Muller Transform to generate a Gaussian Distribution, allowing the BER to change naturally based on aircraft velocity and mission phases. Also, implemented SHA-256 tags, something used by ARINC protocols.
+Note: Today I focused on making the bit error rate react dynamically instead of just generating flat random numbers. I implemented a proper distribution function so the error values change realistically depending on the aircraft's speed and what phase of the flight it's in. I also started working with basic data hashing to simulate a secure seal on the flight recorder.
 
-Also, I resolved a critical Race Condition between the Physics Worker and the Main Thread. Previously, the telemetry buffer experienced jitter causing the CSV export to skip or repeat timestamps. I implemented a Deterministic Logic Gate  to ensure the FDR logs data at a strict 0.5s frequency.
-
-P.S: So, today was my first time actually using SHA-256 tags to seal the flight data, and I immediately ran into a massive headache. At first, my CSV footer just said [object Promise] instead of the actual hash because I forgot that crypto.subtle.digest is asynchronous so basically, the code was trying to save the file before the math was even finished. I had to refactor the whole export button into an async function and use a Uint8Array to turn the raw binary buffer into a hex string that humans can actually read. It’s super cool now though; if anyone tries to go into the CSV and fake their altitude or speed, the signature won’t match, and the "seal" is officially broken. Took over 2 hours to implement though.
+P.S: This was my first time trying to add an encryption signature to the bottom of the flight log file, and it instantly broke. My CSV download footer kept printing out [object Promise] instead of the actual data hash because I forgot that the browser's crypto functions run asynchronously. The script was saving the file before the calculation had actually finished. I had to make the download button use an async structure and map the binary results into a readable text string. Now, if you change a single number in the spreadsheet, the verification hash breaks.
 
 Day 22: May 15, 2026
 
 Task: Implement automated cryptographic security signature appending for outbound flight logging.
 
-Tech: Web Crypto API (crypto.subtle.digest), NIST-SHA256 Hashing, JavaScript File Blob API.
+Tech: Web Crypto API, Data Blob Export.
 
-Note: I upgraded the flight data recorder download loop so nobody can edit the final CSV file. Now, the system takes all the raw telemetry rows from the 90-second flight, maps them into a clean string, and converts that text into a raw byte buffer. Then, it uses the browser's built in Web Crypto API to run a hardware accelerated SHA-256 hash. The final 64 character hash gets slapped onto the bottom of the file as a comment footer along with a unique flight ID and a timestamp, basically acting like a digital lock that breaks if anyone changes even a single decimal point.
+Note: I upgraded the flight data recorder code so the downloaded CSV logs can't be easily edited or faked. Now, when the flight finishes, the script gathers all the rows of telemetry data, converts them into a text block, and feeds it into the browser's built-in hashing tool. It slaps a unique 64-character hash at the very bottom of the document. If someone changes an altitude value or airspeed number in Excel, the verification signature won't match anymore.
 
-P.S: I originally tried hashing just a tiny summary string mixed with a random number generator, but that totally broke up the independent validation because the signature changed every single time you clicked download. I fixed it by feeding the exact, finished csvData text block directly into the crypto engine instead. Now, the signature is 100% predictable, so anyone can drop the CSV into an online hash checker and verify that the data is real and hasn't been tampered with, I did think of having such a function in built into my app but it wouldn't really serve the purpose of the sim.
+P.S: I originally tried creating a hash from a random number generator string, but that completely ruined the validation check because the signature changed every single time you hit download. I fixed it by passing the exact text content of the spreadsheet directly into the hashing engine instead. Now the signature is perfectly repeatable.
 
-Day 23: May 31, 2026 
+Day 23: May 31, 2026
 
 Task: ARINC-429 Bit-Level Serialization, BER Corruption, and Multi-Threaded Telemetry Log.
 
-Tech: Vanilla JS (Web Workers, Typed Arrays), Web Crypto API (SHA-256), HTML5 Canvas.
+Tech: Typed Arrays (Uint32Array), Bitwise Operators.
 
-Note: Rebuilt the telemetry stream using typed array data buffers so I could get rid of slow JavaScript object passing across threads. Inside the physics worker, variables are sliced up into explicit bit zones for the identification label, source identifier, data payload, and status matrix, and then it runs an odd parity calculation. The main thread grabs these buffers and uses a bitwise mask to instantly decode the sensor types and check the bit alignment. I also added a crazy environmental bit error rate simulation that spikes during the engagement phase, like how it would spike in reality too.
+Note: I completely rebuilt the data streaming logic to use raw typed array buffers instead of passing heavy JavaScript data objects between threads, which was slowing things down. Inside the worker script, flight stats are sliced up into explicit bit sectors for labels, values, and status flags, followed by a parity check. The main UI script takes these binary buffers and decodes them instantly using bitwise masks. I also made the error rates spike heavily during the combat zone phase to test data corruption.
 
-P.S: Had a brutal bug where the rolling dashboard console constantly threw false alarms even with zero BER on takeoff. Got to know something new that JavaScript bitwise operations interpret integers as signed 32-bit values by default.
+P.S: Ran into a brutal bug where the rolling console display kept triggering fake error warnings even when the plane was just sitting on the ground. I learned that JavaScript bitwise operations automatically interpret numbers as signed 32-bit integers, which was messing up my high-bit flag masks. I had to force the arrays to use unsigned adjustments (>>> 0) to fix the alignment.
 
-Day 24: June 20, 2026 
+Day 24: June 20, 2026
 
 Task: Clean up the automated hacking event pipeline and fix the UI recovery glitches during phase changes.
 
-Tech: Web Workers, Bitwise JavaScript (Uint32Array), ARINC-429 Protocol Simulation, State Management.
+Tech: Script State Management, Event Listeners.
 
-Note: Today was all about fixing the flow of the attack simulation so it feels like a real story. Instead of pressing the "A" key like a developer cheat code( so basically I thought of this feature that I'd press A when the attack happens and screen will transition to an in-attack state), the MitM (Man-in-the-Middle) attack now triggers completely on its own the exact second you close the security pop-up modal inside the Engagement Zone(much more professional). I also wired up code to auto clean the cockpit layout once the plane hits the Final Approach phase, resetting all the warning signs back to normal.
+Note: Today was about cleaning up the timing of the attack sequence so the simulation tells a better story. Instead of pressing the "A" key like a developer cheat code to trigger the hack, the data injection attack now starts completely on its own the exact second the user clicks to close the security warning pop-up box during the flight. I also made sure all the warning indicators clear out automatically when the landing phase begins.
 
-P.S: Ran into a super annoying bug where ghost [SPOOF_ALERT] tags were still flashing in the scrolling hex display even after entering the landing phase. Turned out to be an asynchronous race condition, the background Web Worker was still flushing out a couple of older corrupted data frames right during the phase transition. Fixed it by adding a strict phase gate guard inside the telemetry stream parser to ignore numerical jumps during Final Approach and Mission Complete. Everything runs super smooth now.
+P.S: Ran into an annoying bug where old alert text fragments were still flashing in the scrolling hex window even after the plane had started landing. It was a timing issue where the background thread was still flushing out the last few frames of bad data right during the transition. I fixed it by adding a strict phase check to the stream reader so it ignores any incoming data spikes once the landing sequence drops.
 
 Day 25: June 21, 2026
 
 Task: Upgrading telemetry to actual ARINC-429 bit and tweaking the Rust security kernel.
 
-Tech: Rust, Cargo, WebAssembly (WASM)
+Tech: Rust Backend, WebAssembly compilation.
 
-Note: Worked on connecting the main frontend to the security kernel folder (src/lib.rs) to get ready for the heavy lattice based crypto stuff. In Cargo.toml & lib.rs I set up the architectural scaffolding in Rust so the app can eventually stream raw flight data straight into a WebAssembly ready structure for true NIST ML-KEM integration. In main.js I built the data pipeline to offload high overhead postquantum key encapsulation into a sandboxed, low level linear memory space. This decouples the cryptographic execution via WebAssembly binary bridges, which keeps the heavy math from starving or freezing our real time flight control telemetry thread.
+Note: I worked on connecting my main frontend scripts to the backend Rust folder (src/lib.rs) to get things ready for the actual encryption math. I set up the basic structural files in Rust so that the simulation data can be passed directly into a low-level memory block. This ensures the heavy mathematical processing runs in an isolated sandbox space and won't freeze up the primary flight display loop while it's trying to animate.
 
-P.S: Right now the whole app is completely black screen and won't load because of a stupid console error. I tried fixing it for over 2 hours today but it isn't budging. It's totally blocking the simulation, so fixing this line (which basically means debugging a couple of my files) is the first thing on the menu tomorrow. 
+P.S: Right now my entire app is showing a completely blank black screen on launch because of a script loading error in the console. I spent over two hours trying to track down the source of the crash today but couldn't get it to budge. Debugging these import lines is the first thing I have to do tomorrow.
 
 Day 26: June 22, 2026
 
 Task: Debugging Avionics Web Worker Pipeline & Fixing WASM Compilation Stalls
 
-Tech: WebAssembly, Rust (wasm-pack), JavaScript Web Workers
+Tech: WebAssembly, JavaScript Workers.
 
-Note: Spent a massive chunk of time chasing down a brutal, silent console crash (CRITICAL WORKER THREAD ERROR: undefined ). The simulation was totally frozen at ignition. It turns out that when I updated Cargo.toml and lib.rs yesterday, the generated JS bindings inside pkg/ got compiled with an incorrect environment configuration. Because the browser couldn't handle the raw export structures inside the Web Worker thread so it threw a silent syntax error that wiped out all line numbers.
+Note: I spent a massive chunk of time tracing a silent console crash that was freezing the simulation at startup. The worker thread was failing immediately. It turns out that when I updated the Rust configuration files yesterday, the compiler generated the JavaScript output bindings with the wrong environment settings. The browser didn't know how to read the export setup inside a background worker, causing a hidden syntax error that wiped out all useful error line numbers.
 
-P.S: I still have some heavy troubleshooting left to do for other parts of this simulation.
+P.S: I still have a lot of troubleshooting left to do for other parts of the data loop, but at least the screen isn't totally blank anymore.
 
-Day 27: June 23, 2026 
+Day 27: June 23, 2026
 
-Task: Refined Post-Quantum Security Kernel HUD parameters 
+Task: Refined Post-Quantum Security Kernel HUD parameters
 
-Tech: HTML5 Canvas API, ARINC-429 Bit-Level Serialization Protocol, NIST-Standardized ML-KEM Cryptographic Math.
+Tech: HTML5 Canvas, Page Layouts, Text Formatting.
 
-Note: In main.js I fixed a race condition causing the telemetry stream to misfire fake alerts. Added triggerAttack(true) directly to the modal button so the lattice grid distorts instantly upon acknowledgement. In lattice engine.js had to fix the high DPI blurriness as high res screens stretch standard canvases across fractional coordinates, bleeding vector lines across grid lines. Fixed this by snapping container dimensions to integer boundaries with Math.floor(), applying a 0.5px stroke offset to center lines perfectly within a single hardware pixel row, and forcing ctx.textBaseline = "top" to lock typographic bounds. Upgraded the HUD overlay text to crisp white for contrast, displaying hard math metrics right inside the lattice grid and now it depicts texts to show exactly how the post-quantum keys are handled.
+Note: I fixed an issue in my main script where the telemetry monitor was misfiring fake alert messages during transitions. I attached the attack trigger directly to the modal button so the lattice visualization distorts the moment you click close. I also had to fix some blurriness on the canvas text; high-resolution laptop screens were stretching out the drawing space and making the lines look fuzzy. I fixed this by using Math.floor() to keep the elements snapped to whole numbers and adjusted the pixel alignments so the lines look sharp.
 
-P.S: I spent almost the entire session trying to get the lattice grid to jitter during the attack phase to show the LWE (Learning With Errors) problem in action. It wasn't working at first, but after doing some troubleshooting, I realized that two separate code blocks in main.js were running at the exact same time and fighting over the state variables, which completely blocked the animation from triggering. (Funny thing, had a bango emoji in my code for a while as I was tryna write the proper mathematical sampling notation) Everything looks sharp now! 
+P.S: I spent almost the entire time trying to get the security grid to jitter violently during the hack sequence to show the data error generation in action. It wasn't working at first, but after looking closely at the code, I realized two different functions were running at the same time and fighting over the exact same animation variables, which broke the effect. Everything looks clean now.
 
-Day 28: June 24, 2026 
+Day 28: June 24, 2026
 
 Task: To refactor avionics terminal message delivery
 
-Tech: Decoupled Main Thread Execution, Type-Safe Data Serialization (ARINC-429 Protocol Emulation), Modular Component Architecture.
+Tech: JavaScript Strings, Array Filtering.
 
-Note: Spent today adding and fixing a nasty layout bug where longer terminal strings were completely blowing out the boundaries of the cockpit UI and messing up my layout. I rewrote the entire AVIONICS_LOG_POOL with short punchy, authentic flight deck phrases so the text spacing stays absolutely static and matches the original 0xBOOT format perfectly. I also realized the MISSION_COMPLETE pool array was basically total dead code because the animation loop drops out the second state.isTerminated hits. Since I already have a clean CSV data popup report that handles the flight summary perfectly, adding cluttering after flight logs there was useless anyway so I just stripped that block out entirely. Also spent quite a while today hunting down a race condition where the animation loop hit the 3 second logging timer a second too soon before the worker officially updated the flight phase, causing double logs. Tied the ambient logger directly to the synchronized state variables so everything stays perfectly aligned and without duplicates.
+Note: Spent today fixing an annoying layout bug where long terminal strings were breaking past the edges of the cockpit panels and messing up the rest of the alignment. I rewrote the entire message text array to use short, punchy flight deck abbreviations so the text widths never change. I also removed a bunch of old log arrays for the post-flight screen because they were total dead code anyway; the popup CSV summary report already handles everything perfectly. I also fixed a timing bug where logs were printing twice because the system hit the update timer right before the worker changed phases.
 
-P.S: Troubleshooting again...actually today Git got a bit messy after a pull, and my recent commits got detached from the main branch. I used git reflog to track down the exact commit hashes and cherry picked them back onto the timeline. Everything synced perfectly with GitHub. 
+P.S: My local repository got a bit messy after pulling down some updates, and my recent changes got unlinked from the main timeline. I had to use the command history tool to find the exact tracking hashes and manually stitch my work back together. Everything matches up on GitHub now.
 
 Day 29: June 25, 2026
 
-Task: Rewrote and hardened the ARINC-429 telemetry stream engine 
+Task: Rewrote and hardened the ARINC 429 telemetry stream engine
 
-Tech: Decoupled Main Thread Execution (Web Workers), Type-Safe Data Serialization (ARINC-429 BitPacking via Uint32Array), Modular Component Based UI.
+Tech: Web Workers, Array Throttling.
 
-Note: Spent the day restructuring the telemetry stream layout. I needed to ensure that higher frequency
-data from the physics worker didn't overload the main DOM loop, so I locked down a strict 10Hz throttle check (THROTTLE_INTERVAL_MS = 100). I also caught an issue where the ambient log engine was shuffling the tracking decks and accidentally spitting out identical strings back to back during phase transitions. By implementing a lookback variable (lastAmbientMessageText) right inside the injection loop, the system now forces a memory flush and immediate card redraw if a duplicate is pulled. The visual output looks incredibly clean now and behaves like a real avionics layout.
+Note: I spent the day cleaning up how the data logs update on screen. The physics worker sends updates super fast, and it was overloading the browser's rendering loop, so I locked the display updates down to a strict speed limit of 10 times per second. I also caught an issue where the background script would occasionally print out the exact same status message twice in a row when switching phases. I added a simple tracker variable to remember the last message text, so if a duplicate pops up, it flushes it out instantly.
 
-P.S: Literally the log output looked like a broken record repeating lines. Found out I had left some loose duplicate code fragments floating right outside the scope of updateTelemetryStream from yesterday's rewrite. It was throwing a wild syntax error and almost bricked the display terminal initialization, but I scrubbed the orphan code and now it runs completely smooth.
+P.S: The log box looked like a broken record repeating identical text lines this afternoon. Turns out I accidentally left some loose duplicate code fragments floating at the bottom of my file rewrite yesterday. It was throwing a breaking syntax error that almost ruined the script startup, but I scrubbed out the orphan text and now it runs perfectly.
 
+Day 30: June 26, 2026
 
+Task: Integrate visual metrics for the LEO satellite quantum key distribution link into the PFD
 
+Tech: HTML Layouts, Inline CSS, Web Worker Messaging.
+
+Note: I added a new data readout block for the satellite stats on the dashboard HTML right under where the standard bit error rate shows up. This gives me a dedicated section on the screen to see real-time stats like the quantum error percentage (QBER), the secure key speed in bits per second, and the satellite's position numbers coming straight from the background worker. I also created a new helper file called quantum-atmosphere.js which basically calculates how thick the air and clouds are based on the plane's altitude so it can figure out how much noise is messing with the satellite's laser beam.
+
+P.S: Encountered a bug where the key rate stayed stuck at 0 bps even after the simulated attack zone had cleared out completely. I isolated the problem to the message listener block inside physics-worker.js. Turns out it was completely ignoring the reset signals because the code was only looking for a specific attack name string rather than checking the actual true/false state flag. It was a quick fix once I spotted it.
