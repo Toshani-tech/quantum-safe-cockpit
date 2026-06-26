@@ -170,8 +170,10 @@ self.onmessage = async function(e) {
     }
 
     if (e.data.type === 'INJECT_FAULT') {
-        if (e.data.faultType === 'SPOOF_ALTITUDE') {
-            isMitMAttackActive = e.data.active;
+        if (e.data.active === false) {
+            isMitMAttackActive = false;
+        } else if (e.data.faultType === 'SPOOF_ALTITUDE') {
+            isMitMAttackActive = true;
         }
         return;
     }
