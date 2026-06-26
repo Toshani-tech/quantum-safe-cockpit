@@ -323,7 +323,7 @@ const timerEl = document.getElementById('mission-timer');
                 if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
                 if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
 
-                if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
+               if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
                 if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
 
                 if (berDisplay && d.simulatedBER !== undefined) {
@@ -336,6 +336,23 @@ const timerEl = document.getElementById('mission-timer');
                     const finalBER = base + velFactor + noise;
                     berDisplay.textContent = finalBER.toExponential(3);
                     berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
+                }
+        
+                if (d.quantumMetrics) {
+                    const qm = d.quantumMetrics;
+                    
+                    if (qberDisplay) {
+                        qberDisplay.textContent = (qm.qber * 100).toFixed(2) + "%";
+                        
+                        qberDisplay.style.color = (qm.qber >= 0.11) ? "var(--av-red)" : "var(--av-green)";
+                    }
+                    if (keyRateDisplay) {
+                        keyRateDisplay.textContent = qm.secureKeyRateBps.toLocaleString() + " bps";
+                        keyRateDisplay.style.color = (qm.secureKeyRateBps === 0) ? "var(--av-amber)" : "var(--av-green)";
+                    }
+                    if (satTrackingDisplay) {
+                        satTrackingDisplay.textContent = `LEO-SAT AZ:${qm.satAzimuth}° EL:${qm.satElevation}°`;
+                    }
                 }
 
                 updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
