@@ -43,4 +43,20 @@ export class QuantumAtmosphereLink {
            
             qber += Math.abs(Math.sin(performance.now() * 0.002) * 0.003);
         }
-    
+       
+        let secureKeyRateBps = 0;
+        if (qber < 0.11) {
+            
+            const h_q = -qber * Math.log2(qber) - (1 - qber) * Math.log2(1 - qber);
+            secureKeyRateBps = Math.floor(rawKeyRate * (1 - 2 * h_q));
+        }
+
+        return {
+            satElevation: this.satElevation.toFixed(2),
+            satAzimuth: this.satAzimuth.toFixed(1),
+            transmittance: T_atm,
+            qber: Math.max(0.001, qber),
+            secureKeyRateBps: Math.max(0, secureKeyRateBps)
+        };
+    }
+}
