@@ -278,16 +278,18 @@ async function runPOST() {
     }
 }
 
-function startRenderLoop() {
-    if (state.isLoopRunning) return;
-    state.isLoopRunning = true;
 
-    const timerEl = document.getElementById('mission-timer');
+const timerEl = document.getElementById('mission-timer');
     const latDisplay = document.getElementById('latency-value');
     const berDisplay = document.getElementById('ber-value');
     
+    const qberDisplay = document.getElementById('qber-value');
+    const keyRateDisplay = document.getElementById('qkd-keyrate-value');
+    const satTrackingDisplay = document.getElementById('sat-tracking-value');
+    
     let lastPushedTime = -1; 
-    let lastAmbientLogTime = 0; 
+    let lastAmbientLogTime = 0;
+
 
     function loop() {
         if (state.isTerminated && state.currentPhase !== 'MISSION_COMPLETE') { 
