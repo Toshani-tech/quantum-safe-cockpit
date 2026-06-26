@@ -1,9 +1,12 @@
 /**
- * physics-worker.js - V13.0
+ * physics-worker.js - V14.0
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
+import { QuantumAtmosphereLink } from './quantum-atmosphere.js'; 
 import init from '../../security-kernel/pkg/security_kernel.js';
+
+const qkdLink = new QuantumAtmosphereLink();
 
 let canvasCtx;
 let missionStartTime = 0;
@@ -132,9 +135,7 @@ self.onmessage = async function(e) {
         canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         canvasCtx.scale(dpr, dpr);
 
-       
         await wasmPromise;
-        
         
         self.postMessage({ type: 'KERNEL_READY' });
         return;
@@ -251,6 +252,8 @@ function broadcastTelemetry(elapsed) {
 
     let activeBER = applyBERCorruption(serializedBuffer, state.missionPhase, state.airspeed);
 
+
+    const qkdMetrics = qkdLink.computeQuantumMetrics(state.altitude, state.airspeed, isMitMAttackActive);
     
     let transmissionBuffer = new Uint32Array(serializedBuffer);
 
@@ -265,7 +268,9 @@ function broadcastTelemetry(elapsed) {
         elapsed: elapsed.toFixed(2),
         sentTime: latestSentTime,
         arincWords: transmissionBuffer,
-        simulatedBER: activeBER
+        simulatedBER: activeBER,
+        
+        quantumMetrics: qkdMetrics
     }, [transmissionBuffer.buffer]);
 }
 
