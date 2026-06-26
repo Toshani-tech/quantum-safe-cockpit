@@ -376,7 +376,7 @@ const timerEl = document.getElementById('mission-timer');
         requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
-}
+
 
 function updateTacticalButton(alt, spd, phase) {
     const btn = document.getElementById('init-btn');
@@ -480,7 +480,6 @@ function updateTelemetryStream(arincWords) {
     hexDisplay.innerHTML = state.telemetryLines.join('');
 }
 
-
 function syncPhase(newPhase) {
     if (newPhase && newPhase !== state.currentPhase) {
         state.currentPhase = newPhase;
@@ -496,6 +495,14 @@ function handleSecurityLogic(phase) {
          state.securityEventLocked = false; 
          triggerAttack(false); 
          
+         if (state.physicsWorker) {
+             state.physicsWorker.postMessage({
+                 type: 'INJECT_FAULT',
+                 active: false,
+                 faultType: 'NONE'
+             });
+         }
+
          if (state.physicsWorker) {
              state.physicsWorker.postMessage({
                  type: 'INJECT_FAULT',
