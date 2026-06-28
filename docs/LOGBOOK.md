@@ -308,3 +308,13 @@ Tech: JavaScript State Modules, UI Refactoring, State Synchronization.
 Note: I focused on linking the newly made QKD satellite tracking logic file directly into the actual cockpit interface so the metrics aren't just sitting in the background code. I updated the main game loop inside main.js to constantly trigger the satellite's math formulas using the active simulation timer. This lets fields like the QBER tracker, the secure key rate, and the live azimuth/elevation angles update smoothly on the glass dashboard every frame. I also tied the link reset engine directly to the flight transition states so that the moment the flight lands or gets wiped, all the compromised crypto tracking keys get completely scrubbed out of the system memory automatically.
 
 P.S: Had a weird issue where the telemetry screen was throwing a syntax error on boot up and crashing the entire rendering canvas. I went through the state configuration object and found out I had completely missed a comma right after the new MitM attack flag variable when pasting in the new satellite module object. 
+
+Day 32: June 28, 2026
+
+Task: Implemented bit-level serialization (and protocol level formatting ) for the cockpit data transmission stream.
+
+Tech: ARINC-429 Protocol Simulation, Type-Safe Bit-Packing, Data Serialization.
+
+Note: (Had to spend a bunch of time looking through the actual ARINC 429 hardware and bitmasking tutorials to figure out how to do so. Even highschool's not so tuff.) Today was all about breaking down the telemetry system to run on actual bit-level logic matching real world ARINC-429 avionics specs. Instead of passing normal JSON or simple JavaScript numbers back and forth(which is how my sim was running so far), I rewrote the communication flow to use Uint32Array buffers to serialize the flight data manually into strict 32-bit words. I wrote custom bitwise operators to handle the bit-packing, stuffing the label, SDI, payload bits, SSM, and parity directly into a single unsigned integer. Up until now, the system wasn't actually doing real bitwise operations under the hood; it was basically just faking the telemetry stream using standard JavaScript numbers and object properties instead of packing raw bits into hardware-level words. 
+
+P.S: Had a super annoying visual bug where the delta tracking indicator was rendering in an amber alert color even when the data transmission was totally fine. I dug into the updateTelemetryStream loop and realized my status assignment overrides were accidentally overriding the UI color states. (fixed it pretty quick)
