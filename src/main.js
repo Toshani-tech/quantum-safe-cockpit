@@ -2,7 +2,7 @@
  
 import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
-
+import { QKDSatelliteLink } from './security/qkd-satellite-link.js'; 
 const state = {
     isBooted: false,
     attackLogged: false,
@@ -23,6 +23,7 @@ const state = {
     securityEventLocked: false,
     telemetryLines: [],
     isMitMAttackActive: false
+    qkdLink: new QKDSatelliteLink() 
 };
 
 let telemetryBufferPtr = null;
