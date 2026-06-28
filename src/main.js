@@ -23,7 +23,7 @@ const state = {
     securityEventLocked: false,
     telemetryLines: [],
     isMitMAttackActive: false
-    qkdLink: new QKDSatelliteLink() 
+    qkdLink: new QKDSatelliteLink()
 };
 
 let telemetryBufferPtr = null;
@@ -494,6 +494,14 @@ function handleSecurityLogic(phase) {
          state.attackLogged = false; 
          state.securityEventLocked = false; 
          triggerAttack(false); 
+
+         if (phase === 'FINAL_APPROACH' && (state.isMitMAttackActive || state.attackLogged)) {
+         state.isMitMAttackActive = false;
+         state.attackLogged = false; 
+         state.securityEventLocked = false; 
+         triggerAttack(false); 
+         
+         state.qkdLink.isInterceptionDetected = false;
          
          if (state.physicsWorker) {
              state.physicsWorker.postMessage({
@@ -622,9 +630,10 @@ function handleMissionComplete() {
     triggerAttack(false); 
     stopLattice();
     
+    state.qkdLink = new QKDSatelliteLink(); 
+    
     state.telemetryLines = []; 
     if (state.lastWorkerData) {
-       
         state.lastWorkerData.arincWords = new Uint32Array(4);
     }
     logTerminalMessage("SECURE_KERNEL: TRANSITIONAL MEMORY VOLATILITY PURGED [0x00]", "#00FF41", "0xSCRUB");
@@ -645,7 +654,6 @@ function handleMissionComplete() {
     document.getElementById('report-alt').textContent = Math.round(state.maxAlt);
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
-
 
 document.getElementById('download-fdr-btn').addEventListener('click', async () => {
     if (state.fdrBuffer.length === 0) {
