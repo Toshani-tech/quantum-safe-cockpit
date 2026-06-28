@@ -70,7 +70,19 @@ function packARINC429(label, sdi, value, ssm) {
     const maskedPayload = Math.floor(value) & 0x3FFFF;
     word |= (maskedPayload << 10);
     word |= ((ssm & 0x03) << 28);
+    let count = 0;
+    let temp = word;
+    for (let i = 0; i < 31; i++) {
+        if ((temp & 1) === 1) count++;
+        temp >>>= 1;
+    }
+    
+    if (count % 2 === 0) {
+        word |= (1 << 31);
+    }
 
+    return word >>> 0; 
+}
 
 
 function applyBERCorruption(arrayBuffer, phaseString, speedValue) {
