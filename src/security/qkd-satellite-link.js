@@ -1,10 +1,9 @@
 /**
- * qkd-satellite-link.js
+ * qkd-satellite-link.js V2.7
  */
 
 export class QKDSatelliteLink {
     constructor() {
-       
         this.satAzimuth = 120.0;     
         this.satElevation = 5.0;     
         this.secureKeyRateBps = 0;   
@@ -13,5 +12,14 @@ export class QKDSatelliteLink {
     }
 
     updateLinkDynamics(elapsedSeconds, currentPhase, isMitMActive) {
+       
+        if (currentPhase !== 'STANDBY' && currentPhase !== 'MISSION_COMPLETE') {
+
+            this.satElevation += 0.45; 
+            
+            this.satAzimuth = (120.0 + (elapsedSeconds * 0.8)) % 360;
+            
+            if (this.satElevation > 85.0) this.satElevation = 85.0; 
+        }
     }
 }
