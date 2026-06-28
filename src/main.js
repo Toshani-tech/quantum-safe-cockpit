@@ -1,8 +1,9 @@
 // main.js - V16.5
- 
+
 import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 import { QKDSatelliteLink } from './security/qkd-satellite-link.js'; 
+
 const state = {
     isBooted: false,
     attackLogged: false,
@@ -22,7 +23,7 @@ const state = {
     isTerminated: false,
     securityEventLocked: false,
     telemetryLines: [],
-    isMitMAttackActive: false
+    isMitMAttackActive: false, 
     qkdLink: new QKDSatelliteLink()
 };
 
@@ -94,6 +95,7 @@ const AVIONICS_LOG_POOL = {
         "FDR: FLUSHING CACHE_OK"
     ]
 };
+
 const gaussianRandom = () => {
     let u = 0, v = 0;
     while(u === 0) u = Math.random(); 
@@ -279,104 +281,104 @@ async function runPOST() {
     }
 }
 
-
 const timerEl = document.getElementById('mission-timer');
-    const latDisplay = document.getElementById('latency-value');
-    const berDisplay = document.getElementById('ber-value');
-    
-    const qberDisplay = document.getElementById('qber-value');
-    const keyRateDisplay = document.getElementById('qkd-keyrate-value');
-    const satTrackingDisplay = document.getElementById('sat-tracking-value');
-    
-    let lastPushedTime = -1; 
-    let lastAmbientLogTime = 0;
+const latDisplay = document.getElementById('latency-value');
+const berDisplay = document.getElementById('ber-value');
 
+const qberDisplay = document.getElementById('qber-value');
+const keyRateDisplay = document.getElementById('qkd-keyrate-value');
+const satTrackingDisplay = document.getElementById('sat-tracking-value');
 
-    function loop() {
-        if (state.isTerminated && state.currentPhase !== 'MISSION_COMPLETE') { 
-            state.isLoopRunning = false; 
-            return; 
-        }
+let lastPushedTime = -1; 
+let lastAmbientLogTime = 0;
 
-        if (state.physicsWorker && state.isMissionActive && !state.securityEventLocked) {
-            state.physicsWorker.postMessage({ sentTime: performance.now() });
-        }
+function startRenderLoop() {
+    state.isLoopRunning = true;
+    requestAnimationFrame(loop);
+}
 
-        if (state.lastWorkerData) {
-            const d = state.lastWorkerData;
-            const safeT = parseFloat(d.elapsed);
-            const safeAlt = Number(d.altitude);
-            const safeSpd = Number(d.airspeed);
+function loop() {
+    if (state.isTerminated && state.currentPhase !== 'MISSION_COMPLETE') { 
+        state.isLoopRunning = false; 
+        return; 
+    }
 
-            if (state.isMissionActive) {
-                if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
-                    state.fdrBuffer.push({
-                        t: safeT.toFixed(2), 
-                        alt: Math.round(safeAlt), 
-                        spd: Math.round(safeSpd),
-                        phase: String(d.missionPhase || 'UNKNOWN'), 
-                        lat: Number(state.latency).toFixed(2)
-                    });
-                    lastPushedTime = safeT; 
-                    lastLogTime = safeT; 
-                }
+    if (state.physicsWorker && state.isMissionActive && !state.securityEventLocked) {
+        state.physicsWorker.postMessage({ sentTime: performance.now() });
+    }
 
-                if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
-                if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
+    if (state.lastWorkerData) {
+        const d = state.lastWorkerData;
+        const safeT = parseFloat(d.elapsed);
+        const safeAlt = Number(d.altitude);
+        const safeSpd = Number(d.airspeed);
 
-               if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
-                if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
-
-                if (berDisplay && d.simulatedBER !== undefined) {
-                    berDisplay.textContent = d.simulatedBER.toExponential(3);
-                    berDisplay.style.color = (d.simulatedBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
-                } else if (berDisplay) {
-                    let base = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
-                    const velFactor = (safeSpd / 500) * 1e-8;
-                    const noise = Math.abs(gaussianRandom() * 0.5e-8);
-                    const finalBER = base + velFactor + noise;
-                    berDisplay.textContent = finalBER.toExponential(3);
-                    berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
-                }
-        
-                    state.qkdLink.updateLinkDynamics(safeT, d.missionPhase, state.isMitMAttackActive);
-                    const qm = state.qkdLink.getMetricsPayload();
-
-                    if (qberDisplay) {
-                    qberDisplay.textContent = (qm.qber * 100).toFixed(2) + "%";
-                    qberDisplay.style.color = qm.linkCompromised ? "var(--av-red)" : "var(--av-green)";
-                  }
-
-                 if (keyRateDisplay) {
-                     keyRateDisplay.textContent = qm.secureKeyRateBps.toLocaleString() + " bps";
-                     keyRateDisplay.style.color = (qm.secureKeyRateBps === 0) ? "var(--av-amber)" : "var(--av-green)";
-                       }
-                if (satTrackingDisplay) {
-                    satTrackingDisplay.textContent = `LEO-SAT AZ:${qm.satAzimuth}° EL:${qm.satElevation}°`;
-                    }
-
-                updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
-                syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
-                syncPhase(d.missionPhase);
-                
-                const liveWasmBuffer = readWasmTelemetryBuffer();
-                updateTelemetryStream(liveWasmBuffer || d.arincWords);
-                
-                handleSecurityLogic(d.missionPhase);
-                runMissionStory(safeT);
+        if (state.isMissionActive) {
+            if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
+                state.fdrBuffer.push({
+                    t: safeT.toFixed(2), 
+                    alt: Math.round(safeAlt), 
+                    spd: Math.round(safeSpd),
+                    phase: String(d.missionPhase || 'UNKNOWN'), 
+                    lat: Number(state.latency).toFixed(2)
+                });
+                lastPushedTime = safeT; 
+                lastLogTime = safeT; 
             }
 
-            const activeTime = state.isMissionActive ? safeT : (performance.now() / 1000);
-            if (activeTime >= lastAmbientLogTime + 3.0) {
-             
-                injectAmbientLog(state.currentPhase);
-                lastAmbientLogTime = activeTime;
+            if (safeAlt > state.maxAlt) state.maxAlt = safeAlt;
+            if (safeSpd > state.maxSpd) state.maxSpd = safeSpd;
+
+            if (timerEl) timerEl.textContent = `T+ ${safeT.toFixed(1)}S`;
+            if (latDisplay) latDisplay.textContent = state.latency.toFixed(2); 
+
+            if (berDisplay && d.simulatedBER !== undefined) {
+                berDisplay.textContent = d.simulatedBER.toExponential(3);
+                berDisplay.style.color = (d.simulatedBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
+            } else if (berDisplay) {
+                let base = (d.missionPhase === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
+                const velFactor = (safeSpd / 500) * 1e-8;
+                const noise = Math.abs(gaussianRandom() * 0.5e-8);
+                const finalBER = base + velFactor + noise;
+                berDisplay.textContent = finalBER.toExponential(3);
+                berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
             }
+    
+            state.qkdLink.updateLinkDynamics(safeT, d.missionPhase, state.isMitMAttackActive);
+            const qm = state.qkdLink.getMetricsPayload();
+
+            if (qberDisplay) {
+                qberDisplay.textContent = (qm.qber * 100).toFixed(2) + "%";
+                qberDisplay.style.color = qm.linkCompromised ? "var(--av-red)" : "var(--av-green)";
+            }
+
+            if (keyRateDisplay) {
+                keyRateDisplay.textContent = qm.secureKeyRateBps.toLocaleString() + " bps";
+                keyRateDisplay.style.color = (qm.secureKeyRateBps === 0) ? "var(--av-amber)" : "var(--av-green)";
+            }
+            if (satTrackingDisplay) {
+                satTrackingDisplay.textContent = `LEO-SAT AZ:${qm.satAzimuth}° EL:${qm.satElevation}°`;
+            }
+
+            updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
+            syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
+            syncPhase(d.missionPhase);
+            
+            const liveWasmBuffer = readWasmTelemetryBuffer();
+            updateTelemetryStream(liveWasmBuffer || d.arincWords);
+            
+            handleSecurityLogic(d.missionPhase);
+            runMissionStory(safeT);
         }
-        requestAnimationFrame(loop);
+
+        const activeTime = state.isMissionActive ? safeT : (performance.now() / 1000);
+        if (activeTime >= lastAmbientLogTime + 3.0) {
+            injectAmbientLog(state.currentPhase);
+            lastAmbientLogTime = activeTime;
+        }
     }
     requestAnimationFrame(loop);
-
+}
 
 function updateTacticalButton(alt, spd, phase) {
     const btn = document.getElementById('init-btn');
@@ -421,7 +423,6 @@ function updateTelemetryStream(arincWords) {
     const hexDisplay = document.getElementById('fdr-hex-display');
     if (!hexDisplay) return;
 
-
     const groundTruth = state.lastWorkerData;
     if (!groundTruth || !groundTruth.arincWords) return;
 
@@ -441,7 +442,6 @@ function updateTelemetryStream(arincWords) {
         if (label === 0o036 && groundTruth) { 
             const transmittedAlt = (word >>> 10) & 0x7FFFF;
             const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
-            
             
             if (precisionDelta > 50 && (state.isMitMAttackActive || state.attackLogged)) {
                 isContentAltered = true;
@@ -494,23 +494,9 @@ function handleSecurityLogic(phase) {
          state.attackLogged = false; 
          state.securityEventLocked = false; 
          triggerAttack(false); 
-
-         if (phase === 'FINAL_APPROACH' && (state.isMitMAttackActive || state.attackLogged)) {
-         state.isMitMAttackActive = false;
-         state.attackLogged = false; 
-         state.securityEventLocked = false; 
-         triggerAttack(false); 
          
          state.qkdLink.isInterceptionDetected = false;
          
-         if (state.physicsWorker) {
-             state.physicsWorker.postMessage({
-                 type: 'INJECT_FAULT',
-                 active: false,
-                 faultType: 'NONE'
-             });
-         }
-
          if (state.physicsWorker) {
              state.physicsWorker.postMessage({
                  type: 'INJECT_FAULT',
@@ -621,7 +607,6 @@ function injectAmbientLog(phase) {
     logTerminalMessage(logMessage, logColor, tag);
 }
 
-
 function handleMissionComplete() {
     if (state.isTerminated) return;
     state.isTerminated = true;
@@ -654,6 +639,7 @@ function handleMissionComplete() {
     document.getElementById('report-alt').textContent = Math.round(state.maxAlt);
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
+
 document.getElementById('download-fdr-btn').addEventListener('click', async () => {
     if (state.fdrBuffer.length === 0) {
         logTerminalMessage("ERROR: NO FDR DATA TO EXTRACT", "#FF3B3B", "0xCSV_FAIL");
