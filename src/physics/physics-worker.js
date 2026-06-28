@@ -1,4 +1,4 @@
-/**
+/*
  * physics-worker.js - V14.0
  */
 
@@ -62,24 +62,16 @@ function calculateGaussianRandom() {
     return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-function packARINC429(label, sdi, payload, ssm) {
+
+function packARINC429(label, sdi, value, ssm) {
     let word = 0;
     word |= (label & 0xFF);
     word |= ((sdi & 0x03) << 8);
-    word |= ((payload & 0x7FFFF) << 10);
-    word |= ((ssm & 0x03) << 29);
-    
-    let parityCount = 0;
-    let tempWord = word;
-    while (tempWord) {
-        parityCount ^= (tempWord & 1);
-        tempWord >>>= 1;
-    }
-    if (parityCount === 0) {
-        word |= (1 << 31);
-    }
-    return word >>> 0;
-}
+    const maskedPayload = Math.floor(value) & 0x3FFFF;
+    word |= (maskedPayload << 10);
+    word |= ((ssm & 0x03) << 28);
+
+
 
 function applyBERCorruption(arrayBuffer, phaseString, speedValue) {
     let baseRate = (phaseString === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
