@@ -654,7 +654,6 @@ function handleMissionComplete() {
     document.getElementById('report-alt').textContent = Math.round(state.maxAlt);
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
-
 document.getElementById('download-fdr-btn').addEventListener('click', async () => {
     if (state.fdrBuffer.length === 0) {
         logTerminalMessage("ERROR: NO FDR DATA TO EXTRACT", "#FF3B3B", "0xCSV_FAIL");
