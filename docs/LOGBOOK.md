@@ -298,3 +298,13 @@ Tech: HTML Layouts, Inline CSS, Web Worker Messaging.
 Note: I added a new data readout block for the satellite stats on the dashboard HTML right under where the standard bit error rate shows up. This gives me a dedicated section on the screen to see real-time stats like the quantum error percentage (QBER), the secure key speed in bits per second, and the satellite's position numbers coming straight from the background worker. I also created a new helper file called quantum-atmosphere.js which basically calculates how thick the air and clouds are based on the plane's altitude so it can figure out how much noise is messing with the satellite's laser beam.
 
 P.S: Encountered a bug where the key rate stayed stuck at 0 bps even after the simulated attack zone had cleared out completely. I isolated the problem to the message listener block inside physics-worker.js. Turns out it was completely ignoring the reset signals because the code was only looking for a specific attack name string rather than checking the actual true/false state flag. It was a quick fix once I spotted it.
+
+Day 31: June 27, 2026
+
+Task: Refactored the telemetry loop to bind the live QKD satellite tracking outputs directly into the cockpit UI elements.
+
+Tech: JavaScript State Modules, UI Refactoring, State Synchronization.
+
+Note: I focused on linking the newly made QKD satellite tracking logic file directly into the actual cockpit interface so the metrics aren't just sitting in the background code. I updated the main game loop inside main.js to constantly trigger the satellite's math formulas using the active simulation timer. This lets fields like the QBER tracker, the secure key rate, and the live azimuth/elevation angles update smoothly on the glass dashboard every frame. I also tied the link reset engine directly to the flight transition states so that the moment the flight lands or gets wiped, all the compromised crypto tracking keys get completely scrubbed out of the system memory automatically.
+
+P.S: Had a weird issue where the telemetry screen was throwing a syntax error on boot up and crashing the entire rendering canvas. I went through the state configuration object and found out I had completely missed a comma right after the new MitM attack flag variable when pasting in the new satellite module object. 
