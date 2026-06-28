@@ -41,4 +41,19 @@ export class QKDSatelliteLink {
             }
         }
     }
+
+    isQuantumLinkCompromised() {
+        return this.qber >= 0.11;
+    }
+
+    getMetricsPayload() {
+        return {
+            qber: this.qber,
+            secureKeyRateBps: this.secureKeyRateBps,
+            satAzimuth: Math.round(this.satAzimuth),
+            satElevation: Math.round(this.satElevation),
+            linkCompromised: this.isQuantumLinkCompromised()
+        };
+    }
+
 }
