@@ -1,4 +1,4 @@
-// main.js - V16.5 (Integrated Bit-Level Avionics Edition)
+// main.js - V16.5 
 
 import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
@@ -461,11 +461,10 @@ function updateTelemetryStream(arincWords) {
             if (precisionDelta > 50 && (state.isMitMAttackActive || state.attackLogged)) {
                 isContentAltered = true;
             } else if (precisionDelta > 0) {
-                deltaText = `<span style="color: var(--av-amber); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(2)} FT]</span>`;
+                deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(2)} FT]</span>`;
             }
         }
 
-       
         let statusText = '[AUTH_OK]';
         let statusColor = 'var(--av-green)';
 
@@ -495,6 +494,7 @@ function updateTelemetryStream(arincWords) {
     if (state.telemetryLines.length > 4) state.telemetryLines.shift(); 
     hexDisplay.innerHTML = state.telemetryLines.join('');
 }
+
 
 function syncPhase(newPhase) {
     if (newPhase && newPhase !== state.currentPhase) {
