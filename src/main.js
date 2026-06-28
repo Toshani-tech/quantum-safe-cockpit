@@ -1,4 +1,4 @@
-// main.js - V16.5
+// main.js - V16.5 (Integrated Bit-Level Avionics Edition)
 
 import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/security_kernel.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
@@ -180,9 +180,20 @@ async function initializeAvionics() {
 }
 initializeAvionics();
 
+// COMMIT 9: HARDEN WASM LINEAR BOUNDARIES AGAINST DISCONNECTION POINTER FAULTS
 function readWasmTelemetryBuffer() {
     if (!state.isKernelReady || !telemetryBufferPtr || !wasmMemory) return null;
-    return new Uint32Array(wasmMemory.buffer, telemetryBufferPtr, 4);
+    
+    try {
+        if (wasmMemory.buffer.byteLength === 0) {
+            console.warn(">> HARDWARE RE-SYNC: WASM Linear Shared Backing Array Detached. Recovery armed.");
+            return null;
+        }
+        return new Uint32Array(wasmMemory.buffer, telemetryBufferPtr, 4);
+    } catch (memFault) {
+        console.error("CRITICAL_MEMORY_EXCEPTION: Boundary verification rejected access", memFault);
+        return null;
+    }
 }
 
 function lockCanvasResolution() {
@@ -433,23 +444,28 @@ function updateTelemetryStream(arincWords) {
     for (let index = 0; index < liveBuffer.length; index++) {
         let word = liveBuffer[index] >>> 0;
         let hexString = word.toString(16).toUpperCase().padStart(8, '0');
-        let label = word & 0xFF;
+        let label = word & 0xFF;                         
+        let sdi = (word >>> 8) & 0x03;                   
+        let payloadBits = (word >>> 10) & 0x3FFFF;       
+        let ssm = (word >>> 28) & 0x03;                 
+        
         let isParityValid = verifyARINC429Parity(word);
 
         let isContentAltered = false;
         let deltaText = '';
 
         if (label === 0o036 && groundTruth) { 
-            const transmittedAlt = (word >>> 10) & 0x7FFFF;
+            const transmittedAlt = payloadBits;
             const precisionDelta = Math.abs(groundTruth.altitude - transmittedAlt);
             
             if (precisionDelta > 50 && (state.isMitMAttackActive || state.attackLogged)) {
                 isContentAltered = true;
             } else if (precisionDelta > 0) {
-                deltaText = `<span style="color: var(--av-cyan); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(4)} FT]</span>`;
+                deltaText = `<span style="color: var(--av-amber); font-size: 9px;"> [Δ: ${precisionDelta.toFixed(2)} FT]</span>`;
             }
         }
 
+       
         let statusText = '[AUTH_OK]';
         let statusColor = 'var(--av-green)';
 
