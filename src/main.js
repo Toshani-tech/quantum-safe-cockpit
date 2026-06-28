@@ -339,22 +339,21 @@ const timerEl = document.getElementById('mission-timer');
                     berDisplay.style.color = (finalBER > 1e-6) ? "var(--av-amber)" : "var(--av-green)";
                 }
         
-                if (d.quantumMetrics) {
-                    const qm = d.quantumMetrics;
-                    
+                    state.qkdLink.updateLinkDynamics(safeT, d.missionPhase, state.isMitMAttackActive);
+                    const qm = state.qkdLink.getMetricsPayload();
+
                     if (qberDisplay) {
-                        qberDisplay.textContent = (qm.qber * 100).toFixed(2) + "%";
-                        
-                        qberDisplay.style.color = (qm.qber >= 0.11) ? "var(--av-red)" : "var(--av-green)";
+                    qberDisplay.textContent = (qm.qber * 100).toFixed(2) + "%";
+                    qberDisplay.style.color = qm.linkCompromised ? "var(--av-red)" : "var(--av-green)";
+                  }
+
+                 if (keyRateDisplay) {
+                     keyRateDisplay.textContent = qm.secureKeyRateBps.toLocaleString() + " bps";
+                     keyRateDisplay.style.color = (qm.secureKeyRateBps === 0) ? "var(--av-amber)" : "var(--av-green)";
+                       }
+                if (satTrackingDisplay) {
+                    satTrackingDisplay.textContent = `LEO-SAT AZ:${qm.satAzimuth}° EL:${qm.satElevation}°`;
                     }
-                    if (keyRateDisplay) {
-                        keyRateDisplay.textContent = qm.secureKeyRateBps.toLocaleString() + " bps";
-                        keyRateDisplay.style.color = (qm.secureKeyRateBps === 0) ? "var(--av-amber)" : "var(--av-green)";
-                    }
-                    if (satTrackingDisplay) {
-                        satTrackingDisplay.textContent = `LEO-SAT AZ:${qm.satAzimuth}° EL:${qm.satElevation}°`;
-                    }
-                }
 
                 updateTacticalButton(safeAlt, safeSpd, d.missionPhase);
                 syncVVI(d.verticalVelocity, d.vviStatus, d.vviDirection); 
