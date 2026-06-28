@@ -84,24 +84,27 @@ function packARINC429(label, sdi, value, ssm) {
     return word >>> 0; 
 }
 
-
-function applyBERCorruption(arrayBuffer, phaseString, speedValue) {
+function applyBERCorruption(uint32Array, phaseString, speedValue) {
+    
     let baseRate = (phaseString === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
     let velocityImpact = (speedValue / 500) * 1e-8;
     let atmosphericNoise = Math.abs(calculateGaussianRandom() * 0.5e-8);
     let derivedBER = baseRate + velocityImpact + atmosphericNoise;
 
-    for (let index = 0; index < arrayBuffer.length; index++) {
-        let bitfield = arrayBuffer[index];
-        for (let bitPosition = 0; bitPosition < 32; bitPosition++) {
+    for (let i = 0; i < uint32Array.length; i++) {
+        let word = uint32Array[i];
+        
+        for (let bitPos = 0; bitPos < 32; bitPos++) {
             if (Math.random() < derivedBER) {
-                bitfield ^= (1 << bitPosition);
+                
+                word ^= (1 << bitPos);
             }
         }
-        arrayBuffer[index] = bitfield;
+        uint32Array[i] = word;
     }
     return derivedBER;
 }
+
 
 const wasmPromise = init().then(instance => {
     wasmExports = instance;
