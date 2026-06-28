@@ -248,24 +248,22 @@ function updatePhysics(dt, elapsed) {
 }
 
 function broadcastTelemetry(elapsed) {
-    let serializedBuffer = new Uint32Array(3);
+   
+    const serializedBuffer = new Uint32Array(3);
     
     let wireAltitude = state.altitude;
     if (isMitMAttackActive) {
         wireAltitude = 420.0; 
     }
 
-    serializedBuffer[0] = packARINC429(0o036, 0, Math.floor(wireAltitude), 0);
-    serializedBuffer[1] = packARINC429(0o037, 0, Math.floor(state.airspeed), 0);
-    serializedBuffer[2] = packARINC429(0o027, 0, getPhaseCode(state.missionPhase), 0);
+    serializedBuffer[0] = packARINC429(0o036, 0, wireAltitude, 0);                 
+    serializedBuffer[1] = packARINC429(0o037, 0, state.airspeed, 0);                
+    serializedBuffer[2] = packARINC429(0o027, 0, getPhaseCode(state.missionPhase), 0); 
 
-    let activeBER = applyBERCorruption(serializedBuffer, state.missionPhase, state.airspeed);
-
+    const activeBER = applyBERCorruption(serializedBuffer, state.missionPhase, state.airspeed);
 
     const qkdMetrics = qkdLink.computeQuantumMetrics(state.altitude, state.airspeed, isMitMAttackActive);
     
-    let transmissionBuffer = new Uint32Array(serializedBuffer);
-
     self.postMessage({ 
         type: 'TELEMETRY', 
         altitude: state.altitude, 
@@ -276,11 +274,10 @@ function broadcastTelemetry(elapsed) {
         vviDirection: state.vviDirection,
         elapsed: elapsed.toFixed(2),
         sentTime: latestSentTime,
-        arincWords: transmissionBuffer,
+        arincWords: serializedBuffer, 
         simulatedBER: activeBER,
-        
         quantumMetrics: qkdMetrics
-    }, [transmissionBuffer.buffer]);
+    }, [serializedBuffer.buffer]);
 }
 
 function terminateMission() {
