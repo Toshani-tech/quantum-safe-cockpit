@@ -111,11 +111,11 @@ P.S: My laptop fans were going crazy while installing the build tools. I had to 
 
 Day 12: March 5, 2026
 
-Task: Rust-to-WASM Compilation & Repo Hardening.
+Task: Compiling the Rust code to WASM and building the math core.
 
 Tech: Rust, wasm-pack, WebAssembly.
 
-Note: I finally got my Rust security file (lib.rs) to successfully compile down into a WebAssembly binary. I ran into a weird file lock error mid-build, but I managed to sort it out pretty quickly. The project folder is split up cleanly now—standard JavaScript handles the frontend cockpit, and the compiled WASM handles the heavy encryption math.
+Note: I finally got my Rust security file (lib.rs) to successfully compile down into a WebAssembly binary. I ran into a weird file lock error mid build, but I managed to sort it out pretty quickly. The project folder is split up cleanly now, standard JavaScript handles the frontend cockpit, and the compiled WASM handles the heavy math. I decided to implement the underlying physics calculations using fixed-point math (Fixed32) inside Rust to avoid any weird rounding errors that normal numbers usually hit.
 
 P.S: Spent an hour chasing a bug that turned out to be a classic Windows file pathing issue. I had to change the build commands to use absolute directory paths so the packager could actually find where the source folders were hidden.
 
@@ -165,19 +165,20 @@ Task: Phase-Logic Synchronization & Visual State Recovery.
 
 Tech: JavaScript Events, CSS State Classes.
 
-Note: I worked on the color reset logic to make sure the flight display and security grid switch back to standard green once an attack phase ends. I hooked up an attack cutoff trigger tied to the 72-second mark of the flight. I also fixed a bug with the lattice colors by moving the visual swap to a single body.under-attack CSS class toggle instead of changing colors line-by-line in JavaScript.
+Note: I worked on the color reset logic to make sure the flight display and security grid switch back to standard green once an attack phase ends. I hooked up an attack cutoff trigger tied to the 72-second mark of the flight. I also fixed a bug with the lattice colors by moving the visual swap to a single 
+body.under-attack CSS class toggle instead of changing colors line-by-line in JavaScript.
 
-P.S: The speed telemetry numbers are still glitching out completely whenever the plane goes too fast. I'm starting to think my simple physics update loop isn't stable enough for this. I probably need to change how the velocity steps are calculated so the math doesn't blow up.
+P.S: The simple physics updates I had before were completely blowing up whenever the drone accelerated too quickly. The speed telemetry numbers are still glitching out completely whenever the plane goes too fast. I'm starting to think my simple physics update loop isn't stable enough for this. I probably need to change how the velocity steps are calculated so the math doesn't blow up.
 
 Day 18: April 7, 2026
 
-Task: Refinement of Aero-Physics Engine and Integration of High-Contrast Avionics Telemetry.
+Task: Rewriting the physics engine and smoothing out the telemetry display.
 
 Tech: JavaScript, Web Workers, Canvas Drawing Loops.
 
 Note: Today was focused entirely on fixing the broken physics engine, and I finally got it working. I rewrote the velocity stepping logic inside the background thread so the math stays completely stable even during sudden maneuvers. I ran a bunch of test flights to make sure the trading off of speed for altitude feels right when the drone climbs.
 
-P.S: Ran into a weird bug where the altitude would slowly float upward on its own even when the vertical velocity was zero. I fixed it by tightening the time-step calculations and capping the frame rate variations so the physics updates don't spike randomly. This took two hours but the data logs are finally flat.
+P.S: The altitude tapes were vibrating and stuttering during climbs even though the raw numbers were perfectly fine. I fixed it by tightening the time-step calculations and capping the frame rate variations so the physics updates don't spike randomly. This took two hours but the data logs are finally flat.
 
 Day 19: April 8, 2026
 
@@ -201,37 +202,37 @@ P.S: I'm gonna spend a few days reading about how to secure the flight logs beca
 
 Day 21: April 24, 2026
 
-Task: Hardening FDR (Flight Data Recorder) Determinism and Signal Fidelity.
+Task: Linking dynamic noise loops into the flight log data recorder.
 
 Tech: JavaScript Web Workers, Basic Hashing, Random Data Generators.
 
-Note: Today I focused on making the bit error rate react dynamically instead of just generating flat random numbers. I implemented a proper distribution function so the error values change realistically depending on the aircraft's speed and what phase of the flight it's in. I also started working with basic data hashing to simulate a secure seal on the flight recorder.
+Note: I spent two weeks straight learning how to work with asynchronous browser tools and trying to map out a data verification method that wouldn’t freeze the main screen. Today I focused on making the bit error rate react dynamically instead of just generating flat random numbers. I implemented a function so the error values change realistically depending on the aircraft's speed and what phase of the flight it's in. I also started working with basic data hashing to simulate a secure seal on the flight recorder.
 
 P.S: This was my first time trying to add an encryption signature to the bottom of the flight log file, and it instantly broke. My CSV download footer kept printing out [object Promise] instead of the actual data hash because I forgot that the browser's crypto functions run asynchronously. The script was saving the file before the calculation had actually finished. I had to make the download button use an async structure and map the binary results into a readable text string. Now, if you change a single number in the spreadsheet, the verification hash breaks.
 
 Day 22: May 15, 2026
 
-Task: Implement automated cryptographic security signature appending for outbound flight logging.
+Task: Creating automated security hashes for the flight data logs.
 
 Tech: Web Crypto API, Data Blob Export.
 
-Note: I upgraded the flight data recorder code so the downloaded CSV logs can't be easily edited or faked. Now, when the flight finishes, the script gathers all the rows of telemetry data, converts them into a text block, and feeds it into the browser's built-in hashing tool. It slaps a unique 64-character hash at the very bottom of the document. If someone changes an altitude value or airspeed number in Excel, the verification signature won't match anymore.
+Note: I upgraded the flight data recorder code so the downloaded CSV logs can't be easily edited or faked. Now, when the flight finishes, the script gathers all the rows of telemetry data, converts them into a text block, and feeds it into the browser's built in hashing tool. It slaps a unique 64 character hash at the very bottom of the document. If someone changes an altitude value or airspeed number in Excel, the verification signature won't match anymore.
 
 P.S: I originally tried creating a hash from a random number generator string, but that completely ruined the validation check because the signature changed every single time you hit download. I fixed it by passing the exact text content of the spreadsheet directly into the hashing engine instead. Now the signature is perfectly repeatable.
 
 Day 23: May 31, 2026
 
-Task: ARINC-429 Bit-Level Serialization, BER Corruption, and Multi-Threaded Telemetry Log.
+Task: Upgrading the telemetry pipeline to use raw binary array buffers.
 
 Tech: Typed Arrays (Uint32Array), Bitwise Operators.
 
-Note: I completely rebuilt the data streaming logic to use raw typed array buffers instead of passing heavy JavaScript data objects between threads, which was slowing things down. Inside the worker script, flight stats are sliced up into explicit bit sectors for labels, values, and status flags, followed by a parity check. The main UI script takes these binary buffers and decodes them instantly using bitwise masks. I also made the error rates spike heavily during the combat zone phase to test data corruption.
+Note: I spent the last couple of weeks diving into how data labels work on real communication busses. I completely rebuilt the data streaming logic to use raw typed array buffers instead of passing heavy JavaScript data objects between threads, which was slowing things down. Inside the worker script, flight stats are sliced up into explicit binary sections for labels, values, and status flags, followed by a parity check. The main UI script takes these binary buffers and decodes them instantly using bitwise masks. I also made the error rates spike heavily during the combat zone phase to test data corruption.
 
 P.S: Ran into a brutal bug where the rolling console display kept triggering fake error warnings even when the plane was just sitting on the ground. I learned that JavaScript bitwise operations automatically interpret numbers as signed 32-bit integers, which was messing up my high-bit flag masks. I had to force the arrays to use unsigned adjustments (>>> 0) to fix the alignment.
 
 Day 24: June 20, 2026
 
-Task: Clean up the automated hacking event pipeline and fix the UI recovery glitches during phase changes.
+Task: Rewriting the hacking event trigger and fixing UI transition states.
 
 Tech: Script State Management, Event Listeners.
 
@@ -251,7 +252,7 @@ P.S: Right now my entire app is showing a completely blank black screen on launc
 
 Day 26: June 22, 2026
 
-Task: Debugging Avionics Web Worker Pipeline & Fixing WASM Compilation Stalls
+Task: Fixing background worker loading crashes and WASM build hangs.
 
 Tech: WebAssembly, JavaScript Workers.
 
@@ -261,13 +262,13 @@ P.S: I still have a lot of troubleshooting left to do for other parts of the dat
 
 Day 27: June 23, 2026
 
-Task: Refined Post-Quantum Security Kernel HUD parameters
+Task: Fixing canvas line rendering blurriness and updating attack animations.
 
 Tech: HTML5 Canvas, Page Layouts, Text Formatting.
 
-Note: I fixed an issue in my main script where the telemetry monitor was misfiring fake alert messages during transitions. I attached the attack trigger directly to the modal button so the lattice visualization distorts the moment you click close. I also had to fix some blurriness on the canvas text; high-resolution laptop screens were stretching out the drawing space and making the lines look fuzzy. I fixed this by using Math.floor() to keep the elements snapped to whole numbers and adjusted the pixel alignments so the lines look sharp.
+Note: I fixed an issue in my main script where the telemetry monitor was misfiring fake alert messages during transitions. I attached the attack trigger directly to the modal button so the lattice visualization distorts the moment you click close. I also had to fix some blurriness on the canvas text, the high resol. laptop screens were stretching out the drawing space and making the lines look fuzzy. I fixed this by using Math.floor() to keep the elements snapped to whole numbers and adjusted the pixel alignments so the lines look sharp.
 
-P.S: I spent almost the entire time trying to get the security grid to jitter violently during the hack sequence to show the data error generation in action. It wasn't working at first, but after looking closely at the code, I realized two different functions were running at the same time and fighting over the exact same animation variables, which broke the effect. Everything looks clean now.
+P.S: I spent almost the entire time trying to get the security grid to jitter violently during the hack sequence to show the discrete Gaussian error vectors in action. It wasn't working at first, but after looking closely at the code, I realized two different functions were running at the same time and fighting over the exact same animation variables which broke the effect. Everything looks clean now.
 
 Day 28: June 24, 2026
 
@@ -311,10 +312,10 @@ P.S: Had a weird issue where the telemetry screen was throwing a syntax error on
 
 Day 32: June 28, 2026
 
-Task: Implemented bit-level serialization (and protocol level formatting ) for the cockpit data transmission stream.
+Task: Completing full ARINC-429 bit-packing logic for the telemetry engine.
 
 Tech: ARINC-429 Protocol Simulation, Type-Safe Bit-Packing, Data Serialization.
 
-Note: (Had to spend a bunch of time looking through the actual ARINC 429 hardware and bitmasking tutorials to figure out how to do so. Researched a lot about it too, even highschool's not so tuff. But it isn't fun either so I consider the 3 hours I spent brainstorming fair!) Today was all about breaking down the telemetry system to run on actual bit-level logic matching real world ARINC-429 avionics specs. Instead of passing normal JSON or simple JavaScript numbers back and forth(which is how my sim was running so far), I rewrote the communication flow to use Uint32Array buffers to serialize the flight data manually into strict 32-bit words. I wrote custom bitwise operators to handle the bit-packing, stuffing the label, SDI, payload bits, SSM, and parity directly into a single unsigned integer. Up until now, the system wasn't actually doing real bitwise operations under the hood; it was basically just faking the telemetry stream using standard JavaScript numbers and object properties instead of packing raw bits into hardware-level words. 
+Note: (Spent about three hours diving into actual ARINC 429 hardware specifications and low-level bitmasking techniques to map this out. Researched a lot about it too, even highschool's not so tuff. But it isn't fun either so I consider the 3 hours I spent brainstorming fair!) Today was all about breaking down the telemetry system to run on actual bit-level logic matching real world ARINC-429 avionics specs. I fully refactored and completed the communication flow to use Uint32Array buffers to serialize the flight data manually into strict 32-bit words. I wrote custom bitwise operators to handle the bit-packing, stuffing the label, SDI, payload bits, SSM, and parity directly into a single unsigned integer. Up until now, parts of the system were still using standard JavaScript objects and floats under the hood but now it completely mirrors a hardware level word stream before shipping it to the cockpit UI.
 
-P.S: Had a super annoying visual bug where the delta tracking indicator was rendering in an amber alert color even when the data transmission was totally fine. I dug into the updateTelemetryStream loop and realized my status assignment overrides were accidentally overriding the UI color states. (fixed it pretty quick) 
+P.S: Had a super annoying visual bug where the delta tracking indicator was rendering in an amber alert color even when the data transmission was totally fine. I dug into the updateTelemetryStream loop and realized my status assignment overrides were accidentally overriding the UI color states. (fixed it pretty quick)
