@@ -4,7 +4,7 @@
 
 import { calculateFlightDynamics } from './aerodynamics.js';
 import { QuantumAtmosphereLink } from './quantum-atmosphere.js'; 
-import init from '../../security-kernel/pkg/security_kernel.js';
+import init from '../../deterministic-engine/pkg/security_kernel.js';
 
 const qkdLink = new QuantumAtmosphereLink();
 

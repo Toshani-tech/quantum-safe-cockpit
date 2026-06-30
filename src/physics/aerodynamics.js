@@ -1,6 +1,6 @@
 // aerodynamics.js - V16.2
 
-import init, { rk4_step } from '../../security-kernel/pkg/security_kernel.js';
+import init, { rk4_step } from '../../deterministic-engine/pkg/security_kernel.js';
 
 let wasmReady = false;
 let actualPitch = 0;
