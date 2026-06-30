@@ -1,6 +1,6 @@
 // main.js - V16.5 
 
-import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../security-kernel/pkg/deterministic_engine.js';
+import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../deterministic-engine/pkg/deterministic_engine.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 import { QKDSatelliteLink } from './security/qkd-satellite-link.js'; 
 
