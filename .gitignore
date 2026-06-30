@@ -1,6 +1,4 @@
-deterministic-engine/target
-deterministic-engine/pkg
-deterministic-engine/target/*
-deterministic-engine/pkg/*
-node_modules/
-.DS_Store
+**/deterministic-engine/target/
+**/deterministic-engine/pkg/
+**/.target/
+**/.pkg/
