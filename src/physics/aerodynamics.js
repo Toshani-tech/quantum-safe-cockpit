@@ -1,15 +1,15 @@
 // aerodynamics.js - V16.2
 
-import init, { rk4_step } from '../../deterministic-engine/pkg/security_kernel.js';
+import init, { rk4_step } from '../../deterministic-engine/pkg/deterministic_engine.js';
 
 let wasmReady = false;
 let actualPitch = 0;
 
 init().then(() => {
     wasmReady = true;
-    console.log(">> SECURITY_KERNEL: FIXED-POINT RK4 ENGINE INITIALIZED");
+    console.log(">> deterministic_engine: FIXED-POINT RK4 ENGINE INITIALIZED");
 }).catch(err => {
-    console.error(">> SECURITY_KERNEL_CRITICAL: WASM INIT FAILED", err);
+    console.error(">> deterministic_engine_CRITICAL: WASM INIT FAILED", err);
 });
 
 export function calculateFlightDynamics(state, deltaTime, elapsed) {
