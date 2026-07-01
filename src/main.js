@@ -1,6 +1,6 @@
 // main.js - V16.5 
 
-import init, { init_panic_hook, get_telemetry_buffer_ptr } from '../deterministic-engine/pkg/deterministic_engine.js';
+import init, { init_panic_hook, get_telemetry_buffer_ptr, init_engine, secure_telemetry_step } from '../deterministic-engine/pkg/deterministic_engine.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 import { QKDSatelliteLink } from './security/qkd-satellite-link.js'; 
 
@@ -24,7 +24,8 @@ const state = {
     securityEventLocked: false,
     telemetryLines: [],
     isMitMAttackActive: false, 
-    qkdLink: new QKDSatelliteLink()
+    qkdLink: new QKDSatelliteLink(),
+    lastSecurePacket: null // Hook for Window 2
 };
 
 let telemetryBufferPtr = null;
@@ -162,6 +163,10 @@ async function initializeAvionics() {
         wasmMemory = wasmInstance.memory; 
         
         init_panic_hook();
+        
+        const initialized = init_engine();
+        if (initialized) console.log("SEC_KERN: INITIALIZED");
+        
         telemetryBufferPtr = get_telemetry_buffer_ptr();
         
         state.isKernelReady = true;
@@ -180,7 +185,6 @@ async function initializeAvionics() {
 }
 initializeAvionics();
 
-// COMMIT 9: HARDEN WASM LINEAR BOUNDARIES AGAINST DISCONNECTION POINTER FAULTS
 function readWasmTelemetryBuffer() {
     if (!state.isKernelReady || !telemetryBufferPtr || !wasmMemory) return null;
     
@@ -324,6 +328,10 @@ function loop() {
         const safeAlt = Number(d.altitude);
         const safeSpd = Number(d.airspeed);
 
+        
+        // Seal current physics data to prepare for the Forensic Auditor (Window 2)
+        state.lastSecurePacket = secure_telemetry_step(safeAlt);
+
         if (state.isMissionActive) {
             if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
                 state.fdrBuffer.push({
@@ -444,10 +452,10 @@ function updateTelemetryStream(arincWords) {
     for (let index = 0; index < liveBuffer.length; index++) {
         let word = liveBuffer[index] >>> 0;
         let hexString = word.toString(16).toUpperCase().padStart(8, '0');
-        let label = word & 0xFF;                         
-        let sdi = (word >>> 8) & 0x03;                   
-        let payloadBits = (word >>> 10) & 0x3FFFF;       
-        let ssm = (word >>> 28) & 0x03;                 
+        let label = word & 0xFF;                  
+        let sdi = (word >>> 8) & 0x03;                 
+        let payloadBits = (word >>> 10) & 0x3FFFF;      
+        let ssm = (word >>> 28) & 0x03;                
         
         let isParityValid = verifyARINC429Parity(word);
 
