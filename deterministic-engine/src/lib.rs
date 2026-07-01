@@ -1,11 +1,45 @@
 pub mod crypto;
+use pqcrypto_traits::kem::Ciphertext as _; 
+use crypto::{generate_keypair, seal_telemetry, PublicKey, SecretKey};
 use wasm_bindgen::prelude::*;
-use js_sys::Uint32Array;
 
 pub type Fixed32 = i32;
-
 pub const FRACTIONAL_BITS: u32 = 16;
-pub const FIXED_SCALE: i32 = 1 << FRACTIONAL_BITS; 
+pub const FIXED_SCALE: i32 = 1 << FRACTIONAL_BITS;
+
+static mut SECURITY_KEYPAIR: Option<(PublicKey, SecretKey)> = None;
+static mut ENGINE_INITIALIZED: bool = false;
+
+#[wasm_bindgen]
+pub fn init_engine() -> bool {
+    unsafe {
+        if !ENGINE_INITIALIZED {
+            let (pk, sk) = generate_keypair();
+            SECURITY_KEYPAIR = Some((pk, sk));
+            ENGINE_INITIALIZED = true;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn secure_telemetry_step(val: f64) -> Vec<u8> {
+    unsafe {
+        if let Some((pk, _sk)) = &SECURITY_KEYPAIR {
+            let (_shared_secret, ciphertext) = seal_telemetry(pk);
+           
+            let mut output = ciphertext.as_bytes().to_vec();
+            
+           
+            let fixed_val: Fixed32 = (val * (FIXED_SCALE as f64)) as Fixed32;
+            output.extend_from_slice(&fixed_val.to_le_bytes());
+            return output;
+        }
+    }
+    vec![] 
+}
 
 
 #[macro_export]
@@ -27,7 +61,6 @@ pub fn init_panic_hook() {
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
 }
-
 
 
 #[no_mangle]
