@@ -1,8 +1,8 @@
 // main.js - V16.5 
 
-import init, { init_panic_hook, get_telemetry_buffer_ptr, init_engine, secure_telemetry_step } from '../deterministic-engine/pkg/deterministic_engine.js';
+import init, { SecurityEngine, init_panic_hook, init_engine, get_telemetry_buffer_ptr } from '../deterministic-engine/pkg/deterministic_engine.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
-import { QKDSatelliteLink } from './security/qkd-satellite-link.js'; 
+import { QKDSatelliteLink } from './security/qkd-satellite-link.js';
 
 const state = {
     isBooted: false,
@@ -30,6 +30,7 @@ const state = {
 
 let telemetryBufferPtr = null;
 let wasmMemory = null; 
+let rustEngine = null; 
 
 let lastLogTime = 0;
 const LOG_FREQUENCY = 0.5;
@@ -163,6 +164,9 @@ async function initializeAvionics() {
         wasmMemory = wasmInstance.memory; 
         
         init_panic_hook();
+        
+        // Initialize Rust SecurityEngine instance
+        rustEngine = new SecurityEngine();
         
         const initialized = init_engine();
         if (initialized) console.log("SEC_KERN: INITIALIZED");
@@ -328,9 +332,10 @@ function loop() {
         const safeAlt = Number(d.altitude);
         const safeSpd = Number(d.airspeed);
 
-        
-        // Seal current physics data to prepare for the Forensic Auditor (Window 2)
-        state.lastSecurePacket = secure_telemetry_step(safeAlt);
+        // Update Forensic Auditor (Window 2) with Rust Engine
+        if (rustEngine) {
+            state.lastSecurePacket = rustEngine.secure_telemetry_step(safeAlt);
+        }
 
         if (state.isMissionActive) {
             if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
