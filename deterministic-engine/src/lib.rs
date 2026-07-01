@@ -1,4 +1,4 @@
-
+pub mod crypto;
 use wasm_bindgen::prelude::*;
 use js_sys::Uint32Array;
 
