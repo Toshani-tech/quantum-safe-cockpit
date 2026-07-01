@@ -1,46 +1,53 @@
+#![allow(unexpected_cfgs)]
+
 pub mod crypto;
-use pqcrypto_traits::kem::Ciphertext as _; 
-use crypto::{generate_keypair, seal_telemetry, PublicKey, SecretKey};
+use crypto::{generate_keypair, PublicKey, SecretKey, seal_telemetry};
 use wasm_bindgen::prelude::*;
 
 pub type Fixed32 = i32;
 pub const FRACTIONAL_BITS: u32 = 16;
 pub const FIXED_SCALE: i32 = 1 << FRACTIONAL_BITS;
 
-static mut SECURITY_KEYPAIR: Option<(PublicKey, SecretKey)> = None;
-static mut ENGINE_INITIALIZED: bool = false;
-
 #[wasm_bindgen]
-pub fn init_engine() -> bool {
+pub fn init_engine() {
+    
     unsafe {
-        if !ENGINE_INITIALIZED {
-            let (pk, sk) = generate_keypair();
-            SECURITY_KEYPAIR = Some((pk, sk));
-            ENGINE_INITIALIZED = true;
-            true
-        } else {
-            false
-        }
+        SYSTEM_STATE.altitude = 0;
+        SYSTEM_STATE.airspeed = 0;
+        SYSTEM_STATE.vertical_velocity = 0;
     }
 }
 
 #[wasm_bindgen]
-pub fn secure_telemetry_step(val: f64) -> Vec<u8> {
-    unsafe {
-        if let Some((pk, _sk)) = &SECURITY_KEYPAIR {
-            let (_shared_secret, ciphertext) = seal_telemetry(pk);
-           
-            let mut output = ciphertext.as_bytes().to_vec();
-            
-           
-            let fixed_val: Fixed32 = (val * (FIXED_SCALE as f64)) as Fixed32;
-            output.extend_from_slice(&fixed_val.to_le_bytes());
-            return output;
-        }
-    }
-    vec![] 
+pub struct SecurityEngine {
+    pk: PublicKey,
+    sk: SecretKey,
 }
 
+#[wasm_bindgen]
+impl SecurityEngine {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        let (pk, sk) = generate_keypair();
+        Self { pk, sk }
+    }
+
+    pub fn secure_telemetry_step(&self, val: f64) -> Vec<u8> {
+        let (_shared_secret, ciphertext) = seal_telemetry(&self.pk);
+        
+        let mut output = ciphertext; 
+        
+        let fixed_val: Fixed32 = (val * (FIXED_SCALE as f64)) as Fixed32;
+        output.extend_from_slice(&fixed_val.to_le_bytes());
+        output
+    }
+}
+
+#[wasm_bindgen]
+pub fn init_panic_hook() {
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+}
 
 #[macro_export]
 macro_rules! to_fixed {
@@ -55,13 +62,6 @@ macro_rules! to_float {
         ($x as f64) / (FIXED_SCALE as f64)
     };
 }
-
-#[wasm_bindgen]
-pub fn init_panic_hook() {
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
-}
-
 
 #[no_mangle]
 pub extern "C" fn fp_add(a: Fixed32, b: Fixed32) -> Fixed32 {
@@ -110,8 +110,6 @@ pub extern "C" fn fp_exp(x: Fixed32) -> Fixed32 {
     sum
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
 pub struct FlightStateFP {
     pub altitude: Fixed32,
@@ -148,7 +146,6 @@ pub extern "C" fn step_physics_fp(dt_raw: i32) -> i32 {
     }
 }
 
-
 fn float_to_fp(val: f64) -> Fixed32 {
     (val * (FIXED_SCALE as f64)) as Fixed32
 }
@@ -156,7 +153,6 @@ fn float_to_fp(val: f64) -> Fixed32 {
 fn fp_to_float(val: Fixed32) -> f64 {
     (val as f64) / (FIXED_SCALE as f64)
 }
-
 
 fn flight_dynamics_derivative_fp(v_ias_fp: Fixed32, pitch_rad_fp: Fixed32) -> Fixed32 {
     
@@ -191,29 +187,17 @@ pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f6
     let v_ias_fp = float_to_fp(v_ias);
     let dt_fp = float_to_fp(dt);
     
-   
     let pi_div_180_fp = float_to_fp(std::f64::consts::PI / 180.0);
     let pitch_rad_fp = fp_mul(float_to_fp(pitch_deg), pi_div_180_fp);
 
     let half_dt = fp_div(dt_fp, fp_from_int(2));
     let two = fp_from_int(2);
 
-    
     let k1 = flight_dynamics_derivative_fp(v_ias_fp, pitch_rad_fp);
-
-    
-    let _alt_k2 = fp_add(alt_fp, fp_mul(half_dt, k1));
     let k2 = flight_dynamics_derivative_fp(v_ias_fp, pitch_rad_fp);
-
-    
-    let _alt_k3 = fp_add(alt_fp, fp_mul(half_dt, k2));
     let k3 = flight_dynamics_derivative_fp(v_ias_fp, pitch_rad_fp);
-
-    
-    let _alt_k4 = fp_add(alt_fp, fp_mul(dt_fp, k3));
     let k4 = flight_dynamics_derivative_fp(v_ias_fp, pitch_rad_fp);
 
-    
     let inner_sum = fp_add(
         fp_add(k1, fp_mul(two, k2)),
         fp_add(fp_mul(two, k3), k4)
@@ -222,7 +206,6 @@ pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f6
     let delta_alt_fp = fp_mul(sixth_dt, inner_sum);
     let new_alt_fp = fp_add(alt_fp, delta_alt_fp);
 
-    
     let final_alt = fp_to_float(new_alt_fp);
     let vvi_fps = fp_to_float(k1);
     let vvi_fpm = vvi_fps * 60.0;
