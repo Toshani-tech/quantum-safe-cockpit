@@ -1,2 +1,2 @@
 # quantum-safe-cockpit
-A prototype AI-assisted flight deck using Post-Quantum Cryptography (PQC) to secure aviation data links.
+This project is an Industrial Avionics Flight Deck simulation designed to model real-time flight telemetry and performance
