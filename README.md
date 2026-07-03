@@ -1,2 +1,5 @@
 # quantum-safe-cockpit
+
+Overview: 
+
 This project is an Industrial Avionics Flight Deck simulation designed to model real time flight telemetry and performance under contested electronic environments. The simulation acts as a research platform to test the integration of NIST Standardized ML-KEM (Lattice Based) Cryptography into avionics systems to protect against future quantum computational threats. By focusing on deterministic execution and high fidelity data handling, this project aims to address the critical need for secure, high integrity communication protocols in modern aerospace engineering.
