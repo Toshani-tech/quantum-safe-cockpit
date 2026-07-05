@@ -2,4 +2,4 @@
 
 Overview: 
 
-Developed as a research platform for secure aerospace communications, this simulation mirrors an industrial-grade avionics environment to evaluate telemetry resilience. The system architecture enforces deterministic data handling and implements NIST-standardized lattice based cryptography (ML-KEM) to safeguard telemetry against post-quantum vulnerabilities. This project bridges the gap between theoretical cryptographic standards and real time avionics requirements, emphasizing secure, bit level data integrity. 
+This avionics simulation explores the intersection of real-time flight telemetry and post-quantum security. By utilizing NIST-standardized ML-KEM protocols within a deterministic engine, the platform demonstrates how modern lattice-based cryptography can be integrated into high-stakes aerospace environments. My research focuses on maintaining sub-millisecond data integrity and system reliability in the face of sophisticated electronic interference
