@@ -1,27 +1,19 @@
 #![allow(unexpected_cfgs)]
 
-pub mod crypto;
-use crypto::{generate_keypair, PublicKey, SecretKey, seal_telemetry};
+mod crypto;
+pub use crypto::{generate_keypair, seal_telemetry};
 use wasm_bindgen::prelude::*;
+
+use pqcrypto_traits::kem::{PublicKey as _, SecretKey as _};
 
 pub type Fixed32 = i32;
 pub const FRACTIONAL_BITS: u32 = 16;
 pub const FIXED_SCALE: i32 = 1 << FRACTIONAL_BITS;
 
 #[wasm_bindgen]
-pub fn init_engine() {
-    
-    unsafe {
-        SYSTEM_STATE.altitude = 0;
-        SYSTEM_STATE.airspeed = 0;
-        SYSTEM_STATE.vertical_velocity = 0;
-    }
-}
-
-#[wasm_bindgen]
 pub struct SecurityEngine {
-    pk: PublicKey,
-    sk: SecretKey,
+    pk_bytes: Vec<u8>,
+    sk_bytes: Vec<u8>,
 }
 
 #[wasm_bindgen]
@@ -29,17 +21,33 @@ impl SecurityEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         let (pk, sk) = generate_keypair();
-        Self { pk, sk }
+        Self { 
+            pk_bytes: pk.as_bytes().to_vec(), 
+            sk_bytes: sk.as_bytes().to_vec() 
+        }
     }
 
-    pub fn secure_telemetry_step(&self, val: f64) -> Vec<u8> {
-        let (_shared_secret, ciphertext) = seal_telemetry(&self.pk);
-        
+    pub fn secure_telemetry_packet(&self, val: f64) -> Vec<u8> {
+        let (_shared_secret, ciphertext) = seal_telemetry(&self.pk_bytes);
         let mut output = ciphertext; 
         
         let fixed_val: Fixed32 = (val * (FIXED_SCALE as f64)) as Fixed32;
         output.extend_from_slice(&fixed_val.to_le_bytes());
         output
+    }
+}
+//  Deterministic Math Engine 
+
+/*pub type Fixed32 = i32;
+pub const FRACTIONAL_BITS: u32 = 16;
+pub const FIXED_SCALE: i32 = 1 << FRACTIONAL_BITS; */ 
+
+#[wasm_bindgen]
+pub fn init_engine() {
+    unsafe {
+        SYSTEM_STATE.altitude = 0;
+        SYSTEM_STATE.airspeed = 0;
+        SYSTEM_STATE.vertical_velocity = 0;
     }
 }
 
@@ -155,7 +163,6 @@ fn fp_to_float(val: Fixed32) -> f64 {
 }
 
 fn flight_dynamics_derivative_fp(v_ias_fp: Fixed32, pitch_rad_fp: Fixed32) -> Fixed32 {
-    
     let x = pitch_rad_fp;
     let x_squared = fp_mul(x, x);
     let x_cubed = fp_mul(x_squared, x);
@@ -182,7 +189,6 @@ fn flight_dynamics_derivative_fp(v_ias_fp: Fixed32, pitch_rad_fp: Fixed32) -> Fi
 
 #[wasm_bindgen]
 pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f64> {
-    
     let alt_fp = float_to_fp(current_alt);
     let v_ias_fp = float_to_fp(v_ias);
     let dt_fp = float_to_fp(dt);
@@ -190,7 +196,6 @@ pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f6
     let pi_div_180_fp = float_to_fp(std::f64::consts::PI / 180.0);
     let pitch_rad_fp = fp_mul(float_to_fp(pitch_deg), pi_div_180_fp);
 
-    let half_dt = fp_div(dt_fp, fp_from_int(2));
     let two = fp_from_int(2);
 
     let k1 = flight_dynamics_derivative_fp(v_ias_fp, pitch_rad_fp);
