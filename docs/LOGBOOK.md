@@ -349,3 +349,15 @@ Tech: Rust/WASM, WSL (Ubuntu), Clang/LLVM, FFI (Foreign Function Interface).
 Note: Today was the complete opp. of yesterday’s 'C hell' After spending hours fighting the Windows-native toolchain yesterday, I decided to fully commit to the Linux-native toolchain via WSL. The difference was mind blowing! By leveraging the build essential toolchain on Linux, the linker immediately found the clang and llvm headers it was crying for, and the compilation pipeline finally completed. I successfully reconciled the FFI between my Rust SecurityEngine and the underlying crypto primitives. I’ve now properly exposed the SecurityEngine, init_engine, and telemetry pointers to the JavaScript main thread. (still took me around 3 hours to get it all to work and to finally watch the browser console  stop throwing 404 and reference errors.) 
 
 P.S: Although the compilation process is finally resolved, the simulation itself is still blank. I’m still facing some stubborn errors in the rendering pipeline that I couldn't iron out before the end of the day. Gotta fix it the next time I sit down at the terminal. (spent atleast an hour sorting thru Linux documentation to resolve complex dependency chains and linker errors.) Solving this bug was the biggest one yet, including yesterday I spent over 6 hours dealing with these linker issues!
+
+Day 36: July 6, 2026
+
+Task: Attempted C native integration for crypto math primitives and repository cleanup.
+
+Tech: C, Rust/WASM, FFI, WASI-SDK, Git, WSL.
+
+Note: Today was a total rollercoaster. I noticed my rust files dont have much math, so I really wanted to push the crypto math to the next level by offloading the heavy lifting to native C libraries, so I spent about 3 hours setting up the whole WASI-SDK toolchain. I was grinding through creating new config.toml files, wrestling with linker paths, and trying to weave these high-performance C crypto libraries directly into my Rust engine via FFI. It was intense. But, it ended up creating this massive mess of 6,000+ build artifacts that totally choked my terminal and made everything crawl. (partly cuz my laptop's aged)
+
+P.S: After realizing the repo was getting bloated and the terminal was lagging to the point of being unusable, I made the call to nuke the index and reset everything. It felt like I was deleting my work, but it was the only reasonable move to keep the project working. (Before I can get the sim to start off once again, i'm gonna focus on integrating either C or rust crypto math libraries into the deterministic engine files to provide a full proof crypto math engine) 
+
+
