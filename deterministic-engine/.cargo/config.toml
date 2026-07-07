@@ -1,6 +1,3 @@
 [build]
+target = "wasm32-unknown-unknown"
 rustflags = ["--cap-lints=allow"]
-
-[target.wasm32-wasip1]
-linker = "wasm-ld"
-rustflags = ["-C", "link-arg=-Wl,--no-entry"]
