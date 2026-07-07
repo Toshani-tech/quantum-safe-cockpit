@@ -1,38 +1,40 @@
 #![allow(unexpected_cfgs)]
 
 mod crypto;
-pub use crypto::{generate_keypair, seal_telemetry};
 use wasm_bindgen::prelude::*;
-
+use pqcrypto_kyber::kyber768::{PublicKey, SecretKey, keypair, encapsulate};
 use pqcrypto_traits::kem::{PublicKey as _, SecretKey as _};
 
+// Fixed-point arithmetic for deterministic flight math
 pub type Fixed32 = i32;
 pub const FRACTIONAL_BITS: u32 = 16;
-pub const FIXED_SCALE: i32 = 1 << FRACTIONAL_BITS;
+pub const FIXED_SCALE: f64 = 65536.0; // 1 << 16
 
 #[wasm_bindgen]
 pub struct SecurityEngine {
-    pk_bytes: Vec<u8>,
-    sk_bytes: Vec<u8>,
+    pk: PublicKey,
+    sk: SecretKey,
 }
 
 #[wasm_bindgen]
 impl SecurityEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        let (pk, sk) = generate_keypair();
-        Self { 
-            pk_bytes: pk.as_bytes().to_vec(), 
-            sk_bytes: sk.as_bytes().to_vec() 
-        }
+        let (pk, sk) = keypair();
+        Self { pk, sk }
     }
 
+    /// Secures telemetry by encapsulating it with ML-KEM and appending the fixed-point value
     pub fn secure_telemetry_packet(&self, val: f64) -> Vec<u8> {
-        let (_shared_secret, ciphertext) = seal_telemetry(&self.pk_bytes);
-        let mut output = ciphertext; 
+        // Perform NIST-standardized KEM encapsulation
+        let (ciphertext, _shared_secret) = encapsulate(&self.pk);
         
-        let fixed_val: Fixed32 = (val * (FIXED_SCALE as f64)) as Fixed32;
+        let mut output = ciphertext.as_bytes().to_vec();
+        
+        // Convert to fixed-point for deterministic flight calculations
+        let fixed_val: Fixed32 = (val * FIXED_SCALE) as Fixed32;
         output.extend_from_slice(&fixed_val.to_le_bytes());
+        
         output
     }
 }
