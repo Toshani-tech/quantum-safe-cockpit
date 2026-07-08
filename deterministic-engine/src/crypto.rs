@@ -1,9 +1,6 @@
 use wasm_bindgen::prelude::*;
-use pqcrypto_kyber::kyber768::{
-    keypair, encapsulate, decapsulate, 
-    PublicKey, SecretKey, Ciphertext, SharedSecret
-};
-use pqcrypto_traits::kem::{PublicKey as _, SecretKey as _, Ciphertext as _, SharedSecret as _};
+use kyber::kyber768::{PublicKey, SecretKey, Keypair};
+use rand::thread_rng;
 
 #[wasm_bindgen]
 pub struct CryptoEngine {
@@ -15,23 +12,25 @@ pub struct CryptoEngine {
 impl CryptoEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        let (pk, sk) = keypair();
-        CryptoEngine { pk, sk }
+        // Pure Rust key generation
+        let mut rng = thread_rng();
+        let keys = Keypair::generate(&mut rng);
+        CryptoEngine { pk: keys.public, sk: keys.secret }
     }
 
-    // Returns public key for the forensic auditor (Window 2)
     pub fn get_public_key(&self) -> Vec<u8> {
         self.pk.as_bytes().to_vec()
     }
 
-    // Simulates "Quantum-Safe" telemetry sealing
     pub fn seal_telemetry(&self) -> Vec<u8> {
-        let (ct, ss) = encapsulate(&self.pk);
+        // Encapsulate using pure Rust logic
+        let (ct, _ss) = self.pk.encapsulate(&mut thread_rng());
         ct.as_bytes().to_vec()
     }
 }
 
 #[wasm_bindgen]
-pub fn verify_telemetry_integrity(ciphertext_vec: &[u8], sk_bytes: &[u8]) -> bool {
-    true // Placeholder for actual decapsulation success check
+pub fn verify_telemetry_integrity(ciphertext_vec: &[u8]) -> bool {
+    // Pure Rust decapsulation logic can be added here
+    true 
 }
