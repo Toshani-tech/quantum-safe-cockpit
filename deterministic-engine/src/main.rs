@@ -1,21 +1,6 @@
 
-use deterministic_engine::SecurityEngine;
-
+// src/main.rs
 fn main() {
-    //  Initialization
-    println!("Initializing Security Kernel...");
-    
-    // Instantiate 
-    let engine = SecurityEngine::new();
-    
-    println!("ML-KEM Engine Initialized Successfully.");
-    
-    let test_val: f64 = 1500.5;
-    let telemetry = engine.secure_telemetry_packet(test_val);
-    
-    // High-level telemetry diagnostics
-    println!("Telemetry packet secured. Size: {} bytes", telemetry.len());
-    
-    println!("Security Kernel: Thread 2 (Active)");
-    println!("Handshake Latency: 4.2ms");
+    // This is just a placeholder for the compiler.
+    // The actual code is in lib.rs.
 }
