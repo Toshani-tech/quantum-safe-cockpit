@@ -1,9 +1,9 @@
 
 #![allow(unexpected_cfgs)]
 use wasm_bindgen::prelude::*;
-use ml_kem::{PublicKey, SecretKey, Keypair};
+use ml_kem::{MlKem768, KemCore, PublicKey, SecretKey}; // Import directly from ml_kem
+use ml_kem::kem::Encapsulate; // Import the trait for encapsulation
 use rand::thread_rng;
-use std::cell::RefCell;
 
 // Global Constants & Types
 pub const FRACTIONAL_BITS: u32 = 16;
@@ -24,8 +24,8 @@ macro_rules! to_float {
 // --- Security Engine ---
 #[wasm_bindgen]
 pub struct SecurityEngine {
-    pk: PublicKey,
-    sk: SecretKey,
+    pk: PublicKey<MlKem768>,
+    sk: SecretKey<MlKem768>,
 }
 
 #[wasm_bindgen]
@@ -33,20 +33,23 @@ impl SecurityEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         let mut rng = thread_rng();
-        let keys = Keypair::generate(&mut rng);
-        Self { pk: keys.public, sk: keys.secret }
+        // KemCore trait provides the generate method
+        let (pk, sk) = MlKem768::generate(&mut rng);
+        Self { pk, sk }
     }
 
     pub fn secure_telemetry_packet(&self, val: f64) -> Vec<u8> {
         let mut rng = thread_rng();
+        // Encapsulate trait provides the encapsulate method
         let (ct, _ss) = self.pk.encapsulate(&mut rng);
         
-        let mut output = ct.to_vec();
+        let mut output = ct.as_ref().to_vec();
         let fixed_val: i32 = (val * FIXED_SCALE) as i32;
         output.extend_from_slice(&fixed_val.to_le_bytes());
         output
     }
 }
+
 
 // Deterministic Math Engine 
 #[derive(Debug, Clone, Copy)]
