@@ -7,17 +7,29 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+# Core bindings
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 console_error_panic_hook = { version = "0.1.7", optional = true }
-ml-kem = "0.2"
-rand = "0.8"
+
+# Cryptography - Pure Rust, NIST FIPS 203 compliant
+ml-kem = "0.2.3"
+kem = "0.3.0-pre.0"
+
+# Randomness for Key Gen & Encapsulation
+# The 'js' feature is critical for running in a browser
+rand = { version = "0.8", features = ["small_rng"] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [features]
 default = ["console_error_panic_hook"]
 
 [profile.release]
+# 's' optimizes for binary size, critical for fast load times in the browser
 opt-level = "s"
+# Link Time Optimization makes the code faster by stripping unused bloat
 lto = true
+# Aborting on panic reduces binary size significantly by removing stack unwinding code
 panic = "abort"
+# Codegen units = 1 further optimizes for performance/size
+codegen-units = 1
