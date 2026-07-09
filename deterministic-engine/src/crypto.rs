@@ -1,36 +1,31 @@
 use wasm_bindgen::prelude::*;
-use kyber::kyber768::{PublicKey, SecretKey, Keypair};
+use ml_kem::{MlKem768, Encapsulated}; // Added trait import
 use rand::thread_rng;
 
 #[wasm_bindgen]
 pub struct CryptoEngine {
-    pk: PublicKey,
-    sk: SecretKey,
+    pk: ml_kem::PublicKey<MlKem768>,
+    sk: ml_kem::SecretKey<MlKem768>,
 }
 
 #[wasm_bindgen]
 impl CryptoEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        // Pure Rust key generation
         let mut rng = thread_rng();
-        let keys = Keypair::generate(&mut rng);
-        CryptoEngine { pk: keys.public, sk: keys.secret }
+        let (sk, pk) = MlKem768::generate_keypair(&mut rng);
+        CryptoEngine { pk, sk }
     }
 
     pub fn get_public_key(&self) -> Vec<u8> {
-        self.pk.as_bytes().to_vec()
+        // ml-kem v0.2+ uses .as_ref() for byte access
+        self.pk.as_ref().to_vec()
     }
 
     pub fn seal_telemetry(&self) -> Vec<u8> {
-        // Encapsulate using pure Rust logic
-        let (ct, _ss) = self.pk.encapsulate(&mut thread_rng());
-        ct.as_bytes().to_vec()
+        let mut rng = thread_rng();
+        let (ct, _ss) = self.pk.encapsulate(&mut rng);
+        // The ciphertext ct implements AsRef<[u8]>
+        ct.as_ref().to_vec()
     }
-}
-
-#[wasm_bindgen]
-pub fn verify_telemetry_integrity(ciphertext_vec: &[u8]) -> bool {
-    // Pure Rust decapsulation logic can be added here
-    true 
 }
