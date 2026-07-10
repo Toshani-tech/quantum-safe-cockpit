@@ -1,8 +1,9 @@
 
 use wasm_bindgen::prelude::*;
 use ml_kem::{MlKem768, KemCore};
-use kem::Encapsulate;
+use ml_kem::kem::Encapsulate;
 use rand::thread_rng;
+
 
 #[wasm_bindgen]
 pub struct CryptoEngine;
@@ -14,11 +15,11 @@ impl CryptoEngine {
         CryptoEngine
     }
 
-              pub fn seal_telemetry(&self) -> Vec<u8> {
+    #[wasm_bindgen]
+    pub fn seal_telemetry(&self) -> Vec<u8> {
         let mut rng = thread_rng();
         let (_dk, ek) = MlKem768::generate(&mut rng);
         let (ct, _ss) = ek.encapsulate(&mut rng).expect("encapsulation failed");
         ct.to_vec()
     }
-    
 }
