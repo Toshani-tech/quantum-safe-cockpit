@@ -2,7 +2,7 @@
 #![allow(unexpected_cfgs)]
 use wasm_bindgen::prelude::*;
 use ml_kem::{MlKem768, KemCore};
-use kem::Encapsulate;
+use ml_kem::kem::Encapsulate;
 use rand::thread_rng;
 use std::cell::RefCell;
 
@@ -24,7 +24,7 @@ macro_rules! to_float {
 
 // --- Security Engine ---
 
-   #[wasm_bindgen]
+#[wasm_bindgen]
 pub struct SecurityEngine;
 
 #[wasm_bindgen]
@@ -34,7 +34,8 @@ impl SecurityEngine {
         SecurityEngine
     }
 
-                 pub fn secure_telemetry_packet(&self, val: f64) -> Vec<u8> {
+#[wasm_bindgen]
+    pub fn secure_telemetry_packet(&self, val: f64) -> Vec<u8> {
         let mut rng = thread_rng();
         let (_dk, ek) = MlKem768::generate(&mut rng);
         let (ct, _ss) = ek.encapsulate(&mut rng).expect("encapsulation failed");
@@ -47,6 +48,7 @@ impl SecurityEngine {
 }
 
 // Deterministic Math Engine 
+
 #[derive(Debug, Clone, Copy)]
 pub struct FlightStateFP {
     pub altitude: Fixed32,
@@ -74,34 +76,40 @@ pub fn init_engine() {
     });
 }
 
-#[wasm_bindgen]
+/* #[wasm_bindgen]
 pub fn init_panic_hook() {
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
-}
+} */ 
 
 // Math Helpers
-#[no_mangle]
-pub extern "C" fn fp_add(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_add(b).unwrap_or(i32::MAX) }
-#[no_mangle]
-pub extern "C" fn fp_sub(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_sub(b).unwrap_or(i32::MIN) }
-#[no_mangle]
-pub extern "C" fn fp_from_int(val: i32) -> Fixed32 { val << FRACTIONAL_BITS }
-#[no_mangle]
-pub extern "C" fn fp_mul(a: Fixed32, b: Fixed32) -> Fixed32 {
+
+#[wasm_bindgen]
+pub fn fp_add(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_add(b).unwrap_or(i32::MAX) }
+
+#[wasm_bindgen]
+pub fn fp_sub(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_sub(b).unwrap_or(i32::MIN) }
+
+#[wasm_bindgen]
+pub fn fp_from_int(val: i32) -> Fixed32 { val << FRACTIONAL_BITS }
+
+#[wasm_bindgen]
+pub fn fp_mul(a: Fixed32, b: Fixed32) -> Fixed32 {
     let product = (a as i64) * (b as i64);
     (product >> FRACTIONAL_BITS) as Fixed32
 }
-#[no_mangle]
-pub extern "C" fn fp_div(a: Fixed32, b: Fixed32) -> Fixed32 {
+
+#[wasm_bindgen]
+pub fn fp_div(a: Fixed32, b: Fixed32) -> Fixed32 {
     if b == 0 { return i32::MAX; }
     let numerator = (a as i64) << FRACTIONAL_BITS;
     (numerator / (b as i64)) as Fixed32
 }
-#[no_mangle]
-pub extern "C" fn fp_exp(x: Fixed32) -> Fixed32 {
-    if x < -to_fixed!(10) { return 0; }
-    let one = to_fixed!(1);
+
+#[wasm_bindgen]
+pub fn fp_exp(x: Fixed32) -> Fixed32 {
+    if x < (-10 << FRACTIONAL_BITS) { return 0; }
+    let one = 1 << FRACTIONAL_BITS;
     let mut term = one;
     let mut sum = one;
     for i in 1..=5 {
@@ -112,9 +120,10 @@ pub extern "C" fn fp_exp(x: Fixed32) -> Fixed32 {
     sum
 }
 
+
 // Dynamics 
-#[no_mangle]
-pub extern "C" fn set_initial_state(alt: i32, spd: i32) {
+#[wasm_bindgen]
+pub fn set_initial_state(alt: i32, spd: i32) {
     SYSTEM_STATE.with(|s| {
         let mut state = s.borrow_mut();
         state.altitude = fp_from_int(alt);
