@@ -59,7 +59,7 @@ dependencies = [
  "console_error_panic_hook",
  "getrandom",
  "js-sys",
- "kem",
+ "kem 0.2.0",
  "ml-kem",
  "rand",
  "wasm-bindgen",
@@ -153,6 +153,17 @@ dependencies = [
 
 [[package]]
 name = "kem"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1de74da99b010cc3a51a4f8a2e368b98f98f21f500091a06d2e8c1657b879ad2"
+dependencies = [
+ "generic-array",
+ "rand_core",
+ "zeroize",
+]
+
+[[package]]
+name = "kem"
 version = "0.3.0-pre.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b8645470337db67b01a7f966decf7d0bafedbae74147d33e641c67a91df239f"
@@ -174,7 +185,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8de49b3df74c35498c0232031bb7e85f9389f913e2796169c8ab47a53993a18f"
 dependencies = [
  "hybrid-array",
- "kem",
+ "kem 0.3.0-pre.0",
  "rand_core",
  "sha3",
 ]
