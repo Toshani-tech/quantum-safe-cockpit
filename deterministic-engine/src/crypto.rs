@@ -1,31 +1,24 @@
+
 use wasm_bindgen::prelude::*;
-use ml_kem::{MlKem768, Encapsulated}; // Added trait import
+use ml_kem::{MlKem768, KemCore};
+use kem::Encapsulate;
 use rand::thread_rng;
 
 #[wasm_bindgen]
-pub struct CryptoEngine {
-    pk: ml_kem::PublicKey<MlKem768>,
-    sk: ml_kem::SecretKey<MlKem768>,
-}
+pub struct CryptoEngine;
 
 #[wasm_bindgen]
 impl CryptoEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        let mut rng = thread_rng();
-        let (sk, pk) = MlKem768::generate_keypair(&mut rng);
-        CryptoEngine { pk, sk }
+        CryptoEngine
     }
 
-    pub fn get_public_key(&self) -> Vec<u8> {
-        // ml-kem v0.2+ uses .as_ref() for byte access
-        self.pk.as_ref().to_vec()
-    }
-
-    pub fn seal_telemetry(&self) -> Vec<u8> {
+              pub fn seal_telemetry(&self) -> Vec<u8> {
         let mut rng = thread_rng();
-        let (ct, _ss) = self.pk.encapsulate(&mut rng);
-        // The ciphertext ct implements AsRef<[u8]>
-        ct.as_ref().to_vec()
+        let (_dk, ek) = MlKem768::generate(&mut rng);
+        let (ct, _ss) = ek.encapsulate(&mut rng).expect("encapsulation failed");
+        ct.to_vec()
     }
+    
 }
