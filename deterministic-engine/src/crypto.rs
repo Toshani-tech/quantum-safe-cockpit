@@ -1,9 +1,12 @@
 
+//This module owns the ML-KEM based telemetry sealing logic.
+
 use wasm_bindgen::prelude::*;
 use ml_kem::{MlKem768, KemCore};
 use ml_kem::kem::Encapsulate;
 use rand::thread_rng;
 
+// Post-quantum telemetry sealing layer
 
 #[wasm_bindgen]
 pub struct CryptoEngine;
