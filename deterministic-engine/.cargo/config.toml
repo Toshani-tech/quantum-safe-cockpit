@@ -4,4 +4,4 @@ target = "wasm32-unknown-unknown"
 
 [target.wasm32-unknown-unknown]
 # This helps the linker find the correct tools in the WSL environment
-linker = "clang"
+linker = "rust-lld"
