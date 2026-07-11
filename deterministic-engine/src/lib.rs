@@ -1,10 +1,10 @@
 
 #![allow(unexpected_cfgs)]
 use wasm_bindgen::prelude::*;
-use ml_kem::{MlKem768, KemCore};
-use ml_kem::kem::Encapsulate;
-use rand::thread_rng;
 use std::cell::RefCell;
+
+mod crypto;
+pub use crypto::CryptoEngine;
 
 // Global Constants & Types
 pub const FRACTIONAL_BITS: u32 = 16;
@@ -22,8 +22,8 @@ macro_rules! to_float {
     ($x:expr) => { ($x as f64) / ($crate::FIXED_SCALE as f64) }; 
 }
 
-// --- Security Engine ---
-
+// Security bridge layer
+// The actual ML-KEM sealing logic lives in crypto.rs.
 #[wasm_bindgen]
 pub struct SecurityEngine;
 
@@ -34,20 +34,17 @@ impl SecurityEngine {
         SecurityEngine
     }
 
-#[wasm_bindgen]
+    #[wasm_bindgen]
     pub fn secure_telemetry_packet(&self, val: f64) -> Vec<u8> {
-        let mut rng = thread_rng();
-        let (_dk, ek) = MlKem768::generate(&mut rng);
-        let (ct, _ss) = ek.encapsulate(&mut rng).expect("encapsulation failed");
-        
-        let mut output = ct.to_vec();
-        let fixed_val: i32 = (val * FIXED_SCALE) as i32;
+        let crypto = CryptoEngine::new();
+        let mut output = crypto.seal_telemetry();
+        let fixed_val = float_to_fp(val);
         output.extend_from_slice(&fixed_val.to_le_bytes());
         output
     }
 }
 
-// Deterministic Math Engine 
+// Deterministic numeric bridge 
 
 #[derive(Debug, Clone, Copy)]
 pub struct FlightStateFP {
@@ -75,12 +72,6 @@ pub fn init_engine() {
         state.vertical_velocity = 0;
     });
 }
-
-/* #[wasm_bindgen]
-pub fn init_panic_hook() {
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
-} */ 
 
 // Math Helpers
 
@@ -121,7 +112,7 @@ pub fn fp_exp(x: Fixed32) -> Fixed32 {
 }
 
 
-// Dynamics 
+// Dynamics
 #[wasm_bindgen]
 pub fn set_initial_state(alt: i32, spd: i32) {
     SYSTEM_STATE.with(|s| {
@@ -135,47 +126,29 @@ pub fn set_initial_state(alt: i32, spd: i32) {
 fn float_to_fp(val: f64) -> Fixed32 { (val * FIXED_SCALE) as Fixed32 }
 fn fp_to_float(val: Fixed32) -> f64 { (val as f64) / FIXED_SCALE }
 
-fn flight_dynamics_derivative_fp(v_ias_fp: Fixed32, pitch_rad_fp: Fixed32) -> Fixed32 {
-    let x = pitch_rad_fp;
-    let x_squared = fp_mul(x, x);
-    let x_cubed = fp_mul(x_squared, x);
-    let x_fifth = fp_mul(fp_mul(x_cubed, x_squared), x);
-    
-    let term1 = x;
-    let term2 = fp_div(x_cubed, fp_from_int(6));
-    let term3 = fp_div(x_fifth, fp_from_int(120));
-    
-    let sin_approx = fp_add(fp_sub(term1, term2), term3);
-    let raw_vvi_fps = fp_mul(v_ias_fp, sin_approx);
-
-    raw_vvi_fps.clamp(-3058346, 3058346)
+#[wasm_bindgen]
+pub fn step_physics_fp(dt_fixed: Fixed32) -> Fixed32 {
+    SYSTEM_STATE.with(|s| {
+        let mut state = s.borrow_mut();
+        let delta_alt = fp_mul(state.vertical_velocity, dt_fixed);
+        state.altitude = fp_add(state.altitude, delta_alt);
+        state.altitude
+    })
 }
 
 #[wasm_bindgen]
 pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f64> {
-    let alt_fp = float_to_fp(current_alt);
     let v_ias_fp = float_to_fp(v_ias);
-    let dt_fp = float_to_fp(dt);
-    
-    let pi_div_180_fp = float_to_fp(std::f64::consts::PI / 180.0);
-    let pitch_rad_fp = fp_mul(float_to_fp(pitch_deg), pi_div_180_fp);
+    let pitch_rad = pitch_deg.to_radians();
+    let vvi = v_ias * (pitch_rad.sin()) * 0.05;
+    let vvi_fp = float_to_fp(vvi);
+    let new_alt_fp = float_to_fp(current_alt + (vvi * dt));
 
-    let two = fp_from_int(2);
+    let new_alt = fp_to_float(new_alt_fp);
+    let v_ias_out = fp_to_float(v_ias_fp);
+    let vvi_out = fp_to_float(vvi_fp);
 
-    let k1 = flight_dynamics_derivative_fp(v_ias_fp, pitch_rad_fp);
-    let k2 = k1; 
-    let k3 = k1;
-    let k4 = k1;
-
-    let inner_sum = fp_add(
-        fp_add(k1, fp_mul(two, k2)),
-        fp_add(fp_mul(two, k3), k4)
-    );
-    let sixth_dt = fp_div(dt_fp, fp_from_int(6));
-    let delta_alt_fp = fp_mul(sixth_dt, inner_sum);
-    let new_alt_fp = fp_add(alt_fp, delta_alt_fp);
-
-    vec![fp_to_float(new_alt_fp), v_ias, fp_to_float(k1), fp_to_float(k1) * 60.0]
+    vec![new_alt, v_ias_out, vvi_out, vvi_out * 60.0]
 }
 
 #[wasm_bindgen]
