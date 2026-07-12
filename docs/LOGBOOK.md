@@ -366,3 +366,13 @@ Day 37 - 41 : July 7 - 11
 Task: Compiling the Deterministic Engine toolchain. 
 
 Tech: Rust, Cargo, ml-kem, WASM-Bindgen.
+
+Note: These past five days were a relentless grind of system level "toil." After the massive repo nuke on day 36, I spent the entire time methodically rebuilding the environment from the ground up. I wrestled with persistent linker errors and WASI-SDK pathing issues that made the terminal nearly unusable. I decided then to abandon the C-FFI integration as i realized that trying to force C native crypto primitives into a WASM environment was creating an unmanageable amount of complexity and build instability. 
+
+
+
+
+
+
+
+ 
