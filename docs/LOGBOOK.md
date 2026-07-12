@@ -361,6 +361,8 @@ Note: Today was a total rollercoaster. I noticed my rust files dont have much ma
 P.S: After realizing the repo was getting bloated and the terminal was lagging to the point of being unusable, I made the call to nuke the index and reset everything. It felt like I was deleting my work, but it was the only reasonable move to keep the project working. (Before I can get the sim to start off once again, i'm gonna focus on integrating either C or rust crypto math libraries into the deterministic engine files to provide a full proof crypto math engine) Also I spent the last few days tryna edit my readme file, I wrote about my simulation as much as I could for an overview but I realised I still have a lot to do so perhaps waiting till my sim is finished to get the overview written is maybe the best.
 
 
-Day 37, 38, 39, 40 , 41 : July 7 , July 8, July 9, July 10, July 11 
+Day 37 - 41 : July 7 - 11 
 
-Task: 
+Task: Compiling the Deterministic Engine rust code 
+
+Tech: 
