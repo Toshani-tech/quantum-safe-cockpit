@@ -363,6 +363,6 @@ P.S: After realizing the repo was getting bloated and the terminal was lagging t
 
 Day 37 - 41 : July 7 - 11 
 
-Task: Compiling the Deterministic Engine rust code 
+Task: Compiling the Deterministic Engine toolchain. 
 
-Tech: 
+Tech: Rust, Cargo, ml-kem, WASM-Bindgen.
