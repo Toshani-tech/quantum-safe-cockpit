@@ -360,7 +360,6 @@ Note: Today was a total rollercoaster. I noticed my rust files dont have much ma
 
 P.S: After realizing the repo was getting bloated and the terminal was lagging to the point of being unusable, I made the call to nuke the index and reset everything. It felt like I was deleting my work, but it was the only reasonable move to keep the project working. (Before I can get the sim to start off once again, i'm gonna focus on integrating either C or rust crypto math libraries into the deterministic engine files to provide a full proof crypto math engine) Also I spent the last few days tryna edit my readme file, I wrote about my simulation as much as I could for an overview but I realised I still have a lot to do so perhaps waiting till my sim is finished to get the overview written is maybe the best.
 
-
 Day 37 - 41 : July 7 - 11 
 
 Task: Compiling the Deterministic Engine toolchain. 
@@ -369,7 +368,7 @@ Tech: Rust, Cargo, ml-kem, WASM-Bindgen.
 
 Note: These past five days were a relentless grind of system level "toil." After the massive repo nuke on day 36, I spent the entire time methodically rebuilding the environment from the ground up. I wrestled with persistent linker errors and WASI-SDK pathing issues that made the terminal nearly unusable. I decided then to abandon the C-FFI integration as i realized that trying to force C native crypto primitives into a WASM environment was creating an unmanageable amount of complexity and build instability. I spent hours  pruning Cargo.toml and isolating the ml-kem crate to eliminate the build bloat that was choking my laptop. Thru a lot of trial and error with namespace resolution for the PublicKey and SecretKey types, I finally achieved a clean deterministic_engine. The engine is now compiled and usable!!
 
-P.S: 
+P.S: I spent hours skimming through the some crate documentation and tracing how the ml-kem traits and PublicKey types actually linked up under the hood, besides the fact it was like reading a foreign language while the compiler actively fought every single line of code I wrote! I cross referenced those technical docs with the compiler’s specific error messages and was able to solve the errors though it took me hours for 5 days straight...I guess this is part of the 'fun'.
 
 
 
