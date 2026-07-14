@@ -21,13 +21,13 @@ P.S: I ran into a massive roadblock trying to make the telemetry scaling look re
 
 Day 3: Feb 23, 2026
 
-Task: Re-engineered the UI into a 3-column PFD and built the Security Terminal.
+Task: Re-engineered the UI into a 3 column PFD and built the Security Terminal.
 
 Tech: CSS Grid, JavaScript (setTimeout).
 
-Note: The new 3-column layout makes the interface look way more like a real primary flight display (PFD). I added an orange amber text log to show when the lattice security handshake happens. I also made sure the airspeed actually matches the altitude gain, capping it at 450 knots so it feels like a real jet and not a rocket ship.
+Note: The new 3 column layout makes the interface look way more like a real primary flight display (PFD). I added an orange amber text log to show when the lattice security handshake happens. I also made sure the airspeed actually matches the altitude gain, capping it at 450 knots so it feels like a real jet and not a rocket ship.
 
-P.S: : I had to completely scrap and rewrite my visual log stream today. I spent a long time looking into how real flight computers handle "bus lag" and text serialization over a shared data pathway. I wanted my terminal to mimic a real postquantum cryptographic handshake, which meant I had to figure out how to visually simulate a key exchange glitch. Trying to take the concept of a lattice-based public key mechanism and turn it into a high-speed, 3-column CSS layout with precise setTimeout triggers took way longer than I care to admit, mostly because the browser kept dropping frames when the text rendering spiked.
+P.S: : I had to completely scrap and rewrite my visual log stream today. I spent a long time looking into how real flight computers handle "bus lag" and text serialization over a shared data pathway. I wanted my terminal to mimic a real postquantum cryptographic handshake, which meant I had to figure out how to visually simulate a key exchange glitch. Trying to take the concept of a lattice-based public key mechanism and turn it into a high speed, 3 column CSS layout with precise setTimeout triggers took way longer than I care to admit, mostly because the browser kept dropping frames when the text rendering spiked.
 
 Day 4: Feb 24, 2026
 
