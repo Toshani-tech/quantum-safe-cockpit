@@ -161,7 +161,7 @@ P.S: The drone is moving like an absolute snail right now because my drag variab
 
 Day 17: March 21, 2026
 
-Task: Phase-Logic Synchronization & Visual State Recovery.
+Task: Phase Logic Synchronization & Visual State Recovery.
 
 Tech: JavaScript Events, CSS State Classes.
 
