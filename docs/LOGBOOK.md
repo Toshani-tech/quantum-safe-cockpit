@@ -322,7 +322,7 @@ P.S: Had a super annoying visual bug where the delta tracking indicator was rend
 
 Day 33: June 29, 2026
 
-Task: Renaming the Rust crypto engine workspace and setting up the folders for the Python/C++ forensic auditor.
+Task: Renaming the Rust crypto engine workspace and setting up the folders for the Python/C++ Forensic-Auditor.
 
 Tech: Post-Quantum Cryptography Architecture, WASM Bindings, Cross-Language Design (Python/C++).
 
@@ -368,7 +368,7 @@ Tech: Rust, Cargo, ml-kem, WASM-Bindgen.
 
 Note: These past five days were a relentless grind of system level "toil." After the massive repo nuke on day 36, I spent the entire time methodically rebuilding the environment from the ground up. I wrestled with persistent linker errors and WASI-SDK pathing issues that made the terminal nearly unusable. I decided then to abandon the C-FFI integration as i realized that trying to force C native crypto primitives into a WASM environment was creating an unmanageable amount of complexity and build instability. I spent hours  pruning Cargo.toml and isolating the ml-kem crate to eliminate the build bloat that was choking my laptop. Thru a lot of trial and error with namespace resolution for the PublicKey and SecretKey types, I finally achieved a clean deterministic_engine. The engine is now compiled and usable!!
 
-P.S: I spent hours skimming through the some crate documentation and tracing how the ml-kem traits and PublicKey types actually linked up under the hood, besides the fact it was like reading a foreign language while the compiler actively fought every single line of code I wrote! I cross referenced those technical docs with the compiler’s specific error messages and was able to solve the errors though it took me hours for 5 days straight...I guess this is part of the 'fun'.
+P.S: I spent hours skimming through the some crate documentation and tracing how the ml-kem traits and PublicKey types actually linked up under the hood, besides the fact it was like reading a foreign language while the compiler actively fought every single line of code I wrote! I cross referenced those technical docs with the compiler’s specific error messages and was able to solve the errors though it took me hours for 5 days straight...I guess this is part of the 'fun'! I have to still make my main.js file connect with the code as my sim is still a blank screen! After that have to work on the Forensic-Auditor. 
 
 
 
