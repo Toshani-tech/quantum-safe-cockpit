@@ -268,7 +268,7 @@ Tech: HTML5 Canvas, Page Layouts, Text Formatting.
 
 Note: I fixed an issue in my main script where the telemetry monitor was misfiring fake alert messages during transitions. I attached the attack trigger directly to the modal button so the lattice visualization distorts the moment you click close. I also had to fix some blurriness on the canvas text, the high resol. laptop screens were stretching out the drawing space and making the lines look fuzzy. I fixed this by using Math.floor() to keep the elements snapped to whole numbers and adjusted the pixel alignments so the lines look sharp.
 
-P.S: I spent almost the entire time trying to get the security grid to jitter violently during the hack sequence to show the discrete Gaussian error vectors in action. It wasn't working at first, but after looking closely at the code, I realized two different functions were running at the same time and fighting over the exact same animation variables which broke the effect. Everything looks clean now.
+P.S: I spent almost the entire time trying to get the security grid to jitter violently during the hack sequence to show the discrete Gaussian error vectors in action. It wasn't working at first, but after looking closely at the code, I realized two different functions were running at the same time and fighting over the exact same animation variables which broke the effect. Everything looks clean now!!
 
 Day 28: June 24, 2026
 
