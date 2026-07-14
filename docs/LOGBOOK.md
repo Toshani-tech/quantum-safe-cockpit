@@ -83,9 +83,9 @@ Day 9: March 1, 2026
 
 Task: Fixing the UI symmetry so it looks like a real flight deck.
 
-Tech: CSS Grid (repeat(3, 1fr)), Grid-Cell Containment (min-width: 0).
+Tech: CSS Grid (repeat(3, 1fr)), Grid Cell Containment (min width: 0).
 
-Note: I spent today tweaking the layout to get a balanced, multi-screen cockpit look. The goal is to keep the PFD panel, the lattice visualizer, and the data log terminal locked into identical thirds of the screen. I had to force the grid columns to stay put so they stop shrinking and growing when text lengths change.
+Note: I spent today tweaking the layout to get a balanced, multi screen cockpit look. The goal is to keep the PFD panel, the lattice visualizer, and the data log terminal locked into identical thirds of the screen. I had to force the grid columns to stay put so they stop shrinking and growing when text lengths change.
 
 P.S: Spent 45 minutes wondering why the canvas panel was stretching out and pushing the telemetry log stream completely off the screen. Turns out browsers make grid items expand to fit wide canvas drawings by default. (I should have figured it out sooner) Overriding this by setting min-width: 0 on the containers kept the layout locked in place.
 
