@@ -296,9 +296,9 @@ Task: Integrate visual metrics for the LEO satellite quantum key distribution li
 
 Tech: HTML Layouts, Inline CSS, Web Worker Messaging.
 
-Note: I added a new data readout block for the satellite stats on the dashboard HTML right under where the standard bit error rate shows up. This gives me a dedicated section on the screen to see real-time stats like the quantum error percentage (QBER), the secure key speed in bits per second, and the satellite's position numbers coming straight from the background worker. I also created a new helper file called quantum-atmosphere.js which basically calculates how thick the air and clouds are based on the plane's altitude so it can figure out how much noise is messing with the satellite's laser beam.
+Note: I added a new data readout block for the satellite stats on the dashboard HTML right under where the standard bit error rate shows up. This gives me a dedicated section on the screen to see real time stats like the quantum error percentage (QBER), the secure key speed in bits per second, and the satellite's position numbers coming straight from the background worker. I also created a new file called quantum-atmosphere.js which basically calculates how thick the air and clouds are based on the plane's altitude so it can figure out how much noise is messing with the satellite's laser beam.
 
-P.S: Encountered a bug where the key rate stayed stuck at 0 bps even after the simulated attack zone had cleared out completely. I isolated the problem to the message listener block inside physics-worker.js. Turns out it was completely ignoring the reset signals because the code was only looking for a specific attack name string rather than checking the actual true/false state flag. It was a quick fix once I spotted it.
+P.S: Encountered a bug where the key rate stayed stuck at 0 bps even after the simulated attack zone had cleared out completely. I isolated the problem to the message listener block inside physics-worker.js. Turns out it was completely ignoring the reset signals because the code was only looking for a specific attack name string rather than checking the actual true/false state flag. (quick fix once I spotted it.)
 
 Day 31: June 27, 2026
 
