@@ -236,7 +236,7 @@ Task: Rewriting the hacking event trigger and fixing UI transition states.
 
 Tech: Script State Management, Event Listeners.
 
-Note: Today was about cleaning up the timing of the attack sequence so the simulation tells a better story. Instead of pressing the "A" key like a developer cheat code to trigger the hack, the data injection attack now starts completely on its own the exact second the user clicks to close the security warning pop-up box during the flight. I also made sure all the warning indicators clear out automatically when the landing phase begins.
+Note: Today was about cleaning up the timing of the attack sequence so the simulation tells a better story. Instead of pressing the "A" key like a developer cheat code to trigger the hack ( something I thought I could integrate), the data injection attack now starts completely on its own the exact second the user clicks to close the security warning pop-up box during the flight. I also made sure all the warning indicators clear out automatically when the landing phase begins.
 
 P.S: Ran into an annoying bug where old alert text fragments were still flashing in the scrolling hex window even after the plane had started landing. It was a timing issue where the background thread was still flushing out the last few frames of bad data right during the transition. I fixed it by adding a strict phase check to the stream reader so it ignores any incoming data spikes once the landing sequence drops.
 
