@@ -1,3 +1,4 @@
+/* crypto.rs V7.5 */
 
 //This module owns the ML-KEM based telemetry sealing logic.
 
