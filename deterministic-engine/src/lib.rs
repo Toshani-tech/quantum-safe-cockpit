@@ -1,3 +1,4 @@
+/* lib.rs V18.2 */
 
 #![allow(unexpected_cfgs)]
 use wasm_bindgen::prelude::*;
