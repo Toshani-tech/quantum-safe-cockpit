@@ -308,7 +308,7 @@ Tech: JavaScript State Modules, UI Refactoring, State Synchronization.
 
 Note: I focused on linking the newly made QKD satellite tracking logic file directly into the actual cockpit interface so the metrics aren't just sitting in the background code. I updated the main game loop inside main.js to constantly trigger the satellite's math formulas using the active simulation timer. This lets fields like the QBER tracker, the secure key rate, and the live azimuth/elevation angles update smoothly on the glass dashboard every frame. I also tied the link reset engine directly to the flight transition states so that the moment the flight lands or gets wiped, all the compromised crypto tracking keys get completely scrubbed out of the system memory automatically.
 
-P.S: Had a weird issue where the telemetry screen was throwing a syntax error on boot up and crashing the entire rendering canvas. I went through the state configuration object and found out I had completely missed a comma right after the new MitM attack flag variable when pasting in the new satellite module object. 
+P.S: Had an issue where the telemetry screen was throwing a syntax error on boot up and crashing the entire rendering canvas. I went through the state configuration object and found out I had completely missed a comma right after the new MitM attack flag variable when pasting in the new satellite module object. 
 
 Day 32: June 28, 2026
 
