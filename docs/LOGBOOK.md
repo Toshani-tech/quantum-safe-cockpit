@@ -318,7 +318,7 @@ Tech: ARINC-429 Protocol Simulation, Type-Safe Bit-Packing, Data Serialization.
 
 Note: (Spent about three hours diving into actual ARINC 429 hardware specifications and low-level bitmasking techniques to map this out. Researched a lot about it too, even highschool's not so tuff! But it isn't fun either so I consider the 3 hours I spent brainstorming fair!) Today was all about breaking down the telemetry system to run on actual bit-level logic matching real world ARINC-429 avionics specs. I fully refactored and completed the communication flow to use Uint32Array buffers to serialize the flight data manually into strict 32-bit words. I wrote custom bitwise operators to handle the bit-packing, stuffing the label, SDI, payload bits, SSM, and parity directly into a single unsigned integer. Up until now, parts of the system were still using standard JavaScript objects and floats under the hood but now it completely mirrors a hardware level word stream before shipping it to the cockpit UI.
 
-P.S: Had a super annoying visual bug where the delta tracking indicator was rendering in an amber alert color even when the data transmission was totally fine. I dug into the updateTelemetryStream loop and realized my status assignment overrides were accidentally overriding the UI color states. (fixed it pretty quick!)
+P.S: Had a super annoying visual bug where the delta tracking indicator was rendering in an amber alert color even when the data transmission was totally fine. I dug into the updateTelemetryStream loop and realized my status assignment overrides were accidentally overriding the UI color states. 
 
 Day 33: June 29, 2026
 
