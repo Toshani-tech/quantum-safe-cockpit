@@ -35,7 +35,7 @@ Task: Migrated to Modules and built the "Red Alert" Quantum Stress Test.
 
 Tech: ES6 Modules (import/export), HTML5 Canvas, Git/GitHub.
 
-Note: I split up my giant, messy script file into smaller JS modules because it was getting impossible to manage. I also built a lattice visualizer box that starts glitching out on purpose between 20,000 and 25,000 feet. It triggers a flashing red alert state to show the user that the system detected an incoming data attack.
+Note: I split up my giant, messy script file into smaller JS modules because it was getting impossible to manage. I also built a lattice visualizer box that starts glitching out on purpose between 20k and 25k feet. It triggers a flashing red alert state to show the user that the system detected an incoming data attack.
 
 P.S: Spent over two hours losing my mind because GitHub wasn't showing my work. Turns out my files were stuck in a weird subfolder and my global Git email didn't match my VS Code profile email. I had to flatten the folder structure and force sync everything. Git is a nightmare sometimes. (Gained skills of persistence I'd say.)
 
