@@ -57,7 +57,7 @@ Tech: HTML5 Canvas, CSS Grid.
 
 Note: I finally replaced the static text readouts with actual scrolling canvas tapes for altitude and airspeed. This makes it way easier to see the trend of the flight path. I also added text notes to the sidebar terminal so you can tell why the screen is flickering; it's not a bug, it's just the background code rolling over encryption keys because of the simulated data breach.
 
-P.S: Fixed a layout glitch in 35 minutes. The terminal logs were getting so long that they literally pushed my footer off the bottom of the page and made the whole screen bounce. I added a fixed height and scroll settings to the box container so the text stays inside its designated boundary.
+P.S: Fixed a layout glitch in under 40 minutes. The terminal logs were getting so long that they literally pushed my footer off the bottom of the page and made the whole screen bounce. I added a fixed height and scroll settings to the box container so the text stays inside its designated boundary.
 
 Day 7: Feb 27, 2026
 
