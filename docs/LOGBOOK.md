@@ -378,7 +378,7 @@ Tech: NIST FIPS 203, NIST SP 800-227, CRYSTALS-Kyber documentation(s)
 
 Note: I spent these 5 days tryna understand the actual NIST FIPS 203 documentation to grasp the underlying mathematics of the Module-Lattice-Based Key-Encapsulation Mechanism before I go any further. I spent hours figuring out the Ring Learning With Errors (RLWE) problem and the specific polynomial multiplication stages defined in the Kyber specification (which serves as the basis for ML-KEM). Took me a while but I get it now! I didn't just want to write the rust code but wanted to understand why those specific NTT (Number Theoretic Transform) parameters were chosen for security. 
 
- 
+ P.S: I went back and polished some of my logbook entries and file version names.
 
 
 
