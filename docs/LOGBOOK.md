@@ -145,7 +145,7 @@ Task: Global UI Sync, Rust Kernel Link, and Physics Hardening.
 
 Tech: WebAssembly, Rust Backend, JavaScript UI.
 
-Note: I spent today connecting the compiled WebAssembly file to the frontend code so it can handle the encryption handshakes. The security side works fine now, but the flight physics went completely haywire. My rate of climb monitor was jumping up to 17,000 feet per minute out of nowhere. I tried moving some of the delta math variables around to smooth it out, but the calculations are still tripping over themselves.
+Note: I spent today connecting the compiled WebAssembly file to the frontend code so it can handle the encryption handshakes. The security side works fine now, but the flight physics went completely haywire. My rate of climb monitor was jumping up to 17k feet per minute out of nowhere. I tried moving some of the delta math variables around to smooth it out, but the calculations are still tripping over themselves.
 
 P.S: Fixed a styling alignment issue. The mode indicator and the flight computer lights weren't changing colors at the exact same time as the main bus. I synced them up so they all snap from amber to green together. I also patched the init button so it highlights green the second you click it.
 
