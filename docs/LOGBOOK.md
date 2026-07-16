@@ -83,7 +83,7 @@ Day 9: March 1, 2026
 
 Task: Fixing the UI symmetry so it looks like a real flight deck.
 
-Tech: CSS Grid (repeat(3, 1fr)), Grid Cell Containment (min width: 0).
+Tech: CSS Grid and Grid Cell Containment functions.
 
 Note: I spent today tweaking the layout to get a balanced, multi screen cockpit look. The goal is to keep the PFD panel, the lattice visualizer, and the data log terminal locked into identical thirds of the screen. I had to force the grid columns to stay put so they stop shrinking and growing when text lengths change.
 
