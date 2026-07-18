@@ -378,11 +378,17 @@ Tech: NIST FIPS 203, NIST SP 800-227, CRYSTALS-Kyber documentation(s)
 
 Note: I spent these 6 days tryna understand the actual NIST FIPS 203 documentation to grasp the underlying mathematics of the Module-Lattice-Based Key-Encapsulation Mechanism before I go any further. I spent hours figuring out the Ring Learning With Errors (RLWE) problem and the specific polynomial multiplication stages defined in the Kyber specification (which serves as the basis for ML-KEM). Took me a while but I get it now! I didn't just want to write the rust code but wanted to understand why those specific NTT (Number Theoretic Transform) parameters were chosen for security. Also read the NIST SP 8-227 docs to understand the 'how', specifically the secure implementation guidelines for putting KEMs into real world systems without leaving any holes. Not that I'm doing any of it in my tiny sim cuz not possible but learning about it was fun! I also did read the CRYSTALS-Kyber papers because even tho FIPS 203 gives me the rules for building it, the original research is where the actual geniuses explain why the math works. Tho after reading all these documentations I feel like...I know nothing!
 
- P.S: I went back and polished some of my logbook entries and file version names. Also deleted the license file and instead decided to have copyright rights, so that is in effect from now. 
+P.S: I went back and polished some of my logbook entries and file version names. Also deleted the license file and instead decided to have copyright rights, so that is in effect from now. 
 
+Day 48: July 18
 
+Task: Linking the Rust Security Engine (ML-KEM) to the sim's UI.
 
+Tech: Rust, WebAssembly, ML-KEM Cryptography, JavaScript.
 
+Note: The sim is not blank anymore! I finally got the SecurityEngine talking to the main flight loop today. It was a bit tricky to bridge, but it works perfectly now. I ran a performance test for 15 seconds to make sure it doesn't lag the dashboard, and the latency stayed super low  which is awesome because it means the crypto math is actually running without lagging the sim. Everything feels really stable and the data flow is clean. Tho took me over 2 hours to polish the rust/JS codes and get them to conncect. 
+
+P.S: Well, the PFD is numb. I think I messed up the math logic somewhere because the Alt/VVI speed on the PFD is not working as it should. Have to fix it the next time. Then need to add a few features here and there, after that can begin with building the forensic-auditor. 
 
 
 
