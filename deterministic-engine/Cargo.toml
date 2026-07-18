@@ -19,6 +19,9 @@ kem = "0.2"
 rand = { version = "0.8", features = ["small_rng"] }
 getrandom = { version = "0.2", features = ["js"] }
 
+# Panic hook
+console_error_panic_hook = "0.1.7"
+
 [profile.release]
 opt-level = "s"
 lto = true
