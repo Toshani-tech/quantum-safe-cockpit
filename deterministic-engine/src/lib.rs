@@ -1,8 +1,10 @@
-/* lib.rs V18.2 */
+/* lib.rs V18.3 */
 
 #![allow(unexpected_cfgs)]
+
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
+use console_error_panic_hook;
 
 mod crypto;
 pub use crypto::CryptoEngine;
@@ -11,6 +13,11 @@ pub use crypto::CryptoEngine;
 pub const FRACTIONAL_BITS: u32 = 16;
 pub const FIXED_SCALE: f64 = 65536.0;
 pub type Fixed32 = i32;
+
+#[wasm_bindgen]
+pub fn init_panic_hook() {
+    console_error_panic_hook::set_once();
+}
 
 // Macros 
 #[macro_export]
@@ -23,8 +30,7 @@ macro_rules! to_float {
     ($x:expr) => { ($x as f64) / ($crate::FIXED_SCALE as f64) }; 
 }
 
-// Security bridge layer
-// The actual ML-KEM sealing logic lives in crypto.rs.
+// Security bridge 
 #[wasm_bindgen]
 pub struct SecurityEngine;
 
@@ -43,9 +49,15 @@ impl SecurityEngine {
         output.extend_from_slice(&fixed_val.to_le_bytes());
         output
     }
+
+    //  Bridge to resolve main.js call
+    #[wasm_bindgen]
+    pub fn secure_telemetry_step(&self, val: f64) -> Vec<u8> {
+        self.secure_telemetry_packet(val)
+    }
 }
 
-// Deterministic numeric bridge 
+// Deterministic bridge 
 
 #[derive(Debug, Clone, Copy)]
 pub struct FlightStateFP {
@@ -65,39 +77,43 @@ thread_local! {
 }
 
 #[wasm_bindgen]
-pub fn init_engine() {
+pub fn init_engine() -> bool {
     SYSTEM_STATE.with(|s| {
         let mut state = s.borrow_mut();
         state.altitude = 0;
         state.airspeed = 0;
         state.vertical_velocity = 0;
     });
+    true
+}
+
+#[wasm_bindgen]
+pub fn get_telemetry_buffer_ptr() -> *const u32 {
+    TELEMETRY_BUFFER.with(|buf| {
+        // We borrow the RefCell, get a pointer to the array, 
+        // then cast that array pointer to a *const u32 pointer.
+        buf.as_ptr() as *const u32
+    })
 }
 
 // Math Helpers
-
 #[wasm_bindgen]
 pub fn fp_add(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_add(b).unwrap_or(i32::MAX) }
-
 #[wasm_bindgen]
 pub fn fp_sub(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_sub(b).unwrap_or(i32::MIN) }
-
 #[wasm_bindgen]
 pub fn fp_from_int(val: i32) -> Fixed32 { val << FRACTIONAL_BITS }
-
 #[wasm_bindgen]
 pub fn fp_mul(a: Fixed32, b: Fixed32) -> Fixed32 {
     let product = (a as i64) * (b as i64);
     (product >> FRACTIONAL_BITS) as Fixed32
 }
-
 #[wasm_bindgen]
 pub fn fp_div(a: Fixed32, b: Fixed32) -> Fixed32 {
     if b == 0 { return i32::MAX; }
     let numerator = (a as i64) << FRACTIONAL_BITS;
     (numerator / (b as i64)) as Fixed32
 }
-
 #[wasm_bindgen]
 pub fn fp_exp(x: Fixed32) -> Fixed32 {
     if x < (-10 << FRACTIONAL_BITS) { return 0; }
@@ -111,7 +127,6 @@ pub fn fp_exp(x: Fixed32) -> Fixed32 {
     }
     sum
 }
-
 
 // Dynamics
 #[wasm_bindgen]
