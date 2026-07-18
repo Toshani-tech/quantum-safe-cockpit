@@ -1,6 +1,6 @@
 // main.js - V19.2
 
-// import init, { SecurityEngine, init_panic_hook, init_engine, get_telemetry_buffer_ptr } from '../deterministic-engine/pkg/deterministic_engine.js';
+import init, { SecurityEngine, init_panic_hook, init_engine, get_telemetry_buffer_ptr } from '../deterministic-engine/pkg/deterministic_engine.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 import { QKDSatelliteLink } from './security/qkd-satellite-link.js';
 
@@ -187,6 +187,7 @@ async function initializeAvionics() {
         logTerminalMessage("CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B", "0xFAIL");
     }
 }
+
 initializeAvionics();
 
 function readWasmTelemetryBuffer() {
