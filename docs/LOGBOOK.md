@@ -360,7 +360,7 @@ Note: Today was a total rollercoaster. As I already noticed my rust files dont h
 
 P.S: After realizing the repo was getting bloated and the terminal was lagging to the point of being unusable, I made the call to nuke the index and reset everything. It felt like I was deleting my work, but it was the only reasonable move to keep the project working. (Before I can get the sim to start off once again, i'm gonna focus on integrating either C or rust crypto math libraries into the deterministic engine files to provide a full proof crypto math engine) Also I spent the last few days tryna edit my readme file, I wrote about my simulation as much as I could for an overview but I realised I still have a lot to do so perhaps waiting till my sim is finished to get the overview written is maybe the best.
 
-Day 37 - 41 : July 7 - 11 
+Day 37 - 41 : July 7 - 11, 2026 
 
 Task: Compiling the Deterministic Engine toolchain. 
 
@@ -370,7 +370,7 @@ Note: These past five days were a relentless grind of system level "toil." After
 
 P.S: I spent hours skimming through the some crate documentation and tracing how the ml-kem traits and PublicKey types actually linked up under the hood, besides the fact it was like reading a foreign language while the compiler actively fought every single line of code I wrote! I cross referenced those technical docs with the compiler’s specific error messages and was able to solve the errors though it took me hours for 5 days straight...I guess this is part of the 'fun'! I have to still make my main.js file connect with the code as my sim is still a blank screen! After that have to work on the Forensic-Auditor. 
 
-Day 42- 47: July 12 - 17
+Day 42- 47: July 12 - 17, 2026
 
 Task: Deep dive into undertanding ML-KEM (Module-Lattice-Based Key-Encapsulation Mechanism)
 
@@ -380,7 +380,7 @@ Note: I spent these 6 days tryna understand the actual NIST FIPS 203 documentati
 
 P.S: I went back and polished some of my logbook entries and file version names. Also deleted the license file and instead decided to have copyright rights, so that is in effect from now. 
 
-Day 48: July 18
+Day 48: July 18, 2026
 
 Task: Linking the Rust Security Engine (ML-KEM) to the sim's UI.
 
@@ -390,6 +390,10 @@ Note: The sim is not blank anymore! I finally got the SecurityEngine talking to 
 
 P.S: Well, the PFD is numb. I think I messed up the math logic somewhere because the Alt/VVI speed on the PFD is not working as it should. Have to fix it the next time. Then need to add a few features here and there, after that can begin with building the forensic-auditor. 
 
+Day 49: July 20, 2026
 
+Task: Debugging the PFD freeze and hardening the security kernel-to-memory link.
 
- 
+Tech: Rust (WASM), Web Workers, SharedArrayBuffer (via WASM memory export), JavaScript.
+
+Note: I spent hours trying to figure out why my PDF was not moving. The physics is technically running, the deterministic-engine(including the crypto file) is doing its thing, but the gauges just wouldn't budge. I decided to go full on 'atomic' with the memory management. I had been reading up on how real time systems handle low latency data and I kept coming across the concept of 'Zero-Copy' and atomic level memory integrity. 
