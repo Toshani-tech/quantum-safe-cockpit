@@ -1,6 +1,6 @@
 // main.js - V19.2
 
-import init, { SecurityEngine, init_panic_hook, init_engine, get_telemetry_buffer_ptr } from '../deterministic-engine/pkg/deterministic_engine.js';
+import init, { SecurityEngine, init_panic_hook, init_engine } from '../deterministic-engine/pkg/deterministic_engine.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
 import { QKDSatelliteLink } from './security/qkd-satellite-link.js';
 
@@ -160,22 +160,23 @@ function updateHeaderStatus(status) {
 
 async function initializeAvionics() {
     try {
-        const wasmInstance = await init();
-        wasmMemory = wasmInstance.memory; 
-        
+        // 1. Capture the WASM module instance
+       const wasmModule = await init();
+        // 2. Access memory directly from the instance
+       wasmMemory = wasmModule.memory;
+
         init_panic_hook();
-        
-        // Initialize Rust SecurityEngine instance
         rustEngine = new SecurityEngine();
         
-        const initialized = init_engine();
-        if (initialized) console.log("SEC_KERN: INITIALIZED");
+        init_engine();
         
-        telemetryBufferPtr = get_telemetry_buffer_ptr();
+        // 3. Get the pointer
+        telemetryBufferPtr = rustEngine.get_telemetry_ptr();
         
         state.isKernelReady = true;
         logTerminalMessage("SECURITY KERNEL LINK ESTABLISHED [NIST_L5]", "#00FF41", "0xBOOT");
         
+
         const startBtn = document.getElementById('init-btn');
         if (startBtn) {
             startBtn.classList.add('ready-state');
@@ -187,6 +188,7 @@ async function initializeAvionics() {
         logTerminalMessage("CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B", "0xFAIL");
     }
 }
+
 
 initializeAvionics();
 
@@ -333,10 +335,14 @@ function loop() {
         const safeAlt = Number(d.altitude);
         const safeSpd = Number(d.airspeed);
 
-        // Update Forensic Auditor (Window 2) with Rust Engine
-        if (rustEngine) {
-            state.lastSecurePacket = rustEngine.secure_telemetry_step(safeAlt);
-        }
+if (rustEngine && telemetryBufferPtr && wasmMemory) {
+    // Use the global wasmMemory variable we populated in initializeAvionics
+    const view = new Uint32Array(wasmMemory.buffer, telemetryBufferPtr, 4);
+
+    // Pass the data to your secure function
+    state.lastSecurePacket = rustEngine.secure_telemetry_step(view[0]);
+}
+
 
         if (state.isMissionActive) {
             if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
