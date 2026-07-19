@@ -1,10 +1,11 @@
 /*
- * physics-worker.js - V14.0
+ * physics-worker.js - V14.0 
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
 import { QuantumAtmosphereLink } from './quantum-atmosphere.js'; 
 import init from '../../deterministic-engine/pkg/deterministic_engine.js';
+import { SecurityEngine } from '../../deterministic-engine/pkg/deterministic_engine.js';
 
 const qkdLink = new QuantumAtmosphereLink();
 
@@ -17,6 +18,7 @@ let dpr = 1;
 let latestSentTime = 0; 
 let physicsLoopActive = false;
 let wasmExports = null;
+let securityEngine = null; // Our atomic bridge
 
 const FRACTIONAL_BITS = 16;
 const FIXED_SCALE = 65536; 
@@ -108,6 +110,7 @@ function applyBERCorruption(uint32Array, phaseString, speedValue) {
 
 const wasmPromise = init().then(instance => {
     wasmExports = instance;
+    securityEngine = new SecurityEngine(); // Initialize the atomic bridge
     
     try {
         if (wasmExports && typeof wasmExports.set_initial_state === 'function') {
@@ -231,6 +234,16 @@ function updatePhysics(dt, elapsed) {
                 state.vviDirection = dynamics.vviDirection;
                 state.verticalVelocity = (state.verticalVelocity * 0.90) + (dynamics.verticalVelocity * 0.10);
             }
+            
+            // ATOMIC UPDATE: Send new state to the Security Kernel
+            if (securityEngine) {
+                securityEngine.update_telemetry(
+                    Math.round(state.altitude),
+                    Math.round(state.airspeed),
+                    Math.round(state.verticalVelocity),
+                    1 // Status: 1 = Active
+                );
+            }
         } else {
             const result = calculateFlightDynamics(state, dt, elapsed);
             if (result) {
@@ -256,7 +269,7 @@ function broadcastTelemetry(elapsed) {
         wireAltitude = 420.0; 
     }
 
-    serializedBuffer[0] = packARINC429(0o036, 0, wireAltitude, 0);                 
+    serializedBuffer[0] = packARINC429(0o036, 0, wireAltitude, 0);                
     serializedBuffer[1] = packARINC429(0o037, 0, state.airspeed, 0);                
     serializedBuffer[2] = packARINC429(0o027, 0, getPhaseCode(state.missionPhase), 0); 
 
