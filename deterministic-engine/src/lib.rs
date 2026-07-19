@@ -1,8 +1,9 @@
-/* lib.rs V18.3 */
+/* lib.rs V18.4  */
 
 #![allow(unexpected_cfgs)]
 
 use wasm_bindgen::prelude::*;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::cell::RefCell;
 use console_error_panic_hook;
 
@@ -19,26 +20,48 @@ pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
-// Macros 
-#[macro_export]
-macro_rules! to_fixed { 
-    ($x:expr) => { ($x as $crate::Fixed32) << $crate::FRACTIONAL_BITS }; 
-}
-
-#[macro_export]
-macro_rules! to_float { 
-    ($x:expr) => { ($x as f64) / ($crate::FIXED_SCALE as f64) }; 
-}
-
 // Security bridge 
 #[wasm_bindgen]
-pub struct SecurityEngine;
+pub struct SecurityEngine {
+    // Lock-free telemetry buffer (0: alt, 1: spd, 2: vvi, 3: status)
+    telemetry: [AtomicU32; 4],
+}
 
 #[wasm_bindgen]
 impl SecurityEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        SecurityEngine
+        SecurityEngine {
+            telemetry: [
+                AtomicU32::new(0),
+                AtomicU32::new(0),
+                AtomicU32::new(0),
+                AtomicU32::new(0),
+            ],
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn get_telemetry_ptr(&self) -> *const u32 {
+        self.telemetry.as_ptr() as *const u32
+    }
+
+    #[wasm_bindgen]
+    pub fn update_telemetry(&self, alt: u32, spd: u32, vvi: u32, status: u32) {
+        self.telemetry[0].store(alt, Ordering::SeqCst);
+        self.telemetry[1].store(spd, Ordering::SeqCst);
+        self.telemetry[2].store(vvi, Ordering::SeqCst);
+        self.telemetry[3].store(status, Ordering::SeqCst);
+    }
+
+    #[wasm_bindgen]
+    pub fn get_telemetry_snapshot(&self) -> Vec<u32> {
+        vec![
+            self.telemetry[0].load(Ordering::SeqCst),
+            self.telemetry[1].load(Ordering::SeqCst),
+            self.telemetry[2].load(Ordering::SeqCst),
+            self.telemetry[3].load(Ordering::SeqCst),
+        ]
     }
 
     #[wasm_bindgen]
@@ -50,7 +73,6 @@ impl SecurityEngine {
         output
     }
 
-    //  Bridge to resolve main.js call
     #[wasm_bindgen]
     pub fn secure_telemetry_step(&self, val: f64) -> Vec<u8> {
         self.secure_telemetry_packet(val)
@@ -58,7 +80,6 @@ impl SecurityEngine {
 }
 
 // Deterministic bridge 
-
 #[derive(Debug, Clone, Copy)]
 pub struct FlightStateFP {
     pub altitude: Fixed32,
@@ -72,8 +93,6 @@ thread_local! {
         airspeed: 0,
         vertical_velocity: 0,
     });
-
-    static TELEMETRY_BUFFER: RefCell<[u32; 4]> = RefCell::new([0; 4]);
 }
 
 #[wasm_bindgen]
@@ -87,16 +106,10 @@ pub fn init_engine() -> bool {
     true
 }
 
-#[wasm_bindgen]
-pub fn get_telemetry_buffer_ptr() -> *const u32 {
-    TELEMETRY_BUFFER.with(|buf| {
-        // We borrow the RefCell, get a pointer to the array, 
-        // then cast that array pointer to a *const u32 pointer.
-        buf.as_ptr() as *const u32
-    })
-}
-
 // Math Helpers
+pub fn float_to_fp(val: f64) -> Fixed32 { (val * FIXED_SCALE) as Fixed32 }
+pub fn fp_to_float(val: Fixed32) -> f64 { (val as f64) / FIXED_SCALE }
+
 #[wasm_bindgen]
 pub fn fp_add(a: Fixed32, b: Fixed32) -> Fixed32 { a.checked_add(b).unwrap_or(i32::MAX) }
 #[wasm_bindgen]
@@ -139,9 +152,6 @@ pub fn set_initial_state(alt: i32, spd: i32) {
     });
 }
 
-fn float_to_fp(val: f64) -> Fixed32 { (val * FIXED_SCALE) as Fixed32 }
-fn fp_to_float(val: Fixed32) -> f64 { (val as f64) / FIXED_SCALE }
-
 #[wasm_bindgen]
 pub fn step_physics_fp(dt_fixed: Fixed32) -> Fixed32 {
     SYSTEM_STATE.with(|s| {
@@ -165,9 +175,4 @@ pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f6
     let vvi_out = fp_to_float(vvi_fp);
 
     vec![new_alt, v_ias_out, vvi_out, vvi_out * 60.0]
-}
-
-#[wasm_bindgen]
-pub fn get_telemetry_data() -> Vec<u32> {
-    TELEMETRY_BUFFER.with(|buf| buf.borrow().to_vec())
 }
