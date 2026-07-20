@@ -390,7 +390,7 @@ Note: The sim is not blank anymore! I finally got the SecurityEngine talking to 
 
 P.S: Well, the PFD is numb. I think I messed up the math logic somewhere because the Alt/VVI speed on the PFD is not working as it should. Have to fix it the next time. Then need to add a few features here and there, after that can begin with building the forensic-auditor. 
 
-Day 49: July 19, 2026
+Day 49-50: July 19-20, 2026
 
 Task: Debugging the PFD freeze and hardening the security kernel-to-memory link.
 
@@ -398,4 +398,4 @@ Tech: Rust (WASM), Web Workers, SharedArrayBuffer (via WASM memory export), Java
 
 Note: I spent hours trying to figure out why my PDF was not moving. The physics is technically running, the deterministic-engine(including the crypto file) is doing its thing, but the gauges just wouldn't budge. I decided to go full on 'atomic' with the memory management. I had been reading up on how real time systems handle low latency data and I kept coming across the concept of 'Zero-Copy' and atomic level memory integrity. So today i  implemented AtomicU32 types in Rust to handle the telemetry to make sure the rust side and the main.js codes access the shared buffer without ever tripping over each other.
 
-P.S: The PFD is still not moving. Really gotta lock in more to figure out the bug! (haha today i had a really annoying ReferenceError where I confused wasmModule and wasmInstance because I was so tired I couldn't tell them apart!) 
+P.S: The PFD is still not moving. Really gotta lock in more to figure out the bug! (faced a really annoying ReferenceError where I confused wasmModule and wasmInstance because I was so tired I couldn't tell them apart!) 
