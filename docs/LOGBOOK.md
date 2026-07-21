@@ -390,7 +390,7 @@ Note: The sim is not blank anymore! I finally got the SecurityEngine talking to 
 
 P.S: Well, the PFD is numb. I think I messed up the math logic somewhere because the Alt/VVI speed on the PFD is not working as it should. Have to fix it the next time. Then need to add a few features here and there, after that can begin with building the forensic-auditor. 
 
-Day 49-50: July 19-20, 2026
+Day 49-51: July 19-21, 2026
 
 Task: Debugging the PFD freeze and hardening the security kernel-to-memory link.
 
