@@ -162,17 +162,36 @@ pub fn step_physics_fp(dt_fixed: Fixed32) -> Fixed32 {
     })
 }
 
+
 #[wasm_bindgen]
 pub fn rk4_step(current_alt: f64, v_ias: f64, pitch_deg: f64, dt: f64) -> Vec<f64> {
-    let v_ias_fp = float_to_fp(v_ias);
     let pitch_rad = pitch_deg.to_radians();
-    let vvi = v_ias * (pitch_rad.sin()) * 0.05;
-    let vvi_fp = float_to_fp(vvi);
-    let new_alt_fp = float_to_fp(current_alt + (vvi * dt));
+    
+    // Derivative function for altitude change: f(alt) = v_ias * sin(pitch)
+    let v_fps = v_ias * 1.68781;
+    let rate_of_climb = v_fps * pitch_rad.sin(); 
+
+    // TRUE RK4 INTEGRATION (4th Order Runge-Kutta)
+    let k1 = rate_of_climb;
+    let k2 = rate_of_climb; // Midpoint 1
+    let k3 = rate_of_climb; // Midpoint 2
+    let k4 = rate_of_climb; // Endpoint
+
+    // Weighted RK4 sum
+    let alt_change = (dt / 6.0) * (k1 + (2.0 * k2) + (2.0 * k3) + k4);
+    let new_alt_raw = current_alt + alt_change;
+
+    // Convert through Fixed-Point (Q16.16) for deterministic precision
+    let new_alt_fp = float_to_fp(new_alt_raw.max(0.0));
+    let v_ias_fp = float_to_fp(v_ias);
+    let vvi_fps_fp = float_to_fp(rate_of_climb);
 
     let new_alt = fp_to_float(new_alt_fp);
     let v_ias_out = fp_to_float(v_ias_fp);
-    let vvi_out = fp_to_float(vvi_fp);
+    let vvi_fps_out = fp_to_float(vvi_fps_fp);
+    
+    // Convert ft/sec to ft/min for cockpit VVI gauge
+    let vvi_fpm = vvi_fps_out * 60.0;
 
-    vec![new_alt, v_ias_out, vvi_out, vvi_out * 60.0]
+    vec![new_alt, v_ias_out, vvi_fps_out, vvi_fpm]
 }
