@@ -126,7 +126,7 @@ function updateHeaderStatus(status) {
         [busText, fccText, modeTag].forEach(el => {
             if (el) {
                 el.style.color = activeGreen;
-                if (el === modeTag) el.textContent = "MODE: ML-KEM-1024 [SECURE]";
+                if (el === modeTag) el.textContent = "MODE: ML-KEM-768 [SECURE]";
                 else el.textContent = el.textContent.replace("STANDBY", "ACTIVE").replace("IDLE", "ACTIVE");
             }
         });
@@ -161,9 +161,9 @@ function updateHeaderStatus(status) {
 async function initializeAvionics() {
     try {
         // 1. Capture the WASM module instance
-       const wasmModule = await init();
+        const wasmModule = await init();
         // 2. Access memory directly from the instance
-       wasmMemory = wasmModule.memory;
+        wasmMemory = wasmModule.memory;
 
         init_panic_hook();
         rustEngine = new SecurityEngine();
@@ -188,7 +188,6 @@ async function initializeAvionics() {
         logTerminalMessage("CRITICAL ERROR: KERNEL LINK FAILED", "#FF3B3B", "0xFAIL");
     }
 }
-
 
 initializeAvionics();
 
@@ -335,14 +334,10 @@ function loop() {
         const safeAlt = Number(d.altitude);
         const safeSpd = Number(d.airspeed);
 
-if (rustEngine && telemetryBufferPtr && wasmMemory) {
-    // Use the global wasmMemory variable we populated in initializeAvionics
-    const view = new Uint32Array(wasmMemory.buffer, telemetryBufferPtr, 4);
-
-    // Pass the data to your secure function
-    state.lastSecurePacket = rustEngine.secure_telemetry_step(view[0]);
-}
-
+        const view = readWasmTelemetryBuffer();
+        if (view && rustEngine) {
+            state.lastSecurePacket = rustEngine.secure_telemetry_step(view[0]);
+        }
 
         if (state.isMissionActive) {
             if (!isNaN(safeT) && safeT > lastPushedTime + (LOG_FREQUENCY - 0.01)) {
@@ -515,7 +510,6 @@ function updateTelemetryStream(arincWords) {
     hexDisplay.innerHTML = state.telemetryLines.join('');
 }
 
-
 function syncPhase(newPhase) {
     if (newPhase && newPhase !== state.currentPhase) {
         state.currentPhase = newPhase;
@@ -601,7 +595,7 @@ function runMissionStory(elapsed) {
     const time = Number(elapsed);
     const storyMilestones = [
         { t: 4.5, msg: "PHASE: V1_SPEED_REACHED. ROTATING...", color: "#00FF41" },
-        { t: 25.0, msg: "AVIONICS: ML-KEM_L5_PROTOCOL_LOCKED", color: "var(--av-amber)" },
+        { t: 25.0, msg: "AVIONICS: ML-KEM_L3_PROTOCOL_LOCKED", color: "var(--av-amber)" },
         { t: 72.0, msg: "GUIDANCE: GLIDESLOPE_ESTABLISHED", color: "#00FF41", triggerReset: true }
     ];
     storyMilestones.forEach(event => {
@@ -676,49 +670,52 @@ function handleMissionComplete() {
     document.getElementById('report-spd').textContent = Math.round(state.maxSpd);
 }
 
-document.getElementById('download-fdr-btn').addEventListener('click', async () => {
-    if (state.fdrBuffer.length === 0) {
-        logTerminalMessage("ERROR: NO FDR DATA TO EXTRACT", "#FF3B3B", "0xCSV_FAIL");
-        return;
-    }
+const downloadFdrBtn = document.getElementById('download-fdr-btn');
+if (downloadFdrBtn) {
+    downloadFdrBtn.addEventListener('click', async () => {
+        if (state.fdrBuffer.length === 0) {
+            logTerminalMessage("ERROR: NO FDR DATA TO EXTRACT", "#FF3B3B", "0xCSV_FAIL");
+            return;
+        }
 
-    logTerminalMessage("SYSTEM: COMPUTING SHA-256 INTEGRITY HASH...", "var(--av-amber)", "0xCRYPTO");
+        logTerminalMessage("SYSTEM: COMPUTING SHA-256 INTEGRITY HASH...", "var(--av-amber)", "0xCRYPTO");
 
-    let csvData = "Time(S),Altitude(FT),Airspeed(KTS),Phase,Latency(MS)\n";
-    state.fdrBuffer.forEach(row => {
-        if (row) {
-            csvData += `${row.t},${row.alt},${row.spd},${row.phase},${row.lat}\n`;
+        let csvData = "Time(S),Altitude(FT),Airspeed(KTS),Phase,Latency(MS)\n";
+        state.fdrBuffer.forEach(row => {
+            if (row) {
+                csvData += `${row.t},${row.alt},${row.spd},${row.phase},${row.lat}\n`;
+            }
+        });
+
+        const flightID = `FLT-${Math.floor(1000 + Math.random() * 9000)}`;
+        
+        const msgBuffer = new TextEncoder().encode(csvData);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const integrityHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        csvData += `\n// --- SECURE AVIONICS DATA RECORDER LOG ---\n`;
+        csvData += `// SIGNATURE_TYPE: NIST-SHA256\n`;
+        csvData += `// SOURCE_ID: ${flightID}\n`;
+        csvData += `// INTEGRITY_HASH: ${integrityHash}\n`;
+        csvData += `// EXPORT_TIMESTAMP: ${new Date().toISOString()}\n`;
+        csvData += `// STATUS: SEALED_BY_KERNEL\n`;
+        csvData += `// ----------------------------------------`;
+
+        try {
+            const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `FDR_${flightID}_SECURE.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            logTerminalMessage("FDR EXTRACTION: SHA-256 SEAL VERIFIED", "#00FF41", "0xSIG_OK");
+        } catch (err) {
+            logTerminalMessage(`EXPORT FAILED: ${err.message}`, "#FF3B3B", "0xFS_ERR");
         }
     });
-
-    const flightID = `FLT-${Math.floor(1000 + Math.random() * 9000)}`;
-    
-    const msgBuffer = new TextEncoder().encode(csvData);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const integrityHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    csvData += `\n// --- SECURE AVIONICS DATA RECORDER LOG ---\n`;
-    csvData += `// SIGNATURE_TYPE: NIST-SHA256\n`;
-    csvData += `// SOURCE_ID: ${flightID}\n`;
-    csvData += `// INTEGRITY_HASH: ${integrityHash}\n`;
-    csvData += `// EXPORT_TIMESTAMP: ${new Date().toISOString()}\n`;
-    csvData += `// STATUS: SEALED_BY_KERNEL\n`;
-    csvData += `// ----------------------------------------`;
-
-    try {
-        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `FDR_${flightID}_SECURE.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        logTerminalMessage("FDR EXTRACTION: SHA-256 SEAL VERIFIED", "#00FF41", "0xSIG_OK");
-    } catch (err) {
-        logTerminalMessage(`EXPORT FAILED: ${err.message}`, "#FF3B3B", "0xFS_ERR");
-    }
-});
+}
