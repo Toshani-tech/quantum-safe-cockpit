@@ -55,11 +55,11 @@ export async function initHandshake() {
     await new Promise(r => setTimeout(r, 600));
     
     logTerminalMessage("ML-KEM: NTT (NUMBER THEORETIC TRANSFORM) ACTIVE");
-    logTerminalMessage("LATTICE: q=3329 | k=4 | NIST_LEVEL_5"); 
+    logTerminalMessage("LATTICE: q=3329 | k=3 | NIST_LEVEL_3"); 
     await new Promise(r => setTimeout(r, 500));
     
     isSystemArmed = true; 
-    logTerminalMessage("CRYPTO: KYBER_1024_KEY_EXCHANGE: BUS_SECURE.", "#00FF41");
+    logTerminalMessage("CRYPTO: KYBER_768_KEY_EXCHANGE: BUS_SECURE.", "#00FF41");
 }
  
 export function drawLattice(canvasId) {
