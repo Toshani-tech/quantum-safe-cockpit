@@ -39,7 +39,7 @@ const AVIONICS_LOG_POOL = {
     PRE_FLIGHT: [
         "ARINC_429: INIT BUS_01",
         "SYS_CLK: GPS SYNC OK",
-        "SEC_KERN: KEYGEN NIST_L5",
+        "SEC_KERN: KEYGEN NIST_L3",
         "BUS_MAIN: COUPLER NOMINAL",
         "PWR_DIST: 28V DC STABLE",
         "IMU: STATIC CALIBRATION",
@@ -174,7 +174,7 @@ async function initializeAvionics() {
         telemetryBufferPtr = rustEngine.get_telemetry_ptr();
         
         state.isKernelReady = true;
-        logTerminalMessage("SECURITY KERNEL LINK ESTABLISHED [NIST_L5]", "#00FF41", "0xBOOT");
+        logTerminalMessage("SECURITY KERNEL LINK ESTABLISHED [NIST_L3]", "#00FF41", "0xBOOT");
         
 
         const startBtn = document.getElementById('init-btn');
@@ -542,7 +542,7 @@ function handleSecurityLogic(phase) {
          panels.forEach(p => p.classList.remove('compromised-state'));
          if (hexDisplay) hexDisplay.classList.remove('intercepted');
          if (securityTag) {
-             securityTag.textContent = "MODE: ML-KEM-1024 [SECURE]";
+             securityTag.textContent = "MODE: ML-KEM-768 [SECURE]";
              securityTag.style.color = "var(--av-green)";
          }
          document.body.classList.remove('under-attack');
