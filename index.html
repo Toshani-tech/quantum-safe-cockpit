@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AVIONICS_BUS_V16.9 </title>
+    <title>QUANTUM-SAFE-COCKPIT</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -225,21 +225,22 @@
         </footer>
     </div>
 
-    <div id="security-modal" class="overlay-layer">
-        <div class="modal-content">
-            <div class="threat-header">ALRT: PACKET_INJECTION</div>
-            <p style="font-size: 12px; color: #888; margin: 10px 0;">
-                UNTRUSTED DATA DETECTED ON BUS_A.<br>
-                SOURCE: EXTERNAL_INJECTION_NODE
-            </p>
-            <div class="protocol-box">
-                // CRYPTO_AUTH_REQUIRED<br>
-                // PROTOCOL: NIST_ML_KEM_L5<br>
-                // TARGET: KERNEL_MEMORY_SPACE
-            </div>
-            <button id="auth-crypto-btn">DEPLOY_CRYPTO_SHIELD</button>
+<div id="security-modal" class="overlay-layer">
+    <div class="modal-content">
+        <div class="threat-header">CRIT_ALERT: BUS_A_PARITY_FAULT</div>
+        <div style="font-size: 12px; color: #888; margin: 10px 0; line-height: 1.5;">
+            UNAUTHORIZED PACKET INJECTION DETECTED.<br>
+            CHANNEL: ARINC_429_BUS_A // VECTOR: EXTERNAL_NODE<br>
+            STATUS: INTEGRITY_CHECK_FAILED (0xDEADBEEF)
         </div>
+        <div class="protocol-box">
+            // KERNEL_SECURITY_EXCEPTION<br>
+            // ENCAPSULATION: NIST_ML_KEM_L3 (KYBER-768)<br>
+            // ACTION: MEMORY_SPACE_ISOLATION_PENDING
+        </div>
+        <button id="auth-crypto-btn">DEPLOY_LATTICE_SHIELD</button>
     </div>
+</div>
 
     <div id="mission-report" class="overlay-layer">
         <div class="report-content">
