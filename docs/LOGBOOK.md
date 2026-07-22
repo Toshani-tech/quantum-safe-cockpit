@@ -402,10 +402,10 @@ P.S: The PFD is still not moving. (faced a really annoying ReferenceError where 
 
 Day 52: July 22, 2026
 
-Task:
+Task: Stabilized the PFD, optimized the 90-second timeline with phase logic, and hardened the cryptographic telemetry bridge.
 
-Tech:
+Tech: Rust, WebAssembly (WASM), Web Workers, HTML5 Canvas, ML-KEM-768 Lattice Cryptography
 
-Note:
+Note: Finally fixed the nightmare bug breaking the PFD where the UI kept choking on raw atomic pointers from the physics worker's memory buffer (turns out this was the issue). Fixed it by setting up a clean lock free memory view recycling so the main render loop stays completely smooth while the background worker churns through RK4 math calculations. Also i'm clear that this sim utilizes a  military jet and definitely not a civil aircraft cuz a normal commercial airliner won't be able to pull aggressive combat maneuvers ('cuz the entire sim is compressed into a 90 sec timeline the aircraft has to go thru throttled ascents/descents causing the VVI to spike aggressively, which can only be done by a military jet) or run quantum secured cryptographic links. 
 
-P.S:
+P.S: Fixing the PFD bug took me the entire day. Literally. 
