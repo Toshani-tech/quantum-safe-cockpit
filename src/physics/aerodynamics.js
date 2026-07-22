@@ -1,4 +1,4 @@
-// aerodynamics.js - V16.2
+// aerodynamics.js - V16.3 
 
 import init, { rk4_step } from '../../deterministic-engine/pkg/deterministic_engine.js';
 
@@ -13,6 +13,15 @@ init().then(() => {
 });
 
 export function calculateFlightDynamics(state, deltaTime, elapsed) {
+    // 1. Sanitize input delta time to prevent NaN infection
+    const safeDeltaTime = (typeof deltaTime === 'number' && !isNaN(deltaTime) && deltaTime > 0) ? deltaTime : 0.016;
+    const dt = Math.min(safeDeltaTime, 0.03); 
+
+    // 2. Reset module pitch state when restarting simulation
+    if (elapsed <= 0.05) {
+        actualPitch = 0;
+    }
+
     if (!wasmReady) {
         return { 
             ...state, 
@@ -23,14 +32,12 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
         };
     }
 
-    let alt = parseFloat(state.altitude) || 0;
-    let v_ias = parseFloat(state.airspeed) || 0;
+    let alt = parseFloat(state.altitude);
+    let v_ias = parseFloat(state.airspeed);
     
     if (isNaN(alt)) alt = 0;
     if (isNaN(v_ias)) v_ias = 0;
 
-    const dt = Math.min(deltaTime, 0.03); 
-    
     const T_END = 90.0;
     const T_APPROACH = 60.0; 
     const T_ENGAGEMENT = 35.0; 
@@ -44,15 +51,20 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
     else if (elapsed > 0) phase = 'STARTUP_TAXI';
 
     if (phase === 'MISSION_COMPLETE') {
-        return { altitude: 0, airspeed: 0, verticalVelocity: 0, missionPhase: 'MISSION_COMPLETE' };
+        return { 
+            altitude: 0, 
+            airspeed: 0, 
+            verticalVelocity: 0, 
+            missionPhase: 'MISSION_COMPLETE',
+            vviStatus: 'NORMAL',
+            vviDirection: 'LEVEL'
+        };
     }
 
-   
     const rho = 1.225 * Math.exp(-alt / 8500); 
     let targetPitch = 0; 
     let thrust = 0;
 
-    
     switch (phase) {
         case 'STARTUP_TAXI':
             thrust = 2800; 
@@ -84,33 +96,35 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
             break;
     }
 
-    
+    // Rate-limit pitch rate change
     const maxDelta = 8.0 * dt; 
     actualPitch += Math.max(-maxDelta, Math.min(maxDelta, targetPitch - actualPitch));
 
-   
     const mass = 150; 
     let q = 0.5 * rho * Math.pow(v_ias, 2); 
-    
     
     let accel_t = (thrust - ((q * 0.038) + (Math.abs(actualPitch) * 5.2))) / mass;
     let v_mid = v_ias + (accel_t * (dt * 0.5));
     
-   
+    // Call Rust WASM Fixed-Point Engine
     const rustResult = rk4_step(alt, v_mid, actualPitch, dt);
     
-   
+    // 3. Complete Telemetry Guard (Prevents UI Render Crash)
     if (!rustResult || isNaN(rustResult[0])) {
-        return { ...state, missionPhase: phase };
+        return { 
+            ...state, 
+            missionPhase: phase,
+            verticalVelocity: state.verticalVelocity || 0,
+            vviStatus: state.vviStatus || 'NORMAL',
+            vviDirection: state.vviDirection || 'LEVEL'
+        };
     }
 
     let newAlt = rustResult[0];
     let vvi_fpm = rustResult[3]; 
     
-   
     let accel_next = (thrust - ((0.5 * rho * Math.pow(Math.max(0, v_mid), 2) * 0.038) + (Math.abs(actualPitch) * 5.2))) / mass;
     let newVel = v_mid + (accel_next * (dt * 0.5));
-    
     
     if (newAlt <= 10.0 && phase === 'FINAL_APPROACH' && elapsed > 88.0) {
         newAlt = 0;
@@ -124,7 +138,7 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
     return {
         altitude: isNaN(newAlt) ? 0 : newAlt, 
         airspeed: isNaN(newVel) ? 0 : newVel,
-        verticalVelocity: vvi_fpm,
+        verticalVelocity: isNaN(vvi_fpm) ? 0 : vvi_fpm,
         missionPhase: phase,
         vviStatus: (vvi_fpm < -2500) ? 'CRITICAL' : (vvi_fpm < -1500) ? 'CAUTION' : 'NORMAL',
         vviDirection: vvi_fpm > 100 ? 'UP' : vvi_fpm < -100 ? 'DOWN' : 'LEVEL'
