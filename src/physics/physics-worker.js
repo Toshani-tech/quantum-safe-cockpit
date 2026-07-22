@@ -1,5 +1,5 @@
 /*
- * physics-worker.js - V14.0 
+ * physics-worker.js - V14.1 (Patched)
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
@@ -64,7 +64,6 @@ function calculateGaussianRandom() {
     return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 }
 
-
 function packARINC429(label, sdi, value, ssm) {
     let word = 0;
     word |= (label & 0xFF);
@@ -87,7 +86,6 @@ function packARINC429(label, sdi, value, ssm) {
 }
 
 function applyBERCorruption(uint32Array, phaseString, speedValue) {
-    
     let baseRate = (phaseString === 'ENGAGEMENT_ZONE') ? 4.2e-6 : 1.5e-8;
     let velocityImpact = (speedValue / 500) * 1e-8;
     let atmosphericNoise = Math.abs(calculateGaussianRandom() * 0.5e-8);
@@ -98,7 +96,6 @@ function applyBERCorruption(uint32Array, phaseString, speedValue) {
         
         for (let bitPos = 0; bitPos < 32; bitPos++) {
             if (Math.random() < derivedBER) {
-                
                 word ^= (1 << bitPos);
             }
         }
@@ -106,7 +103,6 @@ function applyBERCorruption(uint32Array, phaseString, speedValue) {
     }
     return derivedBER;
 }
-
 
 const wasmPromise = init().then(instance => {
     wasmExports = instance;
@@ -222,12 +218,13 @@ function updatePhysics(dt, elapsed) {
     try {
         if (wasmExports && wasmExports.step_physics_fp) {
             const dtFixed = toFixed32(dt);
-            const rawAltitude = wasmExports.step_physics_fp(dtFixed);
+            // Execute fixed-point step in WASM
+            wasmExports.step_physics_fp(dtFixed);
             
-            state.altitude = toFloat32(rawAltitude);
-            
+            // Sync flight variables from the RK4 flight dynamics module
             const dynamics = calculateFlightDynamics(state, dt, elapsed);
             if (dynamics) {
+                state.altitude = dynamics.altitude; // FIX 1: Drive altitude via RK4 calculation
                 state.airspeed = dynamics.airspeed;
                 state.missionPhase = dynamics.missionPhase;
                 state.vviStatus = dynamics.vviStatus;
@@ -235,13 +232,13 @@ function updatePhysics(dt, elapsed) {
                 state.verticalVelocity = (state.verticalVelocity * 0.90) + (dynamics.verticalVelocity * 0.10);
             }
             
-            // ATOMIC UPDATE: Send new state to the Security Kernel
+            // ATOMIC UPDATE: Pass state to Security Kernel safely formatted for u32
             if (securityEngine) {
                 securityEngine.update_telemetry(
-                    Math.round(state.altitude),
-                    Math.round(state.airspeed),
-                    Math.round(state.verticalVelocity),
-                    1 // Status: 1 = Active
+                    Math.max(0, Math.round(state.altitude)),           // FIX 2: Prevent negative altitude
+                    Math.max(0, Math.round(state.airspeed)),           // FIX 2: Prevent negative airspeed
+                    Math.round(state.verticalVelocity) >>> 0,          // FIX 2: Unsigned 32-bit cast for VVI
+                    1                                                  // Status: 1 = Active
                 );
             }
         } else {
@@ -261,7 +258,6 @@ function updatePhysics(dt, elapsed) {
 }
 
 function broadcastTelemetry(elapsed) {
-   
     const serializedBuffer = new Uint32Array(3);
     
     let wireAltitude = state.altitude;
@@ -269,8 +265,8 @@ function broadcastTelemetry(elapsed) {
         wireAltitude = 420.0; 
     }
 
-    serializedBuffer[0] = packARINC429(0o036, 0, wireAltitude, 0);                
-    serializedBuffer[1] = packARINC429(0o037, 0, state.airspeed, 0);                
+    serializedBuffer[0] = packARINC429(0o036, 0, wireAltitude, 0);                 
+    serializedBuffer[1] = packARINC429(0o037, 0, state.airspeed, 0);                 
     serializedBuffer[2] = packARINC429(0o027, 0, getPhaseCode(state.missionPhase), 0); 
 
     const activeBER = applyBERCorruption(serializedBuffer, state.missionPhase, state.airspeed);
