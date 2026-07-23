@@ -416,6 +416,6 @@ Task: Built and styled the T+62s forensic auditor modal prompt
 
 Tech: JavaScript, CSS3, HTML5.
 
-Note: Finally started working on the Forensic-auditor. Created the popup message and hooked it up to launch the Python backend workspace in a side-by-side tab. So basically at T+62s, once the sim's engagement zone wraps up it prompts the user to spin up app.py as an independent browser tab to review the attack vectors and post-quantum lattice defenses. 
+Note: Finally started working on the Forensic-auditor. Created the popup message and hooked it up to launch the Python backend workspace in a side-by-side tab. So basically at T+62s, once the sim's engagement zone wraps up it prompts the user to spin up app.py as an independent browser tab to review the attack vectors and post-quantum lattice defenses. I wanted it to mimic Flight Management Computer (FMC) error screen so i looked online how they look and tried my best to style the popup accordingly, but i was never artsy! 
 
-P.S: 
+P.S: initially window.open kept spawning a separate restricted floating desktop window because i had sizing specs left over which felt kinda clunky. Fixed it by stripping out the width and height parameters and passing _blank, allowing the forensic auditor tab to pop open cleanly right alongside the main simulation tab...you know like having a browser split with Netflix and Google side by side.
