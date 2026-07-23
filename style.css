@@ -184,3 +184,132 @@ footer { flex: 0 0 60px; }
     background-size: 100% 4px;
     z-index: 9998; pointer-events: none; opacity: 0.2;
 }
+
+/* ========================================================== */
+/* INDUSTRIAL MODAL OVERLAY (WINDOW 2 FORENSIC AUDITOR HOOK)  */
+/* ========================================================== */
+
+.industrial-modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(2px);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 10000;
+}
+
+.industrial-modal-box {
+    width: 480px;
+    background: rgba(2, 5, 2, 0.98);
+    border: 1px solid var(--av-green);
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.2), inset 0 0 20px rgba(0, 255, 65, 0.05);
+    font-family: var(--font-main);
+    color: var(--av-green);
+    text-transform: uppercase;
+    position: relative;
+}
+
+/* ========================================================== */
+/* INDUSTRIAL MODAL OVERLAY (WINDOW 2 FORENSIC AUDITOR HOOK)  */
+/* ========================================================== */
+
+.industrial-modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.98);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 10000;
+}
+
+.industrial-modal-box {
+    width: 500px;
+    background: #000000;
+    border: 2px solid var(--av-green);
+    font-family: var(--font-main);
+    color: var(--av-green);
+    text-transform: uppercase;
+    box-shadow: none;
+}
+
+.industrial-modal-box .modal-header {
+    background: var(--av-green);
+    color: #000000;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.industrial-modal-box .modal-header::after {
+    content: "[FAULT_ID: 0x904]";
+    color: #000000;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.industrial-modal-box .modal-body {
+    padding: 16px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--av-green);
+    background: #000000;
+    border-bottom: 1px solid var(--av-green);
+}
+
+.industrial-modal-box .modal-body p {
+    margin-bottom: 8px;
+}
+
+.industrial-modal-box .modal-body p:last-child {
+    margin-bottom: 0;
+}
+
+.industrial-modal-box .modal-body p strong {
+    color: #000000;
+    background: var(--av-green);
+    padding: 0 4px;
+    font-weight: 900;
+}
+
+.industrial-modal-box .modal-footer {
+    display: flex;
+    padding: 8px;
+    background: #000000;
+    gap: 8px;
+}
+
+.industrial-modal-box button {
+    flex: 1;
+    padding: 10px;
+    font-family: var(--font-main);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: crosshair;
+    border: 1px solid var(--av-green);
+    background: #000000;
+    color: var(--av-green);
+    transition: none;
+    -webkit-font-smoothing: none;
+}
+
+.industrial-modal-box #audit-yes:hover {
+    background: var(--av-green);
+    color: #000000;
+}
+
+.industrial-modal-box #audit-no {
+    color: #555555;
+    border-color: #333333;
+}
+
+.industrial-modal-box #audit-no:hover {
+    background: #1a1a1a;
+    color: #ffffff;
+    border-color: #ffffff;
+}
