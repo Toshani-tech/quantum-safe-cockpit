@@ -412,10 +412,10 @@ P.S: Fixing the PFD bug took me the entire day. Literally.
 
 Day 53: July 23, 2026
 
-Task: 
+Task: Built and styled the T+62s forensic auditor modal prompt 
 
-Tech:
+Tech: JavaScript, CSS3, HTML5.
 
-Note:
+Note: Finally started working on the Forensic-auditor. Created the popup message and hooked it up to launch the Python backend workspace in a side-by-side tab. So basically at T+62s, once the sim's engagement zone wraps up it prompts the user to spin up app.py as an independent browser tab to review the attack vectors and post-quantum lattice defenses. 
 
 P.S: 
