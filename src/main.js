@@ -25,7 +25,8 @@ const state = {
     telemetryLines: [],
     isMitMAttackActive: false, 
     qkdLink: new QKDSatelliteLink(),
-    lastSecurePacket: null // Hook for Window 2
+    lastSecurePacket: null,
+    forensicPopupTriggered: false // Window 2 pop up
 };
 
 let telemetryBufferPtr = null;
@@ -274,7 +275,7 @@ async function runPOST() {
 
         state.physicsWorker.onmessage = (e) => {
             if (e.data.type === 'KERNEL_READY') {
-                logTerminalMessage("WORKER_BUS: NIST_L5_MODULE_LOADED", "#00FF41", "0xBUS");
+                logTerminalMessage("WORKER_BUS: NIST_L3_MODULE_LOADED", "#00FF41", "0xBUS");
                 
                 state.physicsWorker.postMessage({ 
                     type: 'START_FLIGHT',
@@ -317,6 +318,7 @@ function startRenderLoop() {
     state.isLoopRunning = true;
     requestAnimationFrame(loop);
 }
+
 
 function loop() {
     if (state.isTerminated && state.currentPhase !== 'MISSION_COMPLETE') { 
@@ -395,6 +397,13 @@ function loop() {
             
             handleSecurityLogic(d.missionPhase);
             runMissionStory(safeT);
+
+            //  62-SECOND FORENSIC AUDITOR POPUP TRIGGER
+            if (safeT >= 62 && !state.forensicPopupTriggered) {
+                state.forensicPopupTriggered = true;
+                triggerForensicPopup();
+            }
+
         }
 
         const activeTime = state.isMissionActive ? safeT : (performance.now() / 1000);
@@ -405,6 +414,7 @@ function loop() {
     }
     requestAnimationFrame(loop);
 }
+
 
 function updateTacticalButton(alt, spd, phase) {
     const btn = document.getElementById('init-btn');
@@ -717,5 +727,36 @@ if (downloadFdrBtn) {
         } catch (err) {
             logTerminalMessage(`EXPORT FAILED: ${err.message}`, "#FF3B3B", "0xFS_ERR");
         }
+    });
+}
+
+function triggerForensicPopup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'industrial-modal-overlay';
+    
+    overlay.innerHTML = `
+        <div class="industrial-modal-box">
+            <div class="modal-header">SYS_ALERT // SECURITY ANOMALY DETECTED</div>
+            <div class="modal-body">
+                <p>Engagement zone terminated at T+62s. Telemetry interference flagged.</p>
+                <p>Ready to launch Window 2: an independent forensic workspace for intercepted attack and lattice defense review.</p>
+                <p><strong>Initialize Forensic Auditor?</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button id="audit-yes">EXECUTE AUDIT</button>
+                <button id="audit-no">BYPASS</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+
+    document.getElementById('audit-yes').addEventListener('click', () => {
+        window.open('app.py', '_blank');
+        overlay.remove();
+    });
+
+    document.getElementById('audit-no').addEventListener('click', () => {
+        overlay.remove();
     });
 }
