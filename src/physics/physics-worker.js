@@ -1,5 +1,5 @@
 /*
- * physics-worker.js - V14.1 
+ * physics-worker.js - V14.2 
  */
 
 import { calculateFlightDynamics } from './aerodynamics.js';
