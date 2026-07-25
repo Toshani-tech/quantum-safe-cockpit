@@ -1,4 +1,4 @@
-// qkd-satellite-link.js V2.7
+// qkd-satellite-link.js V2.9
 
 
 export class QKDSatelliteLink {
