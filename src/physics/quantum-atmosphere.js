@@ -1,4 +1,4 @@
-// quantum-atmosphere.js - V3.5 
+// quantum-atmosphere.js - V3.6
 
 export class QuantumAtmosphereLink {
     constructor() {
