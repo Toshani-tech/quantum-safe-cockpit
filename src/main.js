@@ -1,4 +1,4 @@
-// main.js - V19.2
+// main.js - V19.4
 
 import init, { SecurityEngine, init_panic_hook, init_engine } from '../deterministic-engine/pkg/deterministic_engine.js';
 import { initHandshake, logTerminalMessage, drawLattice, triggerAttack, stopLattice } from './security/lattice-engine.js';
