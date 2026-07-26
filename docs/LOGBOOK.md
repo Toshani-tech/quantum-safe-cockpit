@@ -382,7 +382,7 @@ P.S: I went back and polished some of my logbook entries and file version names.
 
 Day 48: July 18, 2026
 
-Task: Linking the Rust Security Engine (ML-KEM) to the sim's UI.
+Task: Linking the Rust Security Engine (which uses ML-KEM) to the sim's UI.
 
 Tech: Rust, WebAssembly, ML-KEM Cryptography, JavaScript.
 
