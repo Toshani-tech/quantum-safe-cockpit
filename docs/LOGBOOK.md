@@ -420,6 +420,7 @@ Note: Finally started working on the Forensic-auditor. Created the popup message
 
 P.S: initially window.open kept opening a separate restricted floating desktop window because i had sizing specs left over which felt kinda clunky. Fixed it by stripping out the width and height parameters and passing _blank, allowing the forensic auditor tab to pop open cleanly right alongside the main simulation tab...for eg like having a browser split with Netflix and Google side by side.
 
+
 Day 55-69: July 25 - August 8, 2026
 
 Task: Teaching myself core backend development concepts, clean file parsing, and system integration.
