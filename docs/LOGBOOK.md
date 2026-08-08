@@ -426,4 +426,5 @@ Task: Teaching myself core backend development concepts, clean file parsing, and
 
 Tech: Python 3, C++, CMake, WSL, Python documentation(s)
 
-Note: Spent these weeks deep diving into Python cuz I needed a solid backend for app.py to handle the forensic dashboard. Instead of watching tutorials ( which i did 2 years ago as a sophomore and learnt nothing) 
+Note: Spent these weeks deep diving into Python cuz I needed a solid backend for app.py to handle the forensic dashboard. Instead of watching tutorials ( which i did 2 years ago as a sophomore and learnt nothing) i actually sat down and read through the official Python documentation to learn type hinting, custom data structures, and clean file parsing. After that i noticed that the actual cyber attack and insane latency spikes happen  earlier in the engagement zone (T+50 to T+60 seconds)so the attack data is already done and sitting in the past by the time the popup appears. Figured out i'm gonna code it so the JS automatically flushes and saves the CSV right at the 62-second trigger, letting app.py instantly read it like a black box flight recorder to audit how the post quantum lattice defenses handled the hack. 
+
