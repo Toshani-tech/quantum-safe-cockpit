@@ -424,3 +424,6 @@ Day 55-69: July 25 - August 8, 2026
 
 Task: Teaching myself core backend development concepts, clean file parsing, and system integration in Python. 
 
+Tech: Python 3, C++, CMake, WSL, Python documentation(s)
+
+Note: Spent these weeks deep diving into Python cuz I needed a solid backend for app.py to handle the forensic dashboard. Instead of watching tutorials ( which i did 2 years ago as a sophomore and learnt nothing) 
