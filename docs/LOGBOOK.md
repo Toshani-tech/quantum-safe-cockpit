@@ -422,10 +422,10 @@ P.S: initially window.open kept opening a separate restricted floating desktop w
 
 Day 55-69: July 25 - August 8, 2026
 
-Task: Teaching myself core backend development concepts, clean file parsing, and system integration in Python. 
+Task: Teaching myself core backend development concepts, clean file parsing, and system integration.
 
-Tech: Python 3, C++, CMake, WSL, Python documentation(s)
+Tech: Python 3, C++, CMake, WSL, Python and C++ documentation(s)
 
-Note: Spent these weeks deep diving into Python cuz I needed a solid backend for app.py to handle the forensic dashboard. Instead of watching tutorials ( which i did 2 years ago as a sophomore and learnt nothing) i actually sat down and read through the official Python documentation to learn type hinting, custom data structures, and clean file parsing. After that i noticed that the actual cyber attack and insane latency spikes happen  earlier in the engagement zone (T+50 to T+60 seconds)so the attack data is already done and sitting in the past by the time the popup appears. Figured out i'm gonna code it so the JS automatically flushes and saves the CSV right at the 62-second trigger, letting app.py instantly read it like a black box flight recorder to audit how the post quantum lattice defenses handled the hack. 
+Note: Spent these weeks deep diving into Python cuz I needed a solid backend for app.py to handle the forensic dashboard. Instead of watching tutorials ( which i did 2 years ago as a sophomore and learnt nothing) i actually sat down and read through the official Python documentation (docs.python.org) to learn type hinting, custom data structures, and clean file parsing. After that i noticed that the actual cyber attack and insane latency spikes happen  earlier in the engagement zone (T+50 to T+60 seconds)so the attack data is already done and sitting in the past by the time the popup appears. Figured out i'm gonna code it so the JS automatically flushes and saves the CSV right at the 62-second trigger, letting app.py instantly read it like a black box flight recorder to audit how the post quantum lattice defenses handled the hack. also researched the C++ side using cppreference.com and official CMake guides to understand how to structure the auditor core and handle the bridge without hitting manual linking hell (i have experience with that hell!).
 
 P.S: Had to brush up my Python skills! Actual learning does take time. Btw, the WSL tools are fully locked in. 
