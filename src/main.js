@@ -730,6 +730,7 @@ if (downloadFdrBtn) {
     });
 }
 
+
 function triggerForensicPopup() {
     const overlay = document.createElement('div');
     overlay.className = 'industrial-modal-overlay';
@@ -751,8 +752,15 @@ function triggerForensicPopup() {
     
     document.body.appendChild(overlay);
 
+    // Use 127.0.0.1 instead of localhost to bypass IPv6 timeout lag
+    fetch('http://127.0.0.1:8000/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state.fdrBuffer)
+    }).catch(err => console.log("Background pre-fetch pending..."));
+
     document.getElementById('audit-yes').addEventListener('click', () => {
-        window.open('app.py', '_blank');
+        window.open('http://127.0.0.1:8000', '_blank');
         overlay.remove();
     });
 
