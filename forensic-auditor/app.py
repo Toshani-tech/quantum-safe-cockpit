@@ -53,7 +53,7 @@ class ForensicAPIHandler(http.server.BaseHTTPRequestHandler):
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <title>WINDOW 2: AVIONICS FORENSIC AUDITOR</title>
+                <title> WINDOW 2: AVIONICS FA </title>
                 <style>
                     :root {{
                         --av-green: #00FF41;
