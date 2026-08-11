@@ -434,3 +434,5 @@ Day 70-72: August 9 - August 11, 2026
 
 Task: Implement and design the Window 2 forensic auditor backend bridge
 
+Tech: Python (BaseHTTPRequestHandler), JavaScript (Async Fetch API, DOM), HTML/CSS (Viewport-locked flex/grid layout).
+
