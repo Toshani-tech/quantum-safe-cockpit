@@ -752,7 +752,7 @@ function triggerForensicPopup() {
     
     document.body.appendChild(overlay);
 
-    // Use 127.0.0.1 instead of localhost to bypass IPv6 timeout lag
+    // Use 127.0.0.1 instead of localhost 
     fetch('http://127.0.0.1:8000/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
