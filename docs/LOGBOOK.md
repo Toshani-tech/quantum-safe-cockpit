@@ -436,3 +436,5 @@ Task: Implement and design the Window 2 forensic auditor backend bridge
 
 Tech: Python (BaseHTTPRequestHandler), JavaScript (Async Fetch API, DOM), HTML/CSS (Viewport-locked flex/grid layout).
 
+Note: Took me hours! I was able to code a zero-disk RAM bridge so JS instantly passes the flight telemetry right into Python. Designed a dashboard showing post-attack stats, NIST lattice verification, and live flight recorder streams. 
+
