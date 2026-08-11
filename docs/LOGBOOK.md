@@ -438,3 +438,4 @@ Tech: Python (BaseHTTPRequestHandler), JavaScript (Async Fetch API, DOM), HTML/C
 
 Note: Took me hours! I was able to code a zero-disk RAM bridge so JS instantly passes the flight telemetry right into Python. Designed a dashboard showing post-attack stats, NIST lattice verification, and live flight recorder streams. 
 
+P.S: The browser kept freezing for two whole minutes trying to open the window. Had to spend the entire day yesterday tryna figure out that the localhost gets stuck waiting on IPv6 timeouts. So swapped it to 127.0.0.1 completely fixed it and now its fast.
