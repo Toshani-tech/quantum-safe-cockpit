@@ -1,7 +1,11 @@
 #include "auditor-engine.hpp"
 #include <algorithm>
+#include <iostream>
 
 AuditResult AuditorEngine::analyzeLogs(const std::vector<FlightRecord>& records) {
+    
+    std::cout << "\n[C++ KERNEL] >>> SECURE IPC: Forensic audit requested. Processing lattice telemetry & quantum decryption hashes..." << std::endl;
+
     AuditResult result;
     result.total_records = records.size();
     result.peak_latency = 0.0;

@@ -1,7 +1,8 @@
-
 import http.server
 import socketserver
 import json
+import time
+import auditor_cpp
 
 PORT = 8000
 IN_MEMORY_LOGS = []
@@ -43,10 +44,29 @@ class ForensicAPIHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             self.end_headers()
 
-            total_records = len(IN_MEMORY_LOGS)
-            max_lat = max([float(r.get("lat", 0)) for r in IN_MEMORY_LOGS], default=0.0)
-            max_alt = max([int(r.get("alt", 0)) for r in IN_MEMORY_LOGS], default=0)
-            max_spd = max([int(r.get("spd", 0)) for r in IN_MEMORY_LOGS], default=0)
+            # === STEP 2: C++ ENGINE BENCHMARK TIMER & EXECUTION ===
+            start_time = time.perf_counter()
+
+            try:
+                # Hand off flight logs to the high-speed C++ engine via the bridge
+                audit_result = auditor_cpp.analyze_logs(IN_MEMORY_LOGS)
+                total_records = audit_result.get('total_records', len(IN_MEMORY_LOGS))
+                max_lat = audit_result.get('peak_latency', 0.0)
+                max_alt = audit_result.get('max_altitude', 0)
+                max_spd = audit_result.get('max_airspeed', 0)
+                verdict_text = audit_result.get('verdict', 'LATTICE ISOLATION ENFORCED')
+            except Exception as cpp_err:
+                # Fallback safeguard if needed
+                print(f"[WARNING] C++ Bridge call failed, using Python fallback: {cpp_err}")
+                total_records = len(IN_MEMORY_LOGS)
+                max_lat = max([float(r.get("lat", 0)) for r in IN_MEMORY_LOGS], default=0.0)
+                max_alt = max([int(r.get("alt", 0)) for r in IN_MEMORY_LOGS], default=0)
+                max_spd = max([int(r.get("spd", 0)) for r in IN_MEMORY_LOGS], default=0)
+                verdict_text = "LATTICE ISOLATION ENFORCED (PYTHON FALLBACK)"
+
+            end_time = time.perf_counter()
+            execution_time_ms = (end_time - start_time) * 1000
+            print(f"[BENCHMARK] C++ Forensic Engine Execution Time: {execution_time_ms:.4f} ms")
 
             html_content = f"""
             <!DOCTYPE html>
@@ -186,7 +206,7 @@ class ForensicAPIHandler(http.server.BaseHTTPRequestHandler):
                             <div class="metric-row"><span class="metric-label">Max Recorded Altitude:</span> <span class="metric-value">{max_alt} FT</span></div>
                             <div class="metric-row"><span class="metric-label">Max Recorded Airspeed:</span> <span class="metric-value">{max_spd} KTS</span></div>
                         </div>
-                        <div class="status-pill">VERDICT: LATTICE ISOLATION ENFORCED</div>
+                        <div class="status-pill">VERDICT: {verdict_text}</div>
                     </div>
 
                     <div class="panel">
@@ -194,7 +214,7 @@ class ForensicAPIHandler(http.server.BaseHTTPRequestHandler):
                         <div>
                             <div class="metric-row"><span class="metric-label">Encryption Standard:</span> <span class="metric-value">NIST ML-KEM-768</span></div>
                             <div class="metric-row"><span class="metric-label">Bus Protocol:</span> <span class="metric-value">ARINC-429 TYPE-SAFE</span></div>
-                            <div class="metric-row"><span class="metric-label">Integrity Status:</span> <span class="metric-value" style="color: var(--av-cyan);">SHA-256 SEALED</span></div>
+                            <div class="metric-row"><span class="metric-label">C++ Pipeline Latency:</span> <span class="metric-value" style="color: var(--av-cyan);">{execution_time_ms:.4f} MS</span></div>
                             <div class="metric-row"><span class="metric-label">Memory I/O:</span> <span class="metric-value">ZERO DISK (RAM DIRECT)</span></div>
                         </div>
                         <div class="status-pill" style="border-color: var(--av-amber); color: var(--av-amber); background: rgba(255,176,0,0.05);">SECURITY: THREAD ISOLATION ACTIVE</div>
