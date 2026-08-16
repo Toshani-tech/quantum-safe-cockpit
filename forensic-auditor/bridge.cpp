@@ -14,24 +14,75 @@ static PyObject* py_analyze_logs(PyObject* self, PyObject* args) {
     
     for (Py_ssize_t i = 0; i < size; i++) {
         PyObject* item = PyList_GetItem(list_obj, i);
-        if (!PyDict_Check(item)) continue;
+        if (!item || !PyDict_Check(item)) continue;
 
         FlightRecord r;
+
+        // Safe extraction for 't' (handles int or float gracefully)
         PyObject* val_t = PyDict_GetItemString(item, "t");
-        r.t = val_t ? (int)PyLong_AsLong(val_t) : 0;
+        if (val_t) {
+            PyObject* py_num = PyNumber_Long(val_t);
+            if (py_num) {
+                r.t = (int)PyLong_AsLong(py_num);
+                Py_DECREF(py_num);
+            } else {
+                PyErr_Clear();
+                r.t = 0;
+            }
+        } else {
+            r.t = 0;
+        }
 
+        // Safe extraction for 'alt'
         PyObject* val_alt = PyDict_GetItemString(item, "alt");
-        r.alt = val_alt ? (int)PyLong_AsLong(val_alt) : 0;
+        if (val_alt) {
+            PyObject* py_num = PyNumber_Long(val_alt);
+            if (py_num) {
+                r.alt = (int)PyLong_AsLong(py_num);
+                Py_DECREF(py_num);
+            } else {
+                PyErr_Clear();
+                r.alt = 0;
+            }
+        } else {
+            r.alt = 0;
+        }
 
+        // Safe extraction for 'spd'
         PyObject* val_spd = PyDict_GetItemString(item, "spd");
-        r.spd = val_spd ? (int)PyLong_AsLong(val_spd) : 0;
+        if (val_spd) {
+            PyObject* py_num = PyNumber_Long(val_spd);
+            if (py_num) {
+                r.spd = (int)PyLong_AsLong(py_num);
+                Py_DECREF(py_num);
+            } else {
+                PyErr_Clear();
+                r.spd = 0;
+            }
+        } else {
+            r.spd = 0;
+        }
 
+        // Safe extraction for 'lat' (latency)
         PyObject* val_lat = PyDict_GetItemString(item, "lat");
-        r.lat = val_lat ? PyFloat_AsDouble(val_lat) : 0.0;
+        if (val_lat) {
+            PyObject* py_flt = PyNumber_Float(val_lat);
+            if (py_flt) {
+                r.lat = PyFloat_AsDouble(py_flt);
+                Py_DECREF(py_flt);
+            } else {
+                PyErr_Clear();
+                r.lat = 0.0;
+            }
+        } else {
+            r.lat = 0.0;
+        }
 
+        // Safe extraction for 'phase'
         PyObject* val_phase = PyDict_GetItemString(item, "phase");
         if (val_phase && PyUnicode_Check(val_phase)) {
-            r.phase = PyUnicode_AsUTF8(val_phase);
+            const char* utf8_str = PyUnicode_AsUTF8(val_phase);
+            r.phase = utf8_str ? utf8_str : "N/A";
         } else {
             r.phase = "N/A";
         }
@@ -43,6 +94,8 @@ static PyObject* py_analyze_logs(PyObject* self, PyObject* args) {
     AuditResult res = engine.analyzeLogs(records);
 
     PyObject* dict = PyDict_New();
+    if (!dict) return NULL;
+    
     PyDict_SetItemString(dict, "total_records", PyLong_FromLong(res.total_records));
     PyDict_SetItemString(dict, "peak_latency", PyFloat_FromDouble(res.peak_latency));
     PyDict_SetItemString(dict, "max_altitude", PyLong_FromLong(res.max_altitude));
@@ -53,7 +106,7 @@ static PyObject* py_analyze_logs(PyObject* self, PyObject* args) {
 }
 
 static PyMethodDef AuditorMethods[] = {
-    {"analyze_flight_data", py_analyze_logs, METH_VARARGS, "Analyze flight logs using C++ engine."},
+    {"analyze_logs", py_analyze_logs, METH_VARARGS, "Analyze flight logs using C++ engine."},
     {NULL, NULL, 0, NULL}
 };
 
