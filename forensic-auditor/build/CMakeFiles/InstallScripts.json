@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/mnt/e/desktop/quantum-safe-cockpit-main/forensic-auditor/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

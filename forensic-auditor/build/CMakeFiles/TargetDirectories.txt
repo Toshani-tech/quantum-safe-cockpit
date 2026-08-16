@@ -1,0 +1,3 @@
+/mnt/e/desktop/quantum-safe-cockpit-main/forensic-auditor/build/CMakeFiles/auditor_cpp.dir
+/mnt/e/desktop/quantum-safe-cockpit-main/forensic-auditor/build/CMakeFiles/edit_cache.dir
+/mnt/e/desktop/quantum-safe-cockpit-main/forensic-auditor/build/CMakeFiles/rebuild_cache.dir
