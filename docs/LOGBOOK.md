@@ -439,3 +439,13 @@ Tech: Python (BaseHTTPRequestHandler), JavaScript (Async Fetch API, DOM), HTML/C
 Note: Took me hours! I was able to code a zero-disk RAM bridge so JS instantly passes the flight telemetry right into Python. Designed a dashboard showing post-attack stats, NIST lattice verification, and live flight recorder streams. 
 
 P.S: The browser kept freezing for two whole minutes trying to open the window. Had to spend the entire day yesterday tryna figure out that the localhost gets stuck waiting on IPv6 timeouts. So swapped it to 127.0.0.1 completely fixed it and now its fast.
+
+Day 72 - Day 76 : August 11 - August 16, 2026
+
+Task: Integrated and debugged the native C++ forensic auditor engine (auditor_cpp) with the Python HTTP server backend (app.py).
+
+Tech: C++, Python C-API, CMake, WSL.
+
+Note: Wrote up bridge.cpp using the low level Python C-API to accept flight telemetry records from Python. It then processes them through the C++ AuditorEngine, and return analytics at high speed. also i Compiled the shared library (auditor_cpp.so) thru CMake and saw millisecond fast native execution.
+
+P.S: well i ran into name mismatches and a few hard crashes caused by the C-API rejecting float/int type mismatches in the JSON data. i fixed it by aligning the method names and writing bulletproof type coercion  to handle data safely without throwing exceptions (Spent a few days trying to brainstorm the logic and a few days actually writing it here) so far so good.
