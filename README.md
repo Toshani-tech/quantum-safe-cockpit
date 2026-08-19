@@ -1,4 +1,4 @@
-# Quantum-Safe Cockpit: A Post-Quantum Cryptography Flight Simulator
+# Quantum-Safe-Cockpit: A Post-Quantum Cryptography Flight Simulator
 
 **A 90-second military jet flight simulation I built to explore how post-quantum cryptography actually defends against cyberattacks in real time.**
 
