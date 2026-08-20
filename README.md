@@ -1,20 +1,21 @@
 # Quantum-Safe-Cockpit: A Post-Quantum Cryptography Flight Simulator
 
-**A 90-second military jet flight simulation I built to explore how post-quantum cryptography actually defends against cyberattacks in real time.**
+**A military jet flight simulation I built to explore how post-quantum cryptography can be incorporated into a simulated avionics cybersecurity scenario.**
 
 Watch Video Demo [To be Attached]
+
 ---
 
 ## 🎯 What Is This?
 
-I started this project wondering: if planes can be hijacked, can they be *hacked*? What would actually happen if someone broke into an avionics system mid-flight?
+I started this project wondering: if planes can be hijacked, can they be *hacked*? What would actually happen if someone compromised a simulated avionics system during flight?
 
-So I built a simulation. You run a 90-second flight mission as the pilot, and during the climb, a cyberattack hits. The simulation shows:
+So I built a simulation. You run a flight mission as the pilot, and during the mission, a simulated cyberattack occurs. The simulation shows:
 
-- **What the attack looks like** — glitching displays, corrupted data streaming in real time
-- **How ML-KEM-768 defends it** — lattice-based post-quantum encryption that protects against quantum computers
-- **The forensic analysis after** — a detailed "black box" audit that analyzes the cyberattack
-- **Tamper-proof flight logs** — CSV files with SHA-256 signatures so you can verify nothing's been changed
+* **What the attack looks like** — glitching displays, corrupted telemetry, and changing security states
+* **How ML-KEM-768 is incorporated into the security layer** — a lattice-based, post-quantum key-encapsulation mechanism
+* **The forensic analysis afterward** — an audit interface that analyzes the simulated attack telemetry
+* **Flight-log integrity verification** — CSV flight logs accompanied by SHA-256 hashes that can be used to detect changes to the recorded data
 
 ---
 
@@ -22,27 +23,27 @@ So I built a simulation. You run a 90-second flight mission as the pilot, and du
 
 ### **Window 1: The Flight Deck (Real-Time Simulation)**
 
-- **Live primary flight display (PFD)** showing altitude, airspeed, and vertical velocity
-- **Realistic physics engine** using RK4 numerical integration (written in Rust for precision)
-- **ARINC-429 telemetry stream** — the actual protocol used by real aircraft
-- **Security lattice visualizer** — dancing green points that turn RED during attack
-- **Quantum Key Distribution (QKD) link** to a simulated LEO satellite — tracks secure key rates and quantum bit error rates (QBER)
-- **90-second mission timeline** with 4 flight phases: Startup → Climb → Engagement → Landing
-- **Automatic cyberattack** triggered during engagement zone 
-- **Flight data recorder (FDR)** — captures telemetry every 500ms and exports as CSV with SHA-256 verification signatures
+* **Live primary flight display (PFD)** showing altitude, airspeed, and vertical velocity
+* **Flight physics engine** using RK4 numerical integration, written in Rust
+* **ARINC-429 telemetry simulation** using 32-bit word formatting inspired by the avionics communication standard
+* **Security lattice visualizer** — animated lattice points that change state during the simulated attack
+* **Quantum Key Distribution (QKD) link** to a simulated satellite — models metrics such as key rate and quantum bit error rate (QBER)
+* **Mission timeline** with multiple simulated flight phases
+* **Automatic simulated cyberattack** triggered during the engagement phase
+* **Flight data recorder (FDR)** — captures telemetry at regular intervals and exports it as CSV with SHA-256 integrity hashes
 
 ### **Window 2: Forensic Auditor (Post-Attack Analysis)**
 
-- **Python HTTP backend** that receives the live in-memory telemetry snapshot from the main flight deck via /upload
-- **C++ analysis engine** that computes peak latency, max altitude, max airspeed, and the lattice defense verdict in milliseconds
-- **Security verdict dashboard** showing whether the lattice defenses held up during the engagement zone
-- **Flight recorder stream** that renders the recent attack-phase telemetry records and integrity summary for review
+* **Python HTTP backend** that receives the live telemetry snapshot from the main flight deck via `/upload`
+* **C++ analysis engine** that computes telemetry statistics and evaluates the simulated security state
+* **Security verdict dashboard** showing the simulated result of the lattice security layer during the engagement phase
+* **Flight recorder stream** that renders recent attack-phase telemetry records and an integrity summary for review
 
 ---
 
 ## 🏗️ Architecture
 
-```
+```text
 Browser (JavaScript)                     Backend (Python + C++)
 ┌─────────────────────────────┐         ┌────────────────────────┐
 │  main.js (Flight Loop)      │         │  app.py (HTTP Server)  │
@@ -50,49 +51,55 @@ Browser (JavaScript)                     Backend (Python + C++)
 │  ├─ Physics Worker Thread   │         │                        │
 │  └─ Security State Manager  │         │  bridge.cpp + WASM     │
 │                             │         │  └─ C++ Analysis Engine│
-│  Rust/WASM (Deterministic)  │         │                        │
+│  Rust/WASM                   │         │                        │
 │  ├─ ML-KEM-768 Crypto       │         │  auditor-engine.cpp    │
-│  ├─ Atomic Telemetry Buffer │         │  └─ Fast Stats Calc    │
-│  └─ Zero-Copy Memory Bridge │         └────────────────────────┘
+│  ├─ Atomic Telemetry Buffer │         │  └─ Telemetry Analysis │
+│  └─ Memory Bridge           │         └────────────────────────┘
 └─────────────────────────────┘
 ```
 
 ### **Why I Built It This Way**
 
 1. **Rust + WebAssembly for Physics & Crypto**
-   - I needed deterministic execution (no random timing variations that could hide a real attack)
-   - Fixed-point math (Fixed32) to avoid floating-point rounding errors (attackers could exploit those)
-   - ML-KEM-768 because it's NIST-standardized and actually post-quantum resistant
-   - Atomic operations so the physics thread and crypto thread never step on each other
+
+   * I wanted predictable numerical behavior in the core simulation
+   * Fixed-point math (`Fixed32`) to provide consistent numerical operations
+   * ML-KEM-768 because it is standardized by NIST and designed as a post-quantum key-encapsulation mechanism
+   * Atomic operations for synchronized access to shared state
 
 2. **Web Workers for Physics**
-   - Keeps the UI responsive even while flight physics runs at 100 Hz
-   - Physics in a background thread so the animation never stutters
-   - Data flows between threads via message passing (no shared memory chaos)
 
-3. **Real ARINC-429 Protocol**
-   - I implemented actual bit-packing into 32-bit words
-   - Proper label/SDI/payload/parity encoding like real aircraft use
-   - Learned ARINC specs to make sure I was doing this right
+   * Keeps the UI responsive while flight physics runs in a background thread
+   * Separates physics computation from the main rendering loop
+   * Data flows between threads through message passing
+
+3. **ARINC-429 Protocol Simulation**
+
+   * Implements bit-packing into 32-bit words
+   * Models fields such as label, SDI, data/status information, and parity
+   * Used ARINC-429 documentation as a reference for the implementation
 
 4. **Python + C++ for the Backend**
-   - Python for easy HTTP server and JSON handling
-   - C++ because analyzing 1000-record telemetry logs needs to be *fast*
-   - Direct memory access avoids serialization overhead
+
+   * Python for HTTP server and JSON handling
+   * C++ for compiled telemetry analysis
+   * Uses a native bridge between Python and the C++ analysis component
 
 ---
 
 ## 🎖️ Development Timeline
 
-I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every day in a logbook:
+I worked on this project over several months, keeping a development log throughout the process.
 
-- **Days 1-10** (Feb-Mar): Built the basic cockpit UI and physics engine
-- **Days 11-30** (Mar-Jun): Learned ARINC-429 protocol, added QKD satellite simulation
-- **Days 31-47** (Jun-Jul): Deep dive into ML-KEM cryptography, read NIST FIPS 203 papers
-- **Days 48-54** (Jul): Fixed the flight display bugs, built the forensic auditor interface
-- **Days 55-80** (Jul-Aug): Python/C++ backend, integrated everything, final debugging
+The project progressed through several stages:
 
-80 days of work, documented in [docs/LOGBOOK.md](docs/LOGBOOK.md). 
+* **Early development:** Built the cockpit UI and physics engine
+* **Simulation development:** Studied ARINC-429 and added the simulated satellite QKD link
+* **Security development:** Studied ML-KEM and the underlying lattice-based cryptography
+* **Forensic development:** Built the auditor interface and telemetry analysis system
+* **Integration:** Connected the browser simulation, Rust/WASM security layer, Python backend, and C++ analysis engine
+
+Development notes are documented in [docs/LOGBOOK.md](docs/LOGBOOK.md).
 
 ---
 
@@ -104,42 +111,44 @@ I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every d
 
 ## 🧠 What I Built (and Learned)
 
-### **Core Simulation (Feb-June 2026)**
+### **Core Simulation**
 
-- **Flight physics**: Implemented RK4 numerical integration (takes 4 samples per time step for accuracy). Added atmospheric drag that increases with altitude. Got the climb/descent rates to feel realistic by studying actual jet performance charts.
-- **Real-time rendering**: Built canvas based altitude and airspeed "tapes" that scroll like actual flight instruments. Took a while to get smoothing right so they don't jitter.
-- **Threading**: Separated physics from UI using Web Workers so animation stays smooth even when physics gets heavy. Without this the whole app would freeze.
-- **Data integrity**: Implemented actual ARINC-429 bit-packing. Not just for show but I wanted telemetry to match what real avionics do.
+* **Flight physics:** Implemented RK4 numerical integration and modeled atmospheric drag as part of the simulated flight dynamics. Used publicly available aircraft performance information as a reference while tuning the simulation.
+* **Real-time rendering:** Built canvas-based altitude and airspeed "tapes" inspired by modern flight displays, with smoothing to make the simulated instruments easier to read.
+* **Threading:** Separated physics computation from UI rendering using Web Workers so intensive calculations do not have to run on the main rendering thread.
+* **Data formatting:** Implemented ARINC-429-style bit packing to explore how structured avionics telemetry can be represented.
 
-### **Security Layer (June-July 2026)**
+### **Security Layer**
 
-- **Post-quantum cryptography**: Read NIST FIPS 203 spec cover to cover. Studied CRYSTALS-Kyber research papers to understand Ring Learning With Errors (RLWE). It's genuinely complex—lattice-based crypto is way harder than RSA.
-- **Deterministic Rust code**: Used `AtomicU32` primitives so physics thread and crypto thread can safely share memory without race conditions. Important because any timing variation could hide an attack.
-- **QKD satellite simulation**: Modeled how quantum key distribution works—laser attenuation at different altitudes, quantum bit error rates (QBER), signal transmittance. Real satellite links are noisy.
+* **Post-quantum cryptography:** Studied the NIST FIPS 203 specification and CRYSTALS-Kyber research to understand lattice-based cryptography, Ring Learning With Errors (RLWE), and related mathematical concepts.
+* **Rust security code:** Used `AtomicU32` primitives for synchronized access to shared state between concurrent components.
+* **QKD satellite simulation:** Modeled concepts associated with quantum key distribution, including attenuation, quantum bit error rate (QBER), and signal transmittance. The satellite link is a simulation rather than an operational QKD system.
 
-### **Forensic Analysis (July-August 2026)**
+### **Forensic Analysis**
 
-- **Python-C++ bridge**: Used Python's C-API to pass the live telemetry snapshot from the browser app directly into compiled C++ code for summary analysis and verdict generation.
-- **Window 2 monitoring flow**: The auditor receives the in-memory engagement-zone data, calculates buffer metrics, and displays the recent recorder stream without needing a separate on-disk CSV import.
-- **Cryptographic verification**: SHA-256 hashing so you can download flight logs and verify they haven't been tampered with. Change one altitude value in Excel and the hash breaks.
+* **Python-C++ bridge:** Used Python's C API to connect the Python server with compiled C++ telemetry-analysis code.
+* **Window 2 monitoring flow:** The auditor receives the simulated engagement-phase telemetry, calculates summary metrics, and displays recent recorder data without requiring a separate on-disk CSV import.
+* **Cryptographic verification:** Uses SHA-256 hashing to detect changes to recorded flight-log data. If the contents of a file change, its newly calculated digest will differ from the original recorded digest.
 
 ---
 
 ## 🎓 Why I Built This
 
-I was watching a Hindi series about the Kandahar hijacking and thought: planes get hijacked, but what about hacked? Can someone actually break into an avionics system mid-flight?
+I was watching a Hindi series about the Kandahar hijacking and thought: planes get hijacked, but what about hacked? Can someone actually compromise an avionics system during flight?
 
-That question stuck with me. I started researching the ARINC protocols, how aircraft authenticate data, what happens when you get a cyberattack in real time. I found out that post-quantum cryptography isn't theoretical anymore. NIST standardized ML-KEM in 2023, and aerospace companies are *already* auditing legacy systems for quantum vulnerabilities.
+That question stuck with me. I started researching ARINC protocols, how aircraft systems authenticate data, and how cybersecurity considerations apply to avionics environments. I also became interested in post-quantum cryptography and how emerging cryptographic standards could eventually affect long-lived systems.
 
-But everything I found was either highly theoretical or scattered across different papers and specs. Nobody had built a simulation that actually *showed* what an attack would look like in real time, or how the defenses would work.
+Much of what I found was highly theoretical or spread across different papers, standards, and technical resources. I wanted to build something that could bring some of those concepts together in an interactive simulation.
 
-So I built one. I wanted to understand: How does a flight system behave under attack? What does cryptographic defense actually look like when it's running? How do you verify that the system recovered properly? This project was my way of exploring those questions hands on instead of just reading about them.
+So I built one. I wanted to understand: How might a simulated flight system behave under a cyberattack? What does a cryptographic security layer look like when it is running inside a simulation? How can telemetry be analyzed after an incident? This project was my way of exploring those questions hands-on instead of only reading about them.
+
+**Important:** This project is an educational simulation. It is not an aviation-certified flight-control system, avionics system, operational QKD system, or validated model of real-world aircraft cybersecurity. The flight dynamics, attack scenario, security response, and satellite link are simulated for experimentation and learning.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 quantum-safe-cockpit/
 ├── index.html                          # Main flight deck interface
 ├── style.css                           # PFD styling
@@ -153,8 +162,8 @@ quantum-safe-cockpit/
 │   │   ├── aerodynamics.js             # RK4 physics equations
 │   │   └── quantum-atmosphere.js       # Atmospheric attenuation modeling
 │   └── security/
-│       ├── lattice-engine.js           # Security visualization (lattice grid dots)
-│       └── qkd-satellite-link.js       # QKD metrics (QBER, key rate)
+│       ├── lattice-engine.js           # Security visualization
+│       └── qkd-satellite-link.js       # QKD simulation metrics
 ├── deterministic-engine/               # Rust/WASM cryptographic kernel
 │   ├── Cargo.toml
 │   └── src/
@@ -163,23 +172,22 @@ quantum-safe-cockpit/
 ├── forensic-auditor/                   # Post-attack analysis ("Window 2")
 │   ├── app.py                          # Python HTTP server
 │   ├── auditor-engine.cpp/hpp          # C++ telemetry analysis
-│   ├── bridge.cpp                      # Python C-API wrapper
+│   ├── bridge.cpp                      # Python C API wrapper
 │   └── CMakeLists.txt                  # Build configuration
 └── docs/
-    └── LOGBOOK.md                      # Day by day development diary (80 days)
+    └── LOGBOOK.md                      # Development diary
 ```
 
 ---
 
-
 ## 📚 Resources I Used
 
-- **NIST FIPS 203** — ML-KEM specification
-- **CRYSTALS-Kyber Papers** — Ring LWE problem and NTT transforms
-- **ARINC 429 Specifications** — Avionics communication protocol
-- **Rust WASM Book** — FFI and memory management
-- **Python C-API Documentation** — Bridging to C++
-- **AI use** — Code review, documentation feedback, and essay refinement 
+* **NIST FIPS 203** — ML-KEM specification
+* **CRYSTALS-Kyber Papers** — lattice-based cryptography, Ring Learning With Errors, and NTT-related concepts
+* **ARINC 429 Specifications** — avionics communication protocol
+* **Rust and WebAssembly documentation** — FFI and memory management
+* **Python C API Documentation** — connecting Python with native code
+* **AI use** — code review, documentation feedback, and essay refinement
 
 ---
 
@@ -190,5 +198,3 @@ Copyright © 2026. All rights reserved.
 See [COPYRIGHT.txt](COPYRIGHT.txt) for details.
 
 ---
-
-
