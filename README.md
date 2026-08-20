@@ -123,14 +123,6 @@ I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every d
 - **Window 2 monitoring flow**: The auditor receives the in-memory engagement-zone data, calculates buffer metrics, and displays the recent recorder stream without needing a separate on-disk CSV import.
 - **Cryptographic verification**: SHA-256 hashing so you can download flight logs and verify they haven't been tampered with. Change one altitude value in Excel and the hash breaks.
 
-
-## 📊 Performance
-
-- **Main UI thread:** 60 FPS, <2ms per frame
-- **Physics worker:** Deterministic 100 Hz update rate
-- **Crypto operations:** <1ms per ML-KEM operation
-- **C++ forensic analysis:** <5ms for 1000-record telemetry CSV
-
 ---
 
 ## 🎓 Why I Built This
