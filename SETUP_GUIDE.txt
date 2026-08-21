@@ -1,7 +1,7 @@
 SETUP GUIDE: Quantum-Safe-Cockpit
 =================================
 
-This text file outlines the local execution steps for the Quantum-Safe Cockpit Simulation. 
+This text file outlines the local execution steps for the Quantum-Safe-Cockpit Simulation. 
 
 1. SYSTEM REQUIREMENTS
 ----------------------
@@ -12,39 +12,86 @@ This text file outlines the local execution steps for the Quantum-Safe Cockpit S
 
 2. COMPILATION (DETERMINISTIC ENGINE)
 -------------------------------------
-The Avionics simulation uses a deterministic engine written in Rust.
+The  simulation uses a deterministic engine written in Rust.
 1. Navigate to: /deterministic-engine
 2. Execute the native build:
    $ cargo build --target wasm32-unknown-unknown --release
 
 
-3. FORENSIC AUDITOR (BACKEND)
------------------------------
-The Forensic Auditor uses a C-extension for real-time telemetry analysis.
-1. Ensure 'build-essential' or MSVC Build Tools are installed.
-2. Ensure the Python environment is configured to compile C-extensions.
+3. FORENSIC AUDITOR (C++ BACKEND)
+---------------------------------
+The Forensic Auditor uses C++ with CMake.
+
+1. Ensure you have installed:
+   - CMake (version 3.10+)
+   - C++ compiler (MSVC on Windows, GCC on Linux via WSL)
+   - Python development headers (python3-dev on Linux, or Python SDK on Windows)
+
+2. Build the C++ analysis engine:
+   $ cd forensic-auditor
+   $ mkdir build
+   $ cd build
+   $ cmake ..
+   $ make
+   
+   Expected output: auditor_cpp.so (Linux) or auditor_cpp.pyd (Windows)
+
+3. Verify the build completed successfully by checking the 'build' folder contains the compiled module.
 
 
-4. INITIALIZATION & EXECUTION
------------------------------
-1. Launch the local avionics simulation server:
-   $ python forensic-auditor/app.py
-2. Once the server confirms readiness, open your browser to:
-   http://localhost:8000
+4. START THE SIMULATION
+----------------------
+Once both the Rust engine (step 2) and C++ backend (step 3) are built:
+
+1. Navigate to the forensic-auditor folder:
+   $ cd forensic-auditor
+
+2. Start the Python HTTP server:
+   $ python app.py
+   
+   You should see output like:
+   >> Avionics Forensic Server: ONLINE (127.0.0.1:8000)
+
+3. Open your browser and go to:
+   http://127.0.0.1:8000
 
 
-5. STARTING THE SIMULATION
---------------------------
-1. Ensure the Python server is running (from Step 4).
-2. Open your web browser and navigate to 'http://localhost:8000'.
-3. On the simulation screen, click the 'SYSTEM_READY: ENGAGE MISSION BUS' button.
-4. The simulation will run automatically through the 'Startup Taxi', 'Steady Climb', 
-'Engagement Zone', 'Final Approach' phases. 
-5. Respond to interactive prompts/dialog boxes as they appear throughout the simulation. 
+5. RUN THE 90-SECOND MISSION
+----------------------------
+1. The browser should display the flight deck (primary flight display on the left and the scrolling terminal on the right, with lattice grid dots in the center).
+2. Click the 'ENGAGE MISSION BUS' button to start the simulation.
+3. The simulation runs for 90 seconds automatically through these phases:
+   - Startup Taxi (0-8s): Aircraft powers on and prepares for takeoff
+   - Steady Climb (8-35s): Aircraft climbs to altitude
+   - Engagement Zone (35-60s): Simulated cyberattack occurs; red warnings appear and a popup may ask whether to activate the lattice shield
+   - Final Approach (61-90s): Landing sequence; forensic popup appears
+
+4. Around T+35s, during the engagement zone, a security popup appears and asks whether to activate the lattice shield to counter the cyberattack.
+
+5. At T+62s (end of engagement), a popup will ask if you want to open Window 2 (Forensic Auditor).
+   
+6. After the mission (T=90s), download your flight logs as CSV with SHA-256 verification. 
 
 
 6. TROUBLESHOOTING
 ------------------
-- If the browser fails to load, ensure the port 8000 is not in use by another application.
-- If telemetry streams fail to visualize, verify the Lattice-based cryptography module 
-  is correctly initialized in the 'security kernel' folder.  
+- Port 8000 already in use?
+  $ lsof -i :8000  (on Linux/Mac)
+  $ netstat -ano | findstr :8000  (on Windows)
+  Then kill the process or use a different port in app.py
+
+- CMake build failed?
+  Ensure you have a C++ compiler installed. On WSL Ubuntu:
+  $ sudo apt-get install build-essential cmake python3-dev
+
+- Python can't import auditor_cpp?
+  Check that auditor_cpp.so/.pyd exists in the forensic-auditor/build folder.
+  If not, re-run: cd forensic-auditor/build && cmake .. && make
+
+- Flight display not rendering?
+  Ensure WebAssembly is enabled in your browser and the deterministic-engine WASM binary 
+  was built successfully (check deterministic-engine/pkg/)
+
+- Cryptographic operations timing out?
+  This is normal during ML-KEM key generation. The simulation uses NIST-standardized crypto
+  which takes a few milliseconds per operation.  

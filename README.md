@@ -12,7 +12,7 @@ So I built a simulation. You run a 90-second flight mission as the pilot, and du
 
 - **What the attack looks like** — glitching displays, corrupted data streaming in real time
 - **How ML-KEM-768 defends it** — lattice-based post-quantum encryption that protects against quantum computers
-- **The forensic analysis after** — a detailed "black box" audit that reconstructs what happened
+- **The forensic analysis after** — a detailed "black box" audit that analyzes the cyberattack
 - **Tamper-proof flight logs** — CSV files with SHA-256 signatures so you can verify nothing's been changed
 
 ---
@@ -32,9 +32,10 @@ So I built a simulation. You run a 90-second flight mission as the pilot, and du
 
 ### **Window 2: Forensic Auditor (Post-Attack Analysis)**
 
-- **Python HTTP backend** that reads the flight telemetry CSV (of the attack phase)
-- **C++ analysis engine** that crunches the data in milliseconds
-- **Security verdict dashboard** showing whether lattice defenses held up
+- **Python HTTP backend** that receives the live in-memory telemetry snapshot from the main flight deck via /upload
+- **C++ analysis engine** that computes peak latency, max altitude, max airspeed, and the lattice defense verdict in milliseconds
+- **Security verdict dashboard** showing whether the lattice defenses held up during the engagement zone
+- **Flight recorder stream** that renders the recent attack-phase telemetry records and integrity summary for review
 
 ---
 
@@ -105,9 +106,9 @@ I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every d
 ### **Core Simulation (Feb-June 2026)**
 
 - **Flight physics**: Implemented RK4 numerical integration (takes 4 samples per time step for accuracy). Added atmospheric drag that increases with altitude. Got the climb/descent rates to feel realistic by studying actual jet performance charts.
-- **Real-time rendering**: Built canvas-based altitude and airspeed "tapes" that scroll like actual flight instruments. Took a while to get smoothing right so they don't jitter.
+- **Real-time rendering**: Built canvas based altitude and airspeed "tapes" that scroll like actual flight instruments. Took a while to get smoothing right so they don't jitter.
 - **Threading**: Separated physics from UI using Web Workers so animation stays smooth even when physics gets heavy. Without this the whole app would freeze.
-- **Data integrity**: Implemented actual ARINC-429 bit-packing. Not just for show—I wanted telemetry to match what real avionics do.
+- **Data integrity**: Implemented actual ARINC-429 bit-packing. Not just for show but I wanted telemetry to match what real avionics do.
 
 ### **Security Layer (June-July 2026)**
 
@@ -117,8 +118,8 @@ I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every d
 
 ### **Forensic Analysis (July-August 2026)**
 
-- **Python-C++ bridge**: Used Python's C-API to pass telemetry from Python server directly into compiled C++ code. Low-level memory access, no intermediate serialization.
-- **Zero-copy memory**: Designed data flow so telemetry moves between threads without unnecessary copying. Matters when processing thousands of records.
+- **Python-C++ bridge**: Used Python's C-API to pass the live telemetry snapshot from the browser app directly into compiled C++ code for summary analysis and verdict generation.
+- **Window 2 monitoring flow**: The auditor receives the in-memory engagement-zone data, calculates buffer metrics, and displays the recent recorder stream without needing a separate on-disk CSV import.
 - **Cryptographic verification**: SHA-256 hashing so you can download flight logs and verify they haven't been tampered with. Change one altitude value in Excel and the hash breaks.
 
 
@@ -159,14 +160,14 @@ quantum-safe-cockpit/
 │   │   ├── aerodynamics.js             # RK4 physics equations
 │   │   └── quantum-atmosphere.js       # Atmospheric attenuation modeling
 │   └── security/
-│       ├── lattice-engine.js           # Security visualization (red flashing)
+│       ├── lattice-engine.js           # Security visualization (lattice grid dots)
 │       └── qkd-satellite-link.js       # QKD metrics (QBER, key rate)
 ├── deterministic-engine/               # Rust/WASM cryptographic kernel
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs                      # SecurityEngine & telemetry buffer
 │       └── crypto.rs                   # ML-KEM-768 implementation
-├── forensic-auditor/                   # Post-flight analysis ("Window 2")
+├── forensic-auditor/                   # Post-attack analysis ("Window 2")
 │   ├── app.py                          # Python HTTP server
 │   ├── auditor-engine.cpp/hpp          # C++ telemetry analysis
 │   ├── bridge.cpp                      # Python C-API wrapper
