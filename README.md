@@ -192,6 +192,7 @@ quantum-safe-cockpit/
 - **ARINC 429 Specifications** — Avionics communication protocol
 - **Rust WASM Book** — FFI and memory management
 - **Python C-API Documentation** — Bridging to C++
+- **AI use** — Code review, documentation feedback, and essay refinement 
 
 ---
 
