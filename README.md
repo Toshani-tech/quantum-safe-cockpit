@@ -1,21 +1,19 @@
 # Quantum-Safe Cockpit: A Post-Quantum Cryptography Flight Simulator
 
-**A 90-second military jet flight simulation that demonstrates how post-quantum cryptography defends against cyberattacks.**
+**A 90-second military jet flight simulation I built to explore how post-quantum cryptography actually defends against cyberattacks in real time.**
 
 ---
 
 ## 🎯 What Is This?
 
-Imagine an aircraft's flight computer gets attacked by a hacker. Can the quantum-resistant encryption protect it? This project answers that question by simulating a real-world cyber engagement at 20,000+ feet.
+I started this project wondering: if planes can be hijacked, can they be *hacked*? What would actually happen if someone broke into an avionics system mid-flight?
 
-You run a 90-second flight mission. Somewhere during the climb, a cyberattack hits the avionics system. The simulation shows:
+So I built a simulation. You run a 90-second flight mission as the pilot, and during the climb, a cyberattack hits. The simulation shows:
 
-- **What happens** when the system is under attack (glitching displays, corrupted data)
-- **How post-quantum cryptography defends** it (lattice-based math that quantum computers can't break)
-- **What the forensic analysis reveals** after attack (a detailed "black box" audit of the attack)
-- **Downloadable flight logs** as a CSV file with SHA-256 verification signatures to prove the data hasn't been tampered with
-
-It's part flight simulator, part security demo, all real cryptography.
+- **What the attack looks like** — glitching displays, corrupted data streaming in real time
+- **How ML-KEM-768 defends it** — lattice-based post-quantum encryption that protects against quantum computers
+- **The forensic analysis after** — a detailed "black box" audit that reconstructs what happened
+- **Tamper-proof flight logs** — CSV files with SHA-256 signatures so you can verify nothing's been changed
 
 ---
 
@@ -30,15 +28,13 @@ It's part flight simulator, part security demo, all real cryptography.
 - **Quantum Key Distribution (QKD) link** to a simulated LEO satellite — tracks secure key rates and quantum bit error rates (QBER)
 - **90-second mission timeline** with 4 flight phases: Startup → Climb → Engagement → Landing
 - **Automatic cyberattack** triggered during engagement zone 
-- **Flight data recorder (FDR)** — captures telemetry every 500ms and exports as CSV
+- **Flight data recorder (FDR)** — captures telemetry every 500ms and exports as CSV with SHA-256 verification signatures
 
-### **Window 2: Forensic Auditor (Post-Flight Analysis)**
+### **Window 2: Forensic Auditor (Post-Attack Analysis)**
 
-- **Python HTTP backend** that reads the flight telemetry CSV
+- **Python HTTP backend** that reads the flight telemetry CSV (of the attack phase)
 - **C++ analysis engine** that crunches the data in milliseconds
 - **Security verdict dashboard** showing whether lattice defenses held up
-- **Attack timeline visualization** showing when QBER spiked and secure key rates dropped
-- **Tamper-proof flight logs** with SHA-256 verification signatures
 
 ---
 
@@ -59,42 +55,42 @@ Browser (JavaScript)                     Backend (Python + C++)
 └─────────────────────────────┘
 ```
 
-### **Key Technical Decisions**
+### **Why I Built It This Way**
 
 1. **Rust + WebAssembly for Physics & Crypto**
-   - Deterministic execution = no random timing variations
-   - Fixed-point math (Fixed32) prevents floating-point rounding errors
-   - ML-KEM-768 (NIST standardized) instead of deprecated RSA
-   - Atomic operations ensure thread-safe telemetry updates
+   - I needed deterministic execution (no random timing variations that could hide a real attack)
+   - Fixed-point math (Fixed32) to avoid floating-point rounding errors (attackers could exploit those)
+   - ML-KEM-768 because it's NIST-standardized and actually post-quantum resistant
+   - Atomic operations so the physics thread and crypto thread never step on each other
 
 2. **Web Workers for Physics**
-   - Main UI thread stays responsive
-   - Background physics loop runs at 60+ FPS
-   - Smooth data flow via message passing
+   - Keeps the UI responsive even while flight physics runs at 100 Hz
+   - Physics in a background thread so the animation never stutters
+   - Data flows between threads via message passing (no shared memory chaos)
 
 3. **Real ARINC-429 Protocol**
-   - Bit-packing telemetry into 32-bit words
-   - Proper label/SDI/payload/parity encoding
-   - Mimics actual avionics communication
+   - I implemented actual bit-packing into 32-bit words
+   - Proper label/SDI/payload/parity encoding like real aircraft use
+   - Learned ARINC specs to make sure I was doing this right
 
-4. **Python + C++ for Analysis**
-   - Python handles HTTP requests and JSON parsing
-   - C++ performs heavy computation in nanoseconds
-   - Direct memory access = no intermediate serialization overhead
+4. **Python + C++ for the Backend**
+   - Python for easy HTTP server and JSON handling
+   - C++ because analyzing 1000-record telemetry logs needs to be *fast*
+   - Direct memory access avoids serialization overhead
 
 ---
 
 ## 🎖️ Development Timeline
 
-- **Days 1-10** (Feb-Mar): UI, physics, flight data recording
-- **Days 11-30** (Mar-Jun): ARINC-429 integration, QKD satellite simulation
-- **Days 31-47** (Jun-Jul): Rust/WASM cryptography, deep ML-KEM research
-- **Days 48-54** (Jul): Stabilizing PFD, building forensic auditor UI
-- **Days 55-80** (Jul-Aug): Python/C++ backend, cryptographic analysis, final polish
+I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every day in a logbook:
 
-**Total work:** ~6 months, 80 days documented in the project logbook.
+- **Days 1-10** (Feb-Mar): Built the basic cockpit UI and physics engine
+- **Days 11-30** (Mar-Jun): Learned ARINC-429 protocol, added QKD satellite simulation
+- **Days 31-47** (Jun-Jul): Deep dive into ML-KEM cryptography, read NIST FIPS 203 papers
+- **Days 48-54** (Jul): Fixed the flight display bugs, built the forensic auditor interface
+- **Days 55-80** (Jul-Aug): Python/C++ backend, integrated everything, final debugging
 
-For a detailed log entry record, see [docs/LOGBOOK.md](docs/LOGBOOK.md).
+80 days of work, documented in [docs/LOGBOOK.md](docs/LOGBOOK.md). 
 
 ---
 
@@ -115,22 +111,22 @@ Quick summary:
 
 ### **Core Simulation (Feb-June 2026)**
 
-- **Flight physics**: RK4 numerical integration, atmospheric drag, realistic climb/descent rates
-- **Real-time rendering**: Canvas-based altitude and airspeed "tapes" that scroll smoothly
-- **Threading**: Separated physics from UI using Web Workers to prevent jank
-- **Data integrity**: ARINC-429 bit-packing to match real avionics protocols
+- **Flight physics**: Implemented RK4 numerical integration (takes 4 samples per time step for accuracy). Added atmospheric drag that increases with altitude. Got the climb/descent rates to feel realistic by studying actual jet performance charts.
+- **Real-time rendering**: Built canvas-based altitude and airspeed "tapes" that scroll like actual flight instruments. Took a while to get smoothing right so they don't jitter.
+- **Threading**: Separated physics from UI using Web Workers so animation stays smooth even when physics gets heavy. Without this the whole app would freeze.
+- **Data integrity**: Implemented actual ARINC-429 bit-packing. Not just for show—I wanted telemetry to match what real avionics do.
 
 ### **Security Layer (June-July 2026)**
 
-- **Post-quantum cryptography**: Studied NIST FIPS 203, CRYSTALS-Kyber research papers, and Ring Learning With Errors (RLWE) math
-- **Deterministic Rust code**: Used `AtomicU32` for lock-free shared memory between JS and WASM
-- **QKD satellite simulation**: Modeled laser attenuation, quantum bit error rates, and signal transmittance
+- **Post-quantum cryptography**: Read NIST FIPS 203 spec cover to cover. Studied CRYSTALS-Kyber research papers to understand Ring Learning With Errors (RLWE). It's genuinely complex—lattice-based crypto is way harder than RSA.
+- **Deterministic Rust code**: Used `AtomicU32` primitives so physics thread and crypto thread can safely share memory without race conditions. Important because any timing variation could hide an attack.
+- **QKD satellite simulation**: Modeled how quantum key distribution works—laser attenuation at different altitudes, quantum bit error rates (QBER), signal transmittance. Real satellite links are noisy.
 
 ### **Forensic Analysis (July-August 2026)**
 
-- **Python-C++ bridge**: Used Python C-API to safely pass telemetry from Python to compiled C++ code
-- **Zero-copy memory**: Designed data flow to avoid unnecessary serialization overhead
-- **Cryptographic verification**: SHA-256 hashing of flight logs to detect tampering
+- **Python-C++ bridge**: Used Python's C-API to pass telemetry from Python server directly into compiled C++ code. Low-level memory access, no intermediate serialization.
+- **Zero-copy memory**: Designed data flow so telemetry moves between threads without unnecessary copying. Matters when processing thousands of records.
+- **Cryptographic verification**: SHA-256 hashing so you can download flight logs and verify they haven't been tampered with. Change one altitude value in Excel and the hash breaks.
 
 
 ## 📊 Performance
@@ -144,11 +140,13 @@ Quick summary:
 
 ## 🎓 Why I Built This
 
-I was watching a Hindi series on Netflix about the Kandahar hijacking, and it got me thinking: I have heard of planes getting hijacked, but can they get hacked? In the future that may be possible so what would actually happen if someone broke into an avionics system mid-flight?
+I was watching a Hindi series about the Kandahar hijacking and thought: planes get hijacked, but what about hacked? Can someone actually break into an avionics system mid-flight?
 
-That question sent me down a rabbit hole. I started reading about ARINC protocols, telemetry standards, and how modern aircraft authenticate data. I got to know that the post-quantum cryptography defense isn't theoretical anymore and NIST standardized it in 2023, plus aerospace companies are already auditing legacy avionics systems. It fed my curiosity, but most of what I found was either theoretical or scattered across different subjects.
+That question stuck with me. I started researching the ARINC protocols, how aircraft authenticate data, what happens when you get a cyberattack in real time. I found out that post-quantum cryptography isn't theoretical anymore. NIST standardized ML-KEM in 2023, and aerospace companies are *already* auditing legacy systems for quantum vulnerabilities.
 
-So I decided to build this simulation to actually see how it would work. How would a flight system behave under attack? What would cryptographic defense look like in real time? How would you even verify that the system recovered properly? This project was my way of exploring those questions hands on.
+But everything I found was either highly theoretical or scattered across different papers and specs. Nobody had built a simulation that actually *showed* what an attack would look like in real time, or how the defenses would work.
+
+So I built one. I wanted to understand: How does a flight system behave under attack? What does cryptographic defense actually look like when it's running? How do you verify that the system recovered properly? This project was my way of exploring those questions hands on instead of just reading about them.
 
 ---
 
