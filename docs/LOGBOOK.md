@@ -448,4 +448,12 @@ Tech: C++, Python C-API, CMake, WSL.
 
 Note: Wrote up bridge.cpp using the low level Python C-API to accept flight telemetry records from Python. It then processes them through the C++ AuditorEngine, and return analytics at high speed. also i Compiled the shared library (auditor_cpp.so) thru CMake and saw millisecond fast native execution.
 
-P.S: well i ran into name mismatches and a few hard crashes caused by the C-API rejecting float/int type mismatches in the JSON data. i fixed it by aligning the method names and writing bulletproof type coercion  to handle data safely without throwing exceptions (Spent a few days trying to brainstorm the logic and a few days actually writing it here) so far so good.
+P.S: well i ran into name mismatches and a few hard crashes caused by the C-API rejecting float/int type mismatches in the JSON data. i fixed it by aligning the method names and writing bulletproof type coercion  to handle data safely without throwing exceptions (Spent a few days trying to brainstorm the logic and a few days actually writing it here) so far all done.
+
+Day 76 - Day 80: August 17 - August 20, 2026
+
+Task: Wrapping up the simulation and created a clean local setup guide.
+
+Note: Gave final touches to all the files. The simulation is fully working locally, runs smoothly through all the phases from startup to the landing. I created a setup guide txt file so anybody who wants to run the sim, can follow the steps and be able to run it.
+
+P.S: Omg i can't believe everything's done! Worked on this since Feb. Finally everything's set...its time to get my cake i mentioned a month ago haha.

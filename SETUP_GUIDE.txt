@@ -1,0 +1,50 @@
+SETUP GUIDE: Quantum-Safe-Cockpit
+=================================
+
+This text file outlines the local execution steps for the Quantum-Safe Cockpit Simulation. 
+
+1. SYSTEM REQUIREMENTS
+----------------------
+- Operating System: Windows 10/11 (with WSL2 Recommended for Linux-native compilation)
+- Build Tools: Rust/Cargo (latest stable), Python 3.10+
+- Browser: Modern Web Browser (Chrome/Edge/Firefox)
+
+
+2. COMPILATION (DETERMINISTIC ENGINE)
+-------------------------------------
+The Avionics simulation uses a deterministic engine written in Rust.
+1. Navigate to: /deterministic-engine
+2. Execute the native build:
+   $ cargo build --target wasm32-unknown-unknown --release
+
+
+3. FORENSIC AUDITOR (BACKEND)
+-----------------------------
+The Forensic Auditor uses a C-extension for real-time telemetry analysis.
+1. Ensure 'build-essential' or MSVC Build Tools are installed.
+2. Ensure the Python environment is configured to compile C-extensions.
+
+
+4. INITIALIZATION & EXECUTION
+-----------------------------
+1. Launch the local avionics simulation server:
+   $ python forensic-auditor/app.py
+2. Once the server confirms readiness, open your browser to:
+   http://localhost:8000
+
+
+5. STARTING THE SIMULATION
+--------------------------
+1. Ensure the Python server is running (from Step 4).
+2. Open your web browser and navigate to 'http://localhost:8000'.
+3. On the simulation screen, click the 'SYSTEM_READY: ENGAGE MISSION BUS' button.
+4. The simulation will run automatically through the 'Startup Taxi', 'Steady Climb', 
+'Engagement Zone', 'Final Approach' phases. 
+5. Respond to interactive prompts/dialog boxes as they appear throughout the simulation. 
+
+
+6. TROUBLESHOOTING
+------------------
+- If the browser fails to load, ensure the port 8000 is not in use by another application.
+- If telemetry streams fail to visualize, verify the Lattice-based cryptography module 
+  is correctly initialized in the 'security kernel' folder.  
