@@ -454,6 +454,6 @@ Day 76 - Day 80: August 17 - August 20, 2026
 
 Task: Wrapping up the simulation and created a clean local setup guide.
 
-Note: Gave final touches to all the files. The simulation is fully working locally, runs smoothly through all the phases from startup to the landing. I created a setup guide txt file so anybody who wants to run the sim, can follow the steps and be able to run it.
+Note: Gave final touches to all the files. The simulation is fully working locally, runs smoothly through all the phases from startup to the landing. I created a setup guide txt file so anybody who wants to run the sim, can follow the steps and be able to run it. Finished writing the Readme too.
 
 P.S: Omg i can't believe everything's done! Worked on this since Feb. Finally everything's set...its time to get my cake i mentioned a month ago haha.
