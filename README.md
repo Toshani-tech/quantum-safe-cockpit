@@ -29,7 +29,7 @@ It's part flight simulator, part security demo, all real cryptography.
 - **Security lattice visualizer** — dancing green points that turn RED during attack
 - **Quantum Key Distribution (QKD) link** to a simulated LEO satellite — tracks secure key rates and quantum bit error rates (QBER)
 - **90-second mission timeline** with 4 flight phases: Startup → Climb → Engagement → Landing
-- **Automatic cyberattack** triggered during engagement zone (T+50-60s)
+- **Automatic cyberattack** triggered during engagement zone 
 - **Flight data recorder (FDR)** — captures telemetry every 500ms and exports as CSV
 
 ### **Window 2: Forensic Auditor (Post-Flight Analysis)**
@@ -178,7 +178,7 @@ quantum-safe-cockpit/
 │   ├── bridge.cpp                      # Python C-API wrapper
 │   └── CMakeLists.txt                  # Build configuration
 └── docs/
-    ├── LOGBOOK.md                      # Day-by-day development diary (80 days)
+    ├── LOGBOOK.md                      # Day by day development diary (80 days)
     └── SETUP_GUIDE.txt                 # Local execution instructions
 ```
 
