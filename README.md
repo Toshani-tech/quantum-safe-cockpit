@@ -157,7 +157,10 @@ So I decided to build this simulation to actually see how it would work. How wou
 ```
 quantum-safe-cockpit/
 ├── index.html                          # Main flight deck interface
-├── style.css                           # PFD styling 
+├── style.css                           # PFD styling
+├── README.md                           # Project overview
+├── SETUP_GUIDE.txt                     # Local execution instructions
+├── COPYRIGHT.txt                       # Copyright notice
 ├── src/
 │   ├── main.js                         # Mission coordinator & UI loop
 │   ├── physics/
@@ -178,8 +181,7 @@ quantum-safe-cockpit/
 │   ├── bridge.cpp                      # Python C-API wrapper
 │   └── CMakeLists.txt                  # Build configuration
 └── docs/
-    ├── LOGBOOK.md                      # Day by day development diary (80 days)
-    └── SETUP_GUIDE.txt                 # Local execution instructions
+    └── LOGBOOK.md                      # Day by day development diary (80 days)
 ```
 
 ---
