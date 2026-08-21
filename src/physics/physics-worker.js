@@ -106,7 +106,7 @@ function applyBERCorruption(uint32Array, phaseString, speedValue) {
 
 const wasmPromise = init().then(instance => {
     wasmExports = instance;
-    securityEngine = new SecurityEngine(); // Initialize the atomic bridge
+    securityEngine = new SecurityEngine(); // Initialize  atomic bridge
     
     try {
         if (wasmExports && typeof wasmExports.set_initial_state === 'function') {
@@ -218,13 +218,13 @@ function updatePhysics(dt, elapsed) {
     try {
         if (wasmExports && wasmExports.step_physics_fp) {
             const dtFixed = toFixed32(dt);
-            // Execute fixed-point step in WASM
+            
             wasmExports.step_physics_fp(dtFixed);
             
-            // Sync flight variables from the RK4 flight dynamics module
+           
             const dynamics = calculateFlightDynamics(state, dt, elapsed);
             if (dynamics) {
-                state.altitude = dynamics.altitude; // FIX 1: Drive altitude via RK4 calculation
+                state.altitude = dynamics.altitude;
                 state.airspeed = dynamics.airspeed;
                 state.missionPhase = dynamics.missionPhase;
                 state.vviStatus = dynamics.vviStatus;
@@ -232,13 +232,13 @@ function updatePhysics(dt, elapsed) {
                 state.verticalVelocity = (state.verticalVelocity * 0.90) + (dynamics.verticalVelocity * 0.10);
             }
             
-            // ATOMIC UPDATE: Pass state to Security Kernel safely formatted for u32
+            
             if (securityEngine) {
                 securityEngine.update_telemetry(
-                    Math.max(0, Math.round(state.altitude)),           // FIX 2: Prevent negative altitude
-                    Math.max(0, Math.round(state.airspeed)),           // FIX 2: Prevent negative airspeed
-                    Math.round(state.verticalVelocity) >>> 0,          // FIX 2: Unsigned 32-bit cast for VVI
-                    1                                                  // Status: 1 = Active
+                    Math.max(0, Math.round(state.altitude)),          
+                    Math.max(0, Math.round(state.airspeed)),           
+                    Math.round(state.verticalVelocity) >>> 0,         
+                    1                                                  
                 );
             }
         } else {

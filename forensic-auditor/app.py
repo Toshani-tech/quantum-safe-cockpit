@@ -44,11 +44,11 @@ class ForensicAPIHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             self.end_headers()
 
-            # === STEP 2: C++ ENGINE BENCHMARK TIMER & EXECUTION ===
+            
             start_time = time.perf_counter()
 
             try:
-                # Hand off flight logs to the high-speed C++ engine via the bridge
+                # Hand off flight logs to C++ engine 
                 audit_result = auditor_cpp.analyze_logs(IN_MEMORY_LOGS)
                 total_records = audit_result.get('total_records', len(IN_MEMORY_LOGS))
                 max_lat = audit_result.get('peak_latency', 0.0)

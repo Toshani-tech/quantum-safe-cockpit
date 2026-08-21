@@ -48,7 +48,7 @@ static PyObject* py_analyze_logs(PyObject* self, PyObject* args) {
             r.alt = 0;
         }
 
-        // Safe extraction for 'spd'
+        // Safe extraction for spd
         PyObject* val_spd = PyDict_GetItemString(item, "spd");
         if (val_spd) {
             PyObject* py_num = PyNumber_Long(val_spd);
@@ -63,7 +63,7 @@ static PyObject* py_analyze_logs(PyObject* self, PyObject* args) {
             r.spd = 0;
         }
 
-        // Safe extraction for 'lat' (latency)
+        // Safe extraction for lat
         PyObject* val_lat = PyDict_GetItemString(item, "lat");
         if (val_lat) {
             PyObject* py_flt = PyNumber_Float(val_lat);
@@ -78,7 +78,7 @@ static PyObject* py_analyze_logs(PyObject* self, PyObject* args) {
             r.lat = 0.0;
         }
 
-        // Safe extraction for 'phase'
+        // Safe extraction for phase
         PyObject* val_phase = PyDict_GetItemString(item, "phase");
         if (val_phase && PyUnicode_Check(val_phase)) {
             const char* utf8_str = PyUnicode_AsUTF8(val_phase);

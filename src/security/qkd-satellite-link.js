@@ -11,7 +11,7 @@ export class QKDSatelliteLink {
     }
 
    updateLinkDynamics(elapsedSeconds, currentPhase, isMitMActive) {
-        // 1. Simulate Satellite Moving Across the Sky (Orbital Mechanics)
+        // simulates Satellite Moving Across the Sky 
         if (currentPhase !== 'STANDBY' && currentPhase !== 'MISSION_COMPLETE') {
             this.satElevation += 0.45; 
             this.satAzimuth = (120.0 + (elapsedSeconds * 0.8)) % 360;

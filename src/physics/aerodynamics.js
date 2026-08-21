@@ -13,11 +13,11 @@ init().then(() => {
 });
 
 export function calculateFlightDynamics(state, deltaTime, elapsed) {
-    // 1. Sanitize input delta time to prevent NaN infection
+    //  prevent NaN 
     const safeDeltaTime = (typeof deltaTime === 'number' && !isNaN(deltaTime) && deltaTime > 0) ? deltaTime : 0.016;
     const dt = Math.min(safeDeltaTime, 0.03); 
 
-    // 2. Reset module pitch state when restarting simulation
+    // Reset module pitch 
     if (elapsed <= 0.05) {
         actualPitch = 0;
     }
@@ -96,7 +96,7 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
             break;
     }
 
-    // Rate-limit pitch rate change
+    
     const maxDelta = 8.0 * dt; 
     actualPitch += Math.max(-maxDelta, Math.min(maxDelta, targetPitch - actualPitch));
 
@@ -106,10 +106,10 @@ export function calculateFlightDynamics(state, deltaTime, elapsed) {
     let accel_t = (thrust - ((q * 0.038) + (Math.abs(actualPitch) * 5.2))) / mass;
     let v_mid = v_ias + (accel_t * (dt * 0.5));
     
-    // Call Rust WASM Fixed-Point Engine
+    // Call Rust WASM Fixed point Engine
     const rustResult = rk4_step(alt, v_mid, actualPitch, dt);
     
-    // 3. Complete Telemetry Guard (Prevents UI Render Crash)
+    // Telemetry Guard 
     if (!rustResult || isNaN(rustResult[0])) {
         return { 
             ...state, 
