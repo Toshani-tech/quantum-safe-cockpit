@@ -8,7 +8,7 @@
 
 Imagine an aircraft's flight computer gets attacked by a hacker. Can the quantum-resistant encryption protect it? This project answers that question by simulating a real-world cyber engagement at 20,000+ feet.
 
-You run a 90-second combat mission. Somewhere during the climb, a cyberattack hits the avionics system. The simulation shows:
+You run a 90-second flight mission. Somewhere during the climb, a cyberattack hits the avionics system. The simulation shows:
 
 - **What happens** when the system is under attack (glitching displays, corrupted data)
 - **How post-quantum cryptography defends** it (lattice-based math that quantum computers can't break)
