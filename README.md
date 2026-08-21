@@ -98,13 +98,6 @@ I worked on this for 6 months straight (Feb–Aug 2026), tracking almost every d
 
 **For detailed setup and execution instructions, see [SETUP_GUIDE.txt](SETUP_GUIDE.txt).**
 
-Quick summary:
-
-1. Build the Rust engine: `cargo build --target wasm32-unknown-unknown --release` (in `deterministic-engine/`)
-2. Start the Python server: `python app.py` (in `forensic-auditor/`)
-3. Open `http://127.0.0.1:8000` in your browser
-4. Click **"ENGAGE MISSION BUS"** and run the 90-second simulation
-
 ---
 
 ## 🧠 What I Built (and Learned)
