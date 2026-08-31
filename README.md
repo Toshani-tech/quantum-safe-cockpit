@@ -18,6 +18,20 @@ So I built a simulation. You run a flight mission as the pilot, and during the m
 
 ---
 
+## 🎓 Why I Built This
+
+I was watching a Hindi series about the Kandahar hijacking and thought: planes get hijacked, but what about hacked? Can someone actually compromise an avionics system during flight?
+
+That question stuck with me. I started researching ARINC protocols, how aircraft systems authenticate data, and how cybersecurity considerations apply to avionics environments. I also became interested in post-quantum cryptography and how emerging cryptographic standards could eventually affect long-lived systems.
+
+Much of what I found was highly theoretical or spread across different papers, standards, and technical resources. I wanted to build something that could bring some of those concepts together in an interactive simulation.
+
+So I built one. I wanted to understand: How might a simulated flight system behave under a cyberattack? What does a cryptographic security layer look like when it is running inside a simulation? How can telemetry be analyzed after an incident? This project was my way of exploring those questions hands-on instead of only reading about them.
+
+**Important:** This project is an educational simulation. It is not an aviation-certified flight-control system, avionics system, operational QKD system, or validated model of real-world aircraft cybersecurity. The flight dynamics, attack scenario, security response, and satellite link are simulated for experimentation and learning.
+
+---
+
 ## 🚀 Features
 
 ### **Window 1: The Flight Deck (Real-Time Simulation)**
@@ -131,19 +145,6 @@ Development notes are documented in [docs/LOGBOOK.md](docs/LOGBOOK.md).
 
 ---
 
-## 🎓 Why I Built This
-
-I was watching a Hindi series about the Kandahar hijacking and thought: planes get hijacked, but what about hacked? Can someone actually compromise an avionics system during flight?
-
-That question stuck with me. I started researching ARINC protocols, how aircraft systems authenticate data, and how cybersecurity considerations apply to avionics environments. I also became interested in post-quantum cryptography and how emerging cryptographic standards could eventually affect long-lived systems.
-
-Much of what I found was highly theoretical or spread across different papers, standards, and technical resources. I wanted to build something that could bring some of those concepts together in an interactive simulation.
-
-So I built one. I wanted to understand: How might a simulated flight system behave under a cyberattack? What does a cryptographic security layer look like when it is running inside a simulation? How can telemetry be analyzed after an incident? This project was my way of exploring those questions hands-on instead of only reading about them.
-
-**Important:** This project is an educational simulation. It is not an aviation-certified flight-control system, avionics system, operational QKD system, or validated model of real-world aircraft cybersecurity. The flight dynamics, attack scenario, security response, and satellite link are simulated for experimentation and learning.
-
----
 
 ## 📁 Project Structure
 
